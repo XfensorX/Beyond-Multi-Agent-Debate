@@ -92,7 +92,6 @@ def run_test_set(
     run_one_question: Callable[[ExperimentInput], ExperimentOutput],
     experiment_name: str,
     num_workers: int = 8,
-    chunksize: int = 1,
 ):
     dataset = datasets.load_dataset("TIGER-Lab/MMLU-Pro")
     prompts = get_example_questions(dataset["validation"])
@@ -113,9 +112,10 @@ def run_test_set(
         return ExperimentQuestion(**entry, output=output)
 
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        # TODO: move experiment tracking to different class
         with open(f"{experiment_name}.json", "w") as output_file:
             for processed_entry in tqdm(
-                executor.map(process_entry, test_ds, chunksize=chunksize),
+                executor.map(process_entry, test_ds),
                 total=len(test_ds),
             ):
                 json_string = processed_entry.model_dump_json(indent=None)
