@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from config import results_dir
 from data_connectors.mmlu_pro import run_test_set
-from decision_schemes import GroupDecisionScheme, DECISION_SCHEMES
+from main_registry import DECISION_SCHEMES, DecisionSchemeName
 
 
 class DataSource(Enum):
@@ -22,7 +22,7 @@ class ExperimentConfig(BaseModel):
     name: str
     results_subdir: Path
     data: DataSource
-    strategy: GroupDecisionScheme
+    strategy: DecisionSchemeName
     meta_information: MetaInformation
     # TODO: add parameters of decision_scheme
 
@@ -41,7 +41,7 @@ def run_experiment(experiment_config: ExperimentConfig) -> ExperimentInfo:
 
     match experiment_config.data:
         case DataSource.MMLUPro:
-            run_test_set(decision_scheme, experiment_config.name)
+            run_test_set(decision_scheme(), experiment_config.name)
         case _:
             raise NotImplementedError(f"{experiment_config.data} is not implemented.")
 

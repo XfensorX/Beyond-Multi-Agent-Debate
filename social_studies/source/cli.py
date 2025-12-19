@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from rich.console import Console
-from typing import List
+from typing import List, Literal
 import typer
 from rich.panel import Panel
 from rich.syntax import Syntax
+from rich.tree import Tree
 
 import hydra
 from omegaconf import OmegaConf
 
 from config import config_dir
 from experiment.run_experiment import ExperimentConfig, run_experiment
+from main_registry import DECISION_SCHEMES, DATA_CONNECTORS
 
 app = typer.Typer(add_completion=False, help="Experiment runner CLI")
 console = Console()  # Todo: Move into dependencies
@@ -62,6 +64,25 @@ def run(
             title="Success",
         )
     )
+
+
+@app.command("list")
+def list_(what: Literal["schemes", "data", "configs"]):
+    match what:
+        case "schemes":
+            console.print(DECISION_SCHEMES)
+        case "data":
+            console.print(DATA_CONNECTORS)
+        case "configs":
+            root = config_dir()
+            tree = Tree("📂 config", guide_style="bold bright_blue")
+
+            for p in sorted(root.rglob("*.y*ml")):
+                tree.add(f"📃 {p.relative_to(root).with_suffix('').as_posix()}")
+
+            console.print(tree)
+        case _:
+            raise NotImplementedError(f"{what} not implemented")
 
 
 if __name__ == "__main__":

@@ -1,11 +1,12 @@
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
-from typing import Callable, Any
+
 
 import datasets
-from langchain_core.messages import BaseMessage
 from pydantic import BaseModel
 from tqdm import tqdm
+
+from decision_schemes.base import DecisionScheme, ExampleInput, ExampleOutput
 
 OPTION_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
 
@@ -51,32 +52,8 @@ def get_example_questions(validation_data) -> dict[MMLUProCategory, str]:
     return prompts
 
 
-class ExperimentInput(BaseModel):
-    example_questions: str
-    question: str
-
-
-class HistoryMessage(BaseModel):
-    input_context: list[BaseMessage]
-    answer: str
-    agent_id: int
-    model_name: str
-    options: dict[str, Any]
-
-
-class ExperimentOutput(BaseModel):
-    number_of_agents: int
-    used_input_tokens: int
-    used_output_tokens: int
-    used_rounds: int
-    answers_at_beginning: list[str] | None = None
-    answers_at_end: list[str] | None = None
-    final_answer: str
-    history: list[HistoryMessage]
-
-
 class ExperimentQuestion(BaseModel):
-    output: ExperimentOutput
+    output: ExampleOutput
 
     question_id: int
     question: str
@@ -89,7 +66,7 @@ class ExperimentQuestion(BaseModel):
 
 
 def run_test_set(
-    run_one_question: Callable[[ExperimentInput], ExperimentOutput],
+    scheme: DecisionScheme,
     experiment_name: str,
     num_workers: int = 8,
 ):
@@ -100,8 +77,8 @@ def run_test_set(
     def process_entry(entry):
         query = "Q: " + entry["question"] + "\n" + form_options(entry["options"]) + "\n"
 
-        output = run_one_question(
-            ExperimentInput(
+        output = scheme.run_example(
+            ExampleInput(
                 example_questions=prompts[MMLUProCategory(entry["category"])],
                 question=query,
             )
