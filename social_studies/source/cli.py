@@ -16,7 +16,7 @@ from omegaconf import OmegaConf
 
 from config import config_dir
 from experiment.run_experiment import ExperimentConfig, run_experiment
-from main_registry import DECISION_SCHEMES, DATA_CONNECTORS
+from experiment.main_registry import DECISION_SCHEMES, DATA_CONNECTORS
 
 app = typer.Typer(add_completion=False, help="Experiment runner CLI")
 console = Console()  # Todo: Move into dependencies
@@ -34,29 +34,27 @@ def run(
     show_config: bool = typer.Option(True, help="Print resolved config before running"),
 ):
     console.print(
-        Panel.fit(
-            " Agent Group Experiments ",
-            subtitle="CLI App",
-        ),
-        justify="center",
+        Panel.fit(" Agent Group Experiments ", subtitle="CLI App"), justify="center"
     )
 
     overrides = overrides or []
     with hydra.initialize_config_dir(version_base=None, config_dir=str(config_dir())):
-        cfg = hydra.compose(config_name, overrides)
+        omega_cfg = hydra.compose(config_name, overrides)
+        cfg = ExperimentConfig(**omega_cfg)
 
     if show_config:
-        resolved = OmegaConf.to_yaml(cfg, resolve=True)
         console.print(
             Panel(
-                Syntax(resolved, "yaml", word_wrap=True),
+                Syntax(
+                    OmegaConf.to_yaml(omega_cfg, resolve=True), "yaml", word_wrap=True
+                ),
                 title="Resolved config",
                 title_align="left",
             ),
         )
 
     try:
-        info = run_experiment(ExperimentConfig(**cfg))
+        info = run_experiment(cfg)
 
     except Exception as e:
         console.print(Panel(str(e), title="Run failed", style="red"))
@@ -64,8 +62,9 @@ def run(
             console.print(
                 Panel(repr(e.request), title="Failed Request", style="yellow")
             )
-
-        elif not isinstance(e, ValidationError):
+        elif isinstance(e, ValidationError):
+            pass
+        else:
             console.print(Traceback.from_exception(type(e), e, e.__traceback__))
         raise typer.Exit(code=1)
 

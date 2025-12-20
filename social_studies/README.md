@@ -1,11 +1,12 @@
 # TODO:
 - Experiment Base Class
-- Experiment Confgis easily (subset, etc.)
+- Experiment Configs easily (subset, etc.)
 - Result Writer
   - with more meta-infos like time
   - better directory structuring
   - hydra configs, etc.
 - Logging (maybe some opentelemetry?)
+- Just use Langsmith for the dataset
 
 
 

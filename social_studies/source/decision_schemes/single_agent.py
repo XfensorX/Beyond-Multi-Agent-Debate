@@ -10,7 +10,7 @@ from decision_schemes.base import (
     ExampleOutput,
     HistoryMessage,
 )
-from main_registry import register_decision_scheme
+from experiment.main_registry import register_decision_scheme
 
 
 class SingleAgentConfiguration(BaseModel):
@@ -23,16 +23,12 @@ class SingleAgentConfiguration(BaseModel):
 
 
 @register_decision_scheme("single-agent")
-class SingleAgentBaseline(DecisionScheme):
-    configuration_parameters = SingleAgentConfiguration
-
-    def run_example(
-        self, example_input: ExampleInput, config_params: SingleAgentConfiguration
-    ) -> ExampleOutput:
+class SingleAgentBaseline(DecisionScheme[SingleAgentConfiguration]):
+    def run_example(self, example_input: ExampleInput) -> ExampleOutput:
         used_options = {
-            "max_tokens": config_params.max_tokens,
-            "temperature": config_params.temperature,
-            "top_p": config_params.top_p,
+            "max_tokens": self.config.max_tokens,
+            "temperature": self.config.temperature,
+            "top_p": self.config.top_p,
         }
 
         messages = [
@@ -40,13 +36,13 @@ class SingleAgentBaseline(DecisionScheme):
                 "You are an knowledge expert, you are supposed to answer the multi-choice question to derive your final answer as `The answer is ...`."
             ),
             HumanMessage(
-                example_input.example_questions + "\n\n" + example_input.question
+                example_input.presolved_questions + "\n\n" + example_input.question
             ),
         ]
 
-        ai_msg = get_llm(
-            config_params.backend, model_name=config_params.model_name
-        ).invoke(messages, **used_options)
+        ai_msg = get_llm(self.config.backend, model_name=self.config.model_name).invoke(
+            messages, **used_options
+        )
 
         return ExampleOutput(
             used_input_tokens=ai_msg.usage_metadata["input_tokens"],

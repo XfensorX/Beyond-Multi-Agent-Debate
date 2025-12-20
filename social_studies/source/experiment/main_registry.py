@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import Type
 
 import data_connectors
 import decision_schemes
@@ -9,12 +10,12 @@ from utils.general import import_all_submodules, make_enum
 from utils.registry import Registry
 
 
-def _validate_decision_scheme(cls: Type[DecisionScheme]) -> None:
+def _validate_decision_scheme(cls: type[DecisionScheme]):
     if not isinstance(cls, type) or not issubclass(cls, DecisionScheme):
         raise TypeError("Only DecisionScheme subclasses can be registered")
 
 
-def _validate_data_connector(cls: Type[DataConnector]) -> None:
+def _validate_data_connector(cls: type[DataConnector]):
     if not isinstance(cls, type) or not issubclass(cls, DataConnector):
         raise TypeError("Only DataConnector subclasses can be registered")
 

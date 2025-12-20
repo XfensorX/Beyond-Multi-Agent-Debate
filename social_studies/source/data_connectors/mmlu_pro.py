@@ -1,12 +1,12 @@
-from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
-
+from typing import Iterable, Any
 
 import datasets
 from pydantic import BaseModel
-from tqdm import tqdm
 
-from decision_schemes.base import DecisionScheme, ExampleInput, ExampleOutput
+from data_connectors.base import DataConnector
+from decision_schemes.base import ExampleInput
+from experiment.main_registry import register_data_connector
 
 OPTION_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
 
@@ -52,9 +52,7 @@ def get_example_questions(validation_data) -> dict[MMLUProCategory, str]:
     return prompts
 
 
-class ExperimentQuestion(BaseModel):
-    output: ExampleOutput
-
+class MMLUProExample(BaseModel):
     question_id: int
     question: str
     src: str
@@ -65,36 +63,26 @@ class ExperimentQuestion(BaseModel):
     options: list[str]
 
 
-def run_test_set(
-    scheme: DecisionScheme,
-    experiment_name: str,
-    num_workers: int = 8,
-):
-    dataset = datasets.load_dataset("TIGER-Lab/MMLU-Pro")
-    prompts = get_example_questions(dataset["validation"])
-    test_ds = dataset["test"]
+@register_data_connector("mmlu-pro")
+class MMLUProConnector(DataConnector[MMLUProExample]):
+    prompts = None
 
-    def process_entry(entry):
-        query = "Q: " + entry["question"] + "\n" + form_options(entry["options"]) + "\n"
-
-        output = scheme.run_example(
-            ExampleInput(
-                example_questions=prompts[MMLUProCategory(entry["category"])],
-                question=query,
-            ),
-            scheme.config_params,
+    
+    def prepare_example(self, example: MMLUProExample) -> ExampleInput:
+        query = "Q: " + example.question + "\n" + form_options(example.options) + "\n"
+        return ExampleInput(
+            presolved_questions=self.prompts[example.category],
+            question=query,
         )
 
-        entry = dict(entry)
-        entry["category"] = MMLUProCategory(entry["category"])
-        return ExperimentQuestion(**entry, output=output)
+    def iterate_data(self) -> Iterable[MMLUProExample]:
+        dataset = datasets.load_dataset("TIGER-Lab/MMLU-Pro")
+        self.prompts = get_example_questions(dataset["validation"])
+        test_ds = dataset["test"]
 
-    with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        # TODO: move experiment tracking to different class
-        with open(f"results/{experiment_name}.json", "w") as output_file:
-            for processed_entry in tqdm(
-                executor.map(process_entry, test_ds),
-                total=len(test_ds),
-            ):
-                json_string = processed_entry.model_dump_json(indent=None)
-                output_file.write(json_string + "\n")
+        def to_structured(entry: dict[str, Any]):
+            entry = dict(entry)
+            entry["category"] = MMLUProCategory(entry["category"])
+            return MMLUProExample(**entry)
+
+        return iter(map(to_structured, test_ds))

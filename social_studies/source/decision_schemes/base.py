@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 
 from pydantic import BaseModel
 from typing import Any, Generic, TypeVar
 from langchain_core.messages import BaseMessage
+from typing import get_args, get_origin
 
 from utils.general import BaseModelWithExtraFields
 
@@ -16,7 +19,7 @@ class HistoryMessage(BaseModel):
 
 
 class ExampleInput(BaseModel):
-    example_questions: str
+    presolved_questions: str
     question: str
 
 
@@ -33,45 +36,42 @@ ConfigurationOptions = TypeVar("ConfigurationOptions", bound=BaseModelWithExtraF
 
 
 class DecisionScheme(ABC, Generic[ConfigurationOptions]):
+    # this will be filled automatically on creation
+    config: ConfigurationOptions
+
     # >>>>>>>>>>>>>>>>>>>>>> has to be overridden in subclass >>>>>>>>>>>>>>>>>>>>>>>>>>
-
-    # the pydantic model for the input parameters
-    configuration_parameters: ConfigurationOptions
-
     @abstractmethod
-    def run_example(  # TODO: make the handling of config_params more intuitive
-        self, example_input: ExampleInput, config_params: ConfigurationOptions
-    ) -> ExampleOutput:
+    def run_example(self, example_input: ExampleInput) -> ExampleOutput:
         """
         !!! This method has to be thread safe !!!
 
+        You have access to the configuration parameters on self.config
 
-        :param config_params: the configuration parameters given from the experiment configuration
-        :param example_input: the experiment_input
-        :return: the experiment output
+
+        :param example_input: the experiment_input for one example
+        :return: the experiment output of that example
         """
         raise NotImplementedError()
 
     # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-    def __init__(self, options: ConfigurationOptions) -> None:
-        self.config_params: ConfigurationOptions = (
-            self.configuration_parameters.model_validate(options)
-        )
+    def __init__(self, config: ConfigurationOptions) -> None:
+        self.config: ConfigurationOptions = self.validate_config(config)
 
-    def __init_subclass__(cls, **kwargs: Any) -> None:
+    _config_type_arg: ConfigurationOptions
+
+    def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
 
-        if cls is DecisionScheme:
-            return
+        for b in getattr(cls, "__orig_bases__", ()):
+            if get_origin(b) is DecisionScheme:
+                (arg,) = get_args(b)
+                cls._config_type_arg = arg
+                return
 
-        model = getattr(cls, "configuration_parameters", None)
-        if model is None:
-            raise TypeError(
-                f"{cls.__name__} must define class attribute "
-                f"`configuration_parameters = <pydantic.BaseModel subclass>`"
-            )
-        if not isinstance(model, type) or not issubclass(model, BaseModel):
-            raise TypeError(
-                f"{cls.__name__}.configuration_parameters must be a subclass of pydantic.BaseModel"
-            )
+        raise TypeError(
+            f"{cls.__name__} must subclass DecisionScheme[SomeType] with the config parameters type"
+        )
+
+    def validate_config(self, config: Any) -> ConfigurationOptions:
+        return self._config_type_arg.model_validate(config)

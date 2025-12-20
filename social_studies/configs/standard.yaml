@@ -1,6 +1,6 @@
 name: standard
 results_subdir: standard
-data: MMLUPro
+data: mmlu-pro
 strategy:
   name: single-agent
   configuration:
