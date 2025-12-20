@@ -1,0 +1,18 @@
+name: standard
+results_subdir: standard
+data: MMLUPro
+strategy:
+  name: single-agent
+  configuration:
+    max_tokens: 1024
+    temperature: 0.0
+    top_p: 0.0001
+
+#    backend: L3S-TGI
+    backend: LMStudio
+    model_name: Qwen/Qwen2.5-0.5B-Instruct
+
+meta_information:
+  description: The baseline evaluation.
+  number_of_agents: 1
+  used_rounds: 1

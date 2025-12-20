@@ -1,9 +1,9 @@
-import os
+from typing import Optional
 
-import dotenv
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from pydantic import BaseModel
 
+from config import get_llm, Backend
 from decision_schemes.base import (
     DecisionScheme,
     ExampleInput,
@@ -12,35 +12,29 @@ from decision_schemes.base import (
 )
 from main_registry import register_decision_scheme
 
-# TODO: move this into a global configuration
-dotenv.load_dotenv("../.env")
 
-USED_ENDPOINT = "L3S-TGI"
-# USED_ENDPOINT = "LMStudio"
+class SingleAgentConfiguration(BaseModel):
+    max_tokens: Optional[int]
+    temperature: Optional[float]
+    top_p: Optional[float]
 
-
-ALL_LLMs = {
-    "interweb": ChatOpenAI(
-        model="gemma3:1b",
-        base_url="https://interweb.l3s.uni-hannover.de/v1",
-        api_key=os.getenv("INTERWEB_API_KEY"),
-    ),
-    "LMStudio": ChatOpenAI(
-        model="qwen2.5-0.5b-instruct", base_url="http://127.0.0.1:1234/v1", api_key=""
-    ),
-    "L3S-TGI": ChatOpenAI(
-        model="Qwen/Qwen2.5-0.5B-Instruct",
-        base_url="http://localhost:8000/v1",
-        api_key="",
-    ),
-}
+    backend: Backend
+    model_name: str
 
 
 @register_decision_scheme("single-agent")
 class SingleAgentBaseline(DecisionScheme):
-    def run_example(self, example_input: ExampleInput) -> ExampleOutput:
-        used_options = {"max_tokens": 1024, "temperature": 0.0, "top_p": 0.0001}
-        llm = ALL_LLMs[USED_ENDPOINT]
+    configuration_parameters = SingleAgentConfiguration
+
+    def run_example(
+        self, example_input: ExampleInput, config_params: SingleAgentConfiguration
+    ) -> ExampleOutput:
+        used_options = {
+            "max_tokens": config_params.max_tokens,
+            "temperature": config_params.temperature,
+            "top_p": config_params.top_p,
+        }
+
         messages = [
             SystemMessage(
                 "You are an knowledge expert, you are supposed to answer the multi-choice question to derive your final answer as `The answer is ...`."
@@ -49,15 +43,14 @@ class SingleAgentBaseline(DecisionScheme):
                 example_input.example_questions + "\n\n" + example_input.question
             ),
         ]
-        ai_msg = llm.invoke(
-            messages, **used_options
-        )  # FIXME: different from original use temperature 0.0 and top_k 1
+
+        ai_msg = get_llm(
+            config_params.backend, model_name=config_params.model_name
+        ).invoke(messages, **used_options)
 
         return ExampleOutput(
-            number_of_agents=1,
             used_input_tokens=ai_msg.usage_metadata["input_tokens"],
             used_output_tokens=ai_msg.usage_metadata["output_tokens"],
-            used_rounds=1,
             final_answer=ai_msg.content,
             history=[
                 HistoryMessage(

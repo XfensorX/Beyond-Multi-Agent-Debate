@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import dotenv
+from openai import APIConnectionError
+from pydantic import ValidationError
 from rich.console import Console
 from typing import List, Literal
 import typer
 from rich.panel import Panel
 from rich.syntax import Syntax
+from rich.traceback import Traceback
 from rich.tree import Tree
 
 import hydra
@@ -55,7 +59,14 @@ def run(
         info = run_experiment(ExperimentConfig(**cfg))
 
     except Exception as e:
-        console.print(Panel(str(e), title="Run failed", style="bold red"))
+        console.print(Panel(str(e), title="Run failed", style="red"))
+        if isinstance(e, APIConnectionError):
+            console.print(
+                Panel(repr(e.request), title="Failed Request", style="yellow")
+            )
+
+        elif not isinstance(e, ValidationError):
+            console.print(Traceback.from_exception(type(e), e, e.__traceback__))
         raise typer.Exit(code=1)
 
     console.print(
@@ -86,4 +97,5 @@ def list_(what: Literal["schemes", "data", "configs"]):
 
 
 if __name__ == "__main__":
+    dotenv.load_dotenv("../.env")
     app()

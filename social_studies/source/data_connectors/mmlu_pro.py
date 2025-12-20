@@ -81,7 +81,8 @@ def run_test_set(
             ExampleInput(
                 example_questions=prompts[MMLUProCategory(entry["category"])],
                 question=query,
-            )
+            ),
+            scheme.config_params,
         )
 
         entry = dict(entry)
@@ -90,7 +91,7 @@ def run_test_set(
 
     with ThreadPoolExecutor(max_workers=num_workers) as executor:
         # TODO: move experiment tracking to different class
-        with open(f"{experiment_name}.json", "w") as output_file:
+        with open(f"results/{experiment_name}.json", "w") as output_file:
             for processed_entry in tqdm(
                 executor.map(process_entry, test_ds),
                 total=len(test_ds),

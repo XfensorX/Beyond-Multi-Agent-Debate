@@ -4,6 +4,8 @@ import pkgutil
 from enum import Enum
 from types import ModuleType
 
+from pydantic import BaseModel, ConfigDict
+
 
 def contains_whitespace(s):
     return any((whitespace_char in s) for whitespace_char in string.whitespace)
@@ -20,3 +22,7 @@ def import_all_submodules(package) -> list[ModuleType]:
 def make_enum(name: str, values: set[str]) -> type[Enum]:
     members = {v: v for v in sorted(values)}
     return Enum(name, members)
+
+
+class BaseModelWithExtraFields(BaseModel):
+    model_config = ConfigDict(extra='allow')

@@ -1,3 +1,17 @@
+# TODO:
+- Experiment Base Class
+- Experiment Confgis easily (subset, etc.)
+- Result Writer
+  - with more meta-infos like time
+  - better directory structuring
+  - hydra configs, etc.
+- Logging (maybe some opentelemetry?)
+
+
+
+
+---
+
 ```ssh
 
 # Start GPU Job:
@@ -30,3 +44,22 @@ ssh -NL localhost:8000:localhost:8000 node10.l3s
   
 ```
 
+
+
+Available LLMs:
+```python
+available_llms = {
+    "interweb": (
+        model="gemma3:1b",
+    ),
+    "LMStudio": (
+        model="qwen2.5-0.5b-instruct",
+    ),
+    "L3S-TGI": (
+        model="Qwen/Qwen2.5-0.5B-Instruct",
+    ),
+}
+
+
+
+```
