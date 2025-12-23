@@ -6,10 +6,10 @@ import os
 from pathlib import Path
 
 import zstandard as zstd
-from pydantic import BaseModel
-
 from config import TRACK_FILE_NAME
 from decision_schemes.base import ExampleInput, ExampleOutput
+from pydantic import BaseModel
+from utils.phoenix import PhoenixExampleHandle
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ def compress_zstd(
 class TrackEntry(BaseModel):
     input: ExampleInput
     output: ExampleOutput
+    phoenix_span_info: PhoenixExampleHandle
 
 
 class ExperimentTracker:

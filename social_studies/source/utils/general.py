@@ -1,6 +1,6 @@
-import string
 import importlib
 import pkgutil
+import string
 from enum import Enum
 from types import ModuleType
 
@@ -25,4 +25,33 @@ def make_enum(name: str, values: set[str]) -> type[Enum]:
 
 
 class BaseModelWithExtraFields(BaseModel):
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
+
+
+def flatten_dict(
+    d,
+    parent_key="",
+    sep=".",
+    map_to_basic_types=False,
+    basic_types=(bool, str, bytes, int, float),
+):
+    items = {}
+    for key, value in d.items():
+        new_key = f"{parent_key}{sep}{key}" if parent_key else key
+
+        if isinstance(value, dict):
+            items.update(
+                flatten_dict(
+                    value,
+                    new_key,
+                    sep,
+                    map_to_basic_types,
+                    basic_types,
+                )
+            )
+        else:
+            if map_to_basic_types and not isinstance(value, basic_types):
+                value = str(value)
+            items[new_key] = value
+
+    return items

@@ -13,7 +13,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
 from rich.traceback import Traceback
-from utils.hydra_config import ExecutionConfig, MainConfig
+from utils.hydra_config import MainConfig
 from utils.meta_info import generate_meta_information
 from utils.phoenix import phoenix_server_is_up, setup_phoenix
 
@@ -30,12 +30,15 @@ def print_title(console: Console):
     )
 
 
-def initialize_phoenix(console: Console, conf: ExecutionConfig):
+def initialize_phoenix(console: Console, conf: MainConfig):
     log.info("Checking Phoenix Server connection...")
 
-    if phoenix_server_is_up(url=f"{conf.phoenix_server_url}/healthz"):
+    if phoenix_server_is_up(url=f"{conf.execution.phoenix_server_url}/healthz"):
         log.info("Writing LLM Interactions into Phoenix. It is up and running.")
-        setup_phoenix(endpoint=conf.phoenix_graphql_url, project_name="experiment")
+        setup_phoenix(
+            endpoint=conf.execution.phoenix_graphql_url,
+            project_name=conf.meta_info.phoenix_project_name,
+        )
 
         return
 
@@ -78,9 +81,9 @@ def print_final_message(console: Console, config: MainConfig):
     console.print(
         Panel(
             Group(
-                Text("✅ Done", style="bold green"),
-                Text("\n"),
+                Text("✅ Done\n", style="bold green"),
                 Text(f"Results: {config.meta_info.output_directory}"),
+                Text(f"Phoenix Project: {config.meta_info.phoenix_project_name}"),
             ),
             title="Success",
         )

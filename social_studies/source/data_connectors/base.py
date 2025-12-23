@@ -1,11 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import TypeVar, Generic, Iterable
-
-from pydantic import BaseModel
+from typing import Generic, Iterable, TypeVar
 
 from decision_schemes.base import ExampleInput
+from pydantic import BaseModel
 
-Example = TypeVar("Example", bound=BaseModel)
+
+class ExampleBase(BaseModel):
+    question_id: int
+
+
+Example = TypeVar("Example", bound=ExampleBase)
 
 
 class DataConnector(ABC, Generic[Example]):

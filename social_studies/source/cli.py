@@ -23,8 +23,9 @@ def main(cfg: DictConfig):
     try:
         print_title(console)
         setup_logging(output_directory=config.meta_info.output_directory)
-        initialize_phoenix(console, config.execution)
+        initialize_phoenix(console, config)
         print_config_overview(console, config)
+
         run_experiment(config)
 
     except Exception as e:

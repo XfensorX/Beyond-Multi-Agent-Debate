@@ -24,6 +24,7 @@ hydra:
 
 meta_info: #  PLACEHOLDER - Added on Run
   output_directory: /tmp
+  phoenix_project_name: "Not Set"
 
   execution:
     started_at_utc: "Unknown"        # ISO-8601 UTC timestamp

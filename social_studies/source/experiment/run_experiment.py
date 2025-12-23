@@ -1,20 +1,21 @@
 from __future__ import annotations
 
 import logging
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 
-from concurrent.futures import ThreadPoolExecutor, wait, FIRST_COMPLETED
-
-from data_connectors.base import DataConnector
+from data_connectors.base import DataConnector, Example
 from decision_schemes.base import DecisionScheme
 from experiment.main_registry import (
-    DECISION_SCHEMES,
     DATA_CONNECTORS,
+    DECISION_SCHEMES,
 )
+from utils.general import flatten_dict
 from utils.hydra_config import (
     ExecutionConfig,
     MainConfig,
 )
 from utils.logging import progress_iter
+from utils.phoenix import phoenix_example_span
 from utils.tracking import ExperimentTracker, TrackEntry
 
 logger = logging.getLogger(__name__)
@@ -55,9 +56,23 @@ def execute_experiment(
 ):
     # TODO: implement seed and subset
 
-    def run_single_example(example):
-        example_in = data_connector.prepare_example(example)
-        return example_in, decision_scheme.run_example(example_in)
+    def run_single_example(example: Example):
+        with phoenix_example_span(
+            example_id=example.question_id,
+            attributes={"question": example.model_dump()},
+        ) as (
+            span,
+            span_info,
+        ):
+            example_in = data_connector.prepare_example(example)
+            example_out = decision_scheme.run_example(example_in)
+            span.set_attributes(
+                flatten_dict(
+                    {"output": example_out.model_dump(exclude={"history"})},
+                    map_to_basic_types=True,
+                )
+            )
+            return example_in, example_out, span_info
 
     in_flight_cap = 2 * execution_config.num_workers
     executor = ThreadPoolExecutor(max_workers=execution_config.num_workers)
@@ -79,9 +94,15 @@ def execute_experiment(
         while futures:
             done, futures = wait(futures, return_when=FIRST_COMPLETED)
             for fut in done:
-                example_input, example_output = fut.result()
-                tracker.write_line(
-                    TrackEntry(input=example_input, output=example_output)
+                example_input, example_output, phoenix_span_info = fut.result()
+                (
+                    tracker.write_line(
+                        TrackEntry(
+                            input=example_input,
+                            output=example_output,
+                            phoenix_span_info=phoenix_span_info,
+                        )
+                    ),
                 )
 
                 try:

@@ -1,10 +1,8 @@
 from enum import Enum
-from typing import Iterable, Any
+from typing import Any, Iterable
 
 import datasets
-from pydantic import BaseModel
-
-from data_connectors.base import DataConnector
+from data_connectors.base import DataConnector, ExampleBase
 from decision_schemes.base import ExampleInput
 from experiment.main_registry import register_data_connector
 
@@ -52,8 +50,7 @@ def get_example_questions(validation_data) -> dict[MMLUProCategory, str]:
     return prompts
 
 
-class MMLUProExample(BaseModel):
-    question_id: int
+class MMLUProExample(ExampleBase):
     question: str
     src: str
     category: MMLUProCategory

@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-from hydra.core.hydra_config import HydraConfig
-from pydantic import BaseModel
-
-
 import hashlib
 import subprocess
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import List, Optional, Tuple
+
+from hydra.core.hydra_config import HydraConfig
+from pydantic import BaseModel
 
 
 class GitInfo(BaseModel):
@@ -34,6 +32,7 @@ class ExperimentMetaInfo(BaseModel):
     execution: ExecutionInfo
     git: Optional[GitInfo] = None
     output_directory: Path
+    phoenix_project_name: str
 
 
 def _utc_now_iso() -> str:
@@ -125,8 +124,11 @@ def generate_meta_information() -> ExperimentMetaInfo:
 
     git_info = _git_info_best_effort()
 
+    output_dir = Path(HydraConfig.get().runtime.output_dir)
+
     return ExperimentMetaInfo(
         execution=ExecutionInfo(started_at_utc=started_at, argv=argv, command=command),
         git=git_info,
-        output_directory=Path(HydraConfig.get().runtime.output_dir),
+        output_directory=output_dir,
+        phoenix_project_name=output_dir.parent.name + " - " + output_dir.name,
     )
