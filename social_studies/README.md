@@ -1,9 +1,9 @@
 # TODO:
 
+- Let it run on slurm
 - Experiment Configs easily (subset, etc.)
-- trace examples to phoenix traces/spans
 - implement seeding
-- implement the comparison experiment
+- Analysis Website
 
 ---
 

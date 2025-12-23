@@ -2,8 +2,8 @@ import os
 from enum import Enum
 from functools import cache
 
-from langchain_openai import ChatOpenAI
-from pydantic import BaseModel
+from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
+from pydantic import BaseModel, ConfigDict
 
 LOG_FILE_NAME = "stdout.log"
 TRACK_FILE_NAME = "experiment_result.jsonl"
@@ -35,10 +35,32 @@ BACKENDS: dict[Backend, BackendInfo] = {
 }
 
 
+class LLMConfig(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    backend: Backend
+    model_name: str
+    max_new_tokens: int
+    top_k: int
+    top_p: float
+    typical_p: float
+    temperature: float
+    repetition_penalty: float
+
+
 @cache
-def get_llm(backend: Backend, model_name: str):
-    return ChatOpenAI(
-        model=model_name,
-        base_url=BACKENDS[backend].base_url,
-        api_key=BACKENDS[backend].api_key,
+def get_llm(config: LLMConfig) -> ChatHuggingFace:
+    model = HuggingFaceEndpoint(
+        task="text-generation",
+        max_new_tokens=config.max_new_tokens,
+        temperature=config.temperature,
+        repetition_penalty=config.repetition_penalty,
+        top_k=config.top_k,
+        top_p=config.top_p,
+        typical_p=config.typical_p,
+        # do_sample=False,
+        # model=config.model_name, TODO: how to assure model is correct
+        endpoint_url=BACKENDS[config.backend].base_url,
+        huggingfacehub_api_token=BACKENDS[config.backend].api_key,
     )
+
+    return ChatHuggingFace(llm=model)

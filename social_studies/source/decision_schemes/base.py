@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Any, Generic, TypeVar, get_args, get_origin
 
-from pydantic import BaseModel
-from typing import Any, Generic, TypeVar
 from langchain_core.messages import BaseMessage
-from typing import get_args, get_origin
-
+from pydantic import BaseModel
 from utils.general import BaseModelWithExtraFields
 
 
@@ -14,8 +12,6 @@ class HistoryMessage(BaseModel):
     input_context: list[BaseMessage]
     answer: str
     agent_id: int
-    model_name: str
-    options: dict[str, Any]
 
 
 class ExampleInput(BaseModel):
@@ -28,7 +24,7 @@ class ExampleOutput(BaseModel):
     used_output_tokens: int
     answers_at_beginning: list[str] | None = None
     answers_at_end: list[str] | None = None
-    final_answer: str
+    final_answer: str | None = None
     history: list[HistoryMessage]
 
 

@@ -2,15 +2,14 @@ from __future__ import annotations
 
 from typing import Generic
 
-from pydantic import BaseModel, Field, field_validator
-from pydantic_core.core_schema import ValidationInfo
-
 from decision_schemes.base import ConfigurationOptions
 from experiment.main_registry import (
+    DECISION_SCHEMES,
     DataConnectorName,
     DecisionSchemeName,
-    DECISION_SCHEMES,
 )
+from pydantic import BaseModel, Field, field_validator
+from pydantic_core.core_schema import ValidationInfo
 from utils.meta_info import ExperimentMetaInfo
 
 
@@ -22,8 +21,6 @@ class MainConfig(BaseModel):
 
 class ExperimentInformation(BaseModel):
     description: str
-    number_of_agents: int
-    used_rounds: int
 
 
 class ExperimentConfig(BaseModel):

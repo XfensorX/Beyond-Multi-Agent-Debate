@@ -1,15 +1,6 @@
-execution:
-  phoenix_server_url: http://localhost:6006
-  phoenix_graphql_url: http://localhost:4317
-  num_workers: 50
-
-
-
-
 defaults:
   - experiment: null # has to be set on running hydra
   - _self_
-
 
 hydra:
   run:
@@ -21,6 +12,11 @@ hydra:
 
   job:
     chdir: false
+
+execution:
+  phoenix_server_url: http://localhost:6006
+  phoenix_graphql_url: http://localhost:4317
+  num_workers: 50
 
 meta_info: #  PLACEHOLDER - Added on Run
   output_directory: /tmp
