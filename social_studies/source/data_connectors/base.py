@@ -21,3 +21,7 @@ class DataConnector(ABC, Generic[Example]):
     @abstractmethod
     def iterate_data(self) -> Iterable[Example]:
         raise NotImplementedError()
+
+    @abstractmethod
+    def data_length(self) -> int:
+        raise NotImplementedError()

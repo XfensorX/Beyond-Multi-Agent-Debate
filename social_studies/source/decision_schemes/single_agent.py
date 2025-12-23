@@ -21,15 +21,23 @@ class SingleAgentConfiguration(BaseModel):
     backend: Backend
     model_name: str
 
+    def create_llm_options(self):
+        options = {}
+
+        if self.max_tokens:
+            options["max_tokens"] = self.max_tokens
+        if self.temperature:
+            options["temperature"] = self.temperature
+        if self.top_p:
+            options["top_p"] = self.top_p
+
+        return options
+
 
 @register_decision_scheme("single-agent")
 class SingleAgentBaseline(DecisionScheme[SingleAgentConfiguration]):
     def run_example(self, example_input: ExampleInput) -> ExampleOutput:
-        used_options = {
-            "max_tokens": self.config.max_tokens,
-            "temperature": self.config.temperature,
-            "top_p": self.config.top_p,
-        }
+        used_options = self.config.create_llm_options()
 
         messages = [
             SystemMessage(

@@ -1,12 +1,7 @@
 # TODO:
-- Experiment Base Class
 - Experiment Configs easily (subset, etc.)
 - Result Writer
   - with more meta-infos like time
-  - better directory structuring
-  - hydra configs, etc.
-- Logging (maybe some opentelemetry?)
-- Just use Langsmith for the dataset
 
 
 
@@ -64,3 +59,13 @@ available_llms = {
 
 
 ```
+
+
+## Arize Phoenix 
+
+```shell
+uv add arize-phoenix
+PHOENIX_ALLOW_EXTERNAL_RESOURCES=false PHOENIX_WORKING_DIR="./results/phoenix" uv run phoenix serve
+
+```
+

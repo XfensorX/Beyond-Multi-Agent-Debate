@@ -21,6 +21,10 @@ def results_dir() -> Path:
     return project_dir() / "results"
 
 
+LOG_FILE_NAME = "stdout.log"
+TRACK_FILE_NAME = "experiment_result.jsonl"
+
+
 class BackendInfo(BaseModel):
     base_url: str
     api_key: str | None = ""

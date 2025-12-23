@@ -67,7 +67,9 @@ class MMLUProExample(BaseModel):
 class MMLUProConnector(DataConnector[MMLUProExample]):
     prompts = None
 
-    
+    def __init__(self):
+        self.dataset = datasets.load_dataset("TIGER-Lab/MMLU-Pro")
+
     def prepare_example(self, example: MMLUProExample) -> ExampleInput:
         query = "Q: " + example.question + "\n" + form_options(example.options) + "\n"
         return ExampleInput(
@@ -76,9 +78,8 @@ class MMLUProConnector(DataConnector[MMLUProExample]):
         )
 
     def iterate_data(self) -> Iterable[MMLUProExample]:
-        dataset = datasets.load_dataset("TIGER-Lab/MMLU-Pro")
-        self.prompts = get_example_questions(dataset["validation"])
-        test_ds = dataset["test"]
+        self.prompts = get_example_questions(self.dataset["validation"])
+        test_ds = self.dataset["test"]
 
         def to_structured(entry: dict[str, Any]):
             entry = dict(entry)
@@ -86,3 +87,6 @@ class MMLUProConnector(DataConnector[MMLUProExample]):
             return MMLUProExample(**entry)
 
         return iter(map(to_structured, test_ds))
+
+    def data_length(self):
+        return len(self.dataset["test"])
