@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 import dotenv
 from hydra.core.hydra_config import HydraConfig
@@ -14,17 +13,17 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.traceback import Traceback
 from rich.tree import Tree
+from rich.text import Text
 
 import hydra
 from pyfiglet import figlet_format
 
 from config import config_dir, LOG_FILE_NAME
 from experiment.run_experiment import (
-    ExperimentConfig,
     run_experiment,
-    ExecutionConfig,
-    ExperimentInfo,
 )
+from utils.hydra_config import MainConfig
+from utils.meta_info import generate_meta_information
 from experiment.main_registry import DECISION_SCHEMES, DATA_CONNECTORS
 from utils.logging import setup_logging
 from utils.phoenix import phoenix_server_is_up, setup_phoenix
@@ -35,19 +34,9 @@ log = logging.getLogger(__name__)
 
 @hydra.main(version_base=None, config_path="../configs", config_name="base")
 def main(cfg: DictConfig):
-    # TODO: Refactor this function
     try:
-        # TODO: make all this into a single config and use everywhere
-        experiment_config = ExperimentConfig.model_validate(
-            OmegaConf.to_container(cfg["experiment"], resolve=True)
-        )
-        execution_config = ExecutionConfig.model_validate(
-            OmegaConf.to_container(cfg["execution"], resolve=True)
-        )
-        experiment_info = ExperimentInfo(
-            output_directory=Path(HydraConfig.get().runtime.output_dir)
-        )
-        # TODO: make the traces of phoenix track to the questions
+        config = MainConfig.model_validate(OmegaConf.to_container(cfg, resolve=True))
+        config.meta_info = generate_meta_information()
 
     except ValidationError as e:
         console.print(
@@ -63,7 +52,7 @@ def main(cfg: DictConfig):
         justify="center",
     )
 
-    log_file_path = experiment_info.output_directory / LOG_FILE_NAME
+    log_file_path = config.meta_info.output_directory / LOG_FILE_NAME
     log_level = "INFO"
 
     setup_logging(level=log_level, log_file=log_file_path)
@@ -72,10 +61,10 @@ def main(cfg: DictConfig):
 
     log.info("Checking Phoenix Server connection...")
 
-    if phoenix_server_is_up(url=f"{execution_config.phoenix_server_url}/healthz"):
+    if phoenix_server_is_up(url=f"{config.execution.phoenix_server_url}/healthz"):
         log.info("Writing LLM Interactions into Phoenix. It is up and running.")
         setup_phoenix(
-            endpoint=execution_config.phoenix_graphql_url, project_name="experiment"
+            endpoint=config.execution.phoenix_graphql_url, project_name="experiment"
         )
     else:
         console.print(
@@ -90,7 +79,9 @@ def main(cfg: DictConfig):
         Panel(
             Syntax(
                 OmegaConf.to_yaml(
-                    OmegaConf.create(experiment_config.model_dump(mode="json")),
+                    OmegaConf.create(
+                        config.model_dump(mode="json", exclude={"meta_info"})
+                    ),
                     resolve=True,
                 ),
                 "yaml",
@@ -100,23 +91,9 @@ def main(cfg: DictConfig):
             title_align="left",
         ),
     )
-    console.print(
-        Panel(
-            Syntax(
-                OmegaConf.to_yaml(
-                    OmegaConf.create(execution_config.model_dump(mode="json")),
-                    resolve=True,
-                ),
-                "yaml",
-                word_wrap=True,
-            ),
-            title="Execution Parameter",
-            title_align="left",
-        ),
-    )
 
     try:
-        run_experiment(experiment_config, execution_config, experiment_info)
+        run_experiment(config)
 
     except Exception as e:
         console.print(Panel(str(e), title="Run failed", style="red"))
@@ -135,15 +112,9 @@ def main(cfg: DictConfig):
     console.print(
         Panel(
             Group(
-                "[bold green]✅ Done[/bold green]\n\n",
-                Syntax(
-                    OmegaConf.to_yaml(
-                        OmegaConf.create(experiment_info.model_dump(mode="json")),
-                        resolve=True,
-                    ),
-                    "yaml",
-                    word_wrap=True,
-                ),
+                Text("✅ Done", style="bold green"),
+                Text("\n\n"),
+                Text(f"Results: {config.meta_info.output_directory}"),
             ),
             title="Success",
         )

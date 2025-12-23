@@ -1,8 +1,8 @@
 # TODO:
 - Experiment Configs easily (subset, etc.)
-- Result Writer
-  - with more meta-infos like time
-
+- Refactor CLI Function
+- trace examples to phoenic traces/spans
+- implement seeding
 
 
 

@@ -12,7 +12,7 @@ strategy:
     backend: LMStudio
     model_name: Qwen/Qwen2.5-0.5B-Instruct
 
-meta_information:
+additional_info:
   description: The baseline evaluation.
   number_of_agents: 1
   used_rounds: 1

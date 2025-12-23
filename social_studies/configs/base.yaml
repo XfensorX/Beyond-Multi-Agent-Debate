@@ -4,8 +4,7 @@ execution:
   num_workers: 50
 
 
-info:
-  output_directory: /tmp # PLACEHOLDER - Added on Run
+
 
 defaults:
   - experiment: null # has to be set on running hydra
@@ -22,3 +21,20 @@ hydra:
 
   job:
     chdir: false
+
+meta_info: #  PLACEHOLDER - Added on Run
+  output_directory: /tmp
+
+  execution:
+    started_at_utc: "Unknown"        # ISO-8601 UTC timestamp
+    argv: [ ]                         # CLI arguments used to start the run
+    command: "Unknown"               # Full command string
+  git:
+    repo_root: null                  # Path to git repo root
+    remote_url: null                 # Origin URL
+    branch: null
+    commit_sha: null
+    commit_short_sha: null
+    is_dirty: null                   # true / false / null if unknown
+    diff_sha256: null                # Hash of git diff
+    describe: null                   # git describe output
