@@ -1,29 +1,30 @@
 from __future__ import annotations
 
 import logging
+import sys
 import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, Iterator, Optional, TypeVar
 
+from config import LOG_FILE_NAME, LOG_LEVEL
 from rich.logging import RichHandler
-from rich.traceback import install as install_rich_traceback
 from rich.progress import (
-    Progress,
     BarColumn,
+    Progress,
+    SpinnerColumn,
     TextColumn,
     TimeElapsedColumn,
-    SpinnerColumn,
     TimeRemainingColumn,
 )
+from rich.traceback import install as install_rich_traceback
 
-import sys
-from typing import Iterable, Iterator, TypeVar
+log = logging.getLogger(__name__)
 
 
 def setup_logging(
-    level: str = "INFO",
-    log_file: Optional[Path] = None,
+    output_directory: Path,
+    level: str = LOG_LEVEL,
     rich_tracebacks: bool = True,
 ) -> None:
     """
@@ -31,6 +32,8 @@ def setup_logging(
     - Pretty console logs via RichHandler
     - Optional rotating log file (machine-friendly debugging)
     """
+
+    log_file_path = output_directory / LOG_FILE_NAME
     if rich_tracebacks:
         install_rich_traceback(show_locals=False)
 
@@ -50,25 +53,27 @@ def setup_logging(
     console_handler.setLevel(level.upper())
     root.addHandler(console_handler)
 
-    if log_file:
-        log_file.parent.mkdir(parents=True, exist_ok=True)
-        file_handler = RotatingFileHandler(
-            log_file, maxBytes=5_000_000, backupCount=3, encoding="utf-8"
+    log_file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_handler = RotatingFileHandler(
+        log_file_path, maxBytes=5_000_000, backupCount=3, encoding="utf-8"
+    )
+    file_handler.setLevel(level.upper())
+    file_handler.setFormatter(
+        logging.Formatter(
+            fmt="%(asctime)s %(levelname)s %(name)s: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
-        file_handler.setLevel(level.upper())
-        file_handler.setFormatter(
-            logging.Formatter(
-                fmt="%(asctime)s %(levelname)s %(name)s: %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
-        )
-        root.addHandler(file_handler)
+    )
+    root.addHandler(file_handler)
 
     # Silence noisy libraries
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     logging.getLogger("openai").setLevel(logging.WARNING)
+
+    log.info("Logging file: %s", log_file_path)
+    log.info("Log Level: %s", level)
 
 
 T = TypeVar("T")
@@ -146,7 +151,6 @@ def progress_iter(
 
                 maybe_log(done)
 
-            # Finalize
             if total is not None:
                 prog.update(task_id, completed=total)
             if logger and total:

@@ -1,28 +1,17 @@
-from __future__ import annotations
-
 import os
 from enum import Enum
 from functools import cache
-from pathlib import Path
 
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 
-
-def project_dir():
-    return Path(__file__).resolve().parent.parent
-
-
-def config_dir() -> Path:
-    return project_dir() / "configs"
-
-
-def results_dir() -> Path:
-    return project_dir() / "results"
-
-
 LOG_FILE_NAME = "stdout.log"
 TRACK_FILE_NAME = "experiment_result.jsonl"
+
+CLI_TITLE = "Social Studies"
+CLI_SUBTITLE = "Agent Swarm Experiments"
+
+LOG_LEVEL = "INFO"
 
 
 class BackendInfo(BaseModel):

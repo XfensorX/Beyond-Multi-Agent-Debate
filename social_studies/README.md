@@ -1,10 +1,9 @@
 # TODO:
+
 - Experiment Configs easily (subset, etc.)
-- Refactor CLI Function
-- trace examples to phoenic traces/spans
+- trace examples to phoenix traces/spans
 - implement seeding
-
-
+- implement the comparison experiment
 
 ---
 
@@ -40,9 +39,8 @@ ssh -NL localhost:8000:localhost:8000 node10.l3s
   
 ```
 
-
-
 Available LLMs:
+
 ```python
 available_llms = {
     "interweb": (
@@ -60,8 +58,7 @@ available_llms = {
 
 ```
 
-
-## Arize Phoenix 
+## Arize Phoenix
 
 ```shell
 uv add arize-phoenix

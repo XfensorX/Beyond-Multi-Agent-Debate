@@ -30,11 +30,6 @@ def parse_prediction(output: str) -> str:
     return random.choice(OPTION_LETTERS)
 
 
-# TODO:
-# - make this take an iterator instead of a file
-# - instead of depending on ExperimentQuestion it should have it's own datatype
-
-
 def analyse_results(file):
     with open(file, "r") as input_file:
         lines = input_file.readlines()
