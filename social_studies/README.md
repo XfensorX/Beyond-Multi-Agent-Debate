@@ -66,3 +66,8 @@ PHOENIX_ALLOW_EXTERNAL_RESOURCES=false PHOENIX_WORKING_DIR="./results/phoenix" u
 
 ```
 
+## Initialization of fresh sever repo:
+
+- Copy environment/.env.pascal
+- Create env: uv sync
+- Pull TGI Apptainer SIF: uv run task pull_tgi_apptainer
