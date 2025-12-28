@@ -1,9 +1,9 @@
 # TODO:
 
-- Let it run on slurm
 - Experiment Configs easily (subset, etc.)
 - implement seeding
 - Analysis Website
+- refactor the scrupts/slurm directory
 
 ---
 

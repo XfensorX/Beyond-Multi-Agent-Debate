@@ -1,0 +1,22 @@
+#!/bin/bash
+#SBATCH --job-name=phoenix
+#SBATCH --time=72:00:00
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=12G
+#SBATCH --output=%x-%j.out
+#SBATCH --exclude=pascal-node03.l3s.intra
+# FIXME: include node03 if working again
+
+
+set -euo pipefail
+
+export PHOENIX_PORT="${PHOENIX_PORT}"
+export PHOENIX_ALLOW_EXTERNAL_RESOURCES=false
+export PHOENIX_WORKING_DIR="$PROJECT_DIR/results/phoenix/pascal/sqlite"
+mkdir -p $PHOENIX_WORKING_DIR
+export PHOENIX_SQL_DATABASE_URL="sqlite:///$PHOENIX_WORKING_DIR/phoenix.db"
+
+
+source $PROJECT_DIR/.venv/bin/activate
+uv sync
+uv run task phoenix

@@ -1,5 +1,4 @@
 defaults:
-  - experiment: null # has to be set on running hydra
   - _self_
 
 hydra:

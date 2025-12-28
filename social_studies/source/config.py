@@ -26,6 +26,7 @@ class Backend(Enum):
 
 
 BACKENDS: dict[Backend, BackendInfo] = {
+    # FIXME: should this be defined somewhere else?
     Backend.INTERWEB: BackendInfo(
         base_url="https://interweb.l3s.uni-hannover.de/v1",
         api_key=os.getenv("INTERWEB_API_KEY"),

@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+#SBATCH --job-name=tgi
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=32G
+#SBATCH --time=72:00:00
+#SBATCH --output=%x_%j.out
+#SBATCH --exclude=pascal-node03.l3s.intra
+# FIXME: include node03 if working again
+
+set -euo pipefail
+
+: "${PROJECT_DIR}"
+: "${SIF:=$PROJECT_DIR/scripts/slurm/tgi/tgi.sif}"                     # or absolute path
+: "${MODEL_ID}"
+: "${TGI_PORT}"
+: "${HOST:=0.0.0.0}"
+
+: "${BIND_DATA:=$HOME/tgi-data:/data}"
+: "${BIND_HF:=$HOME/.cache/huggingface:/root/.cache/huggingface}"
+
+cd "$PROJECT_DIR"
+
+########################################
+# Detect GPU model → set flash attention
+
+GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n1)
+
+echo "Detected GPU: $GPU_NAME"
+
+if [[ "$GPU_NAME" == *"A100"* ]]; then
+  USE_FLASH_ATTENTION=TRUE
+else
+  USE_FLASH_ATTENTION=FALSE
+fi
+########################################
+
+# Build apptainer env flags
+APPTAINER_ENVS=()
+APPTAINER_ENVS+=(--env USE_FLASH_ATTENTION=$USE_FLASH_ATTENTION)
+
+
+echo "=== TGI Slurm job ==="
+echo "Node: $(hostname)"
+echo "Workdir: $PROJECT_DIR"
+echo "SIF: $SIF"
+echo "Model: $MODEL_ID"
+echo "Host: $HOST"
+echo "Port: $TGI_PORT"
+echo "ENV: ${APPTAINER_ENVS[@]}"
+echo "Binds: -B $BIND_DATA -B $BIND_HF"
+echo "====================="
+
+
+
+# Run TGI (this will keep the job alive)
+exec apptainer run --nv \
+  -B "$BIND_DATA" \
+  -B "$BIND_HF" \
+  "${APPTAINER_ENVS[@]}" \
+  "$SIF" \
+  --model-id "$MODEL_ID" \
+  --hostname "$HOST" \
+  --port "$TGI_PORT"

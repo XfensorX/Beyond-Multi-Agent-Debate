@@ -5,7 +5,7 @@ description = "Some Experiments on behaviour of Agents in Groups"
 readme = "README.md"
 requires-python = "==3.11.*"
 dependencies = [
-    "arize-phoenix>=12.25.1",
+    "arize-phoenix>=12.27.0",
     "beautifulsoup4>=4.14.2",
     "datasets>=4.4.1",
     "grpcio>=1.76.0",
@@ -39,6 +39,13 @@ dependencies = [
     "rich>=14.2.0",
     "rich-pyfiglet>=1.0.0",
     "ruff>=0.14.8",
+    "taskipy>=1.14.1",
+    "uv>=0.9.18",
     "zstandard>=0.25.0",
 ]
 
+[tool.taskipy.tasks]
+slurm = { cwd = ".", cmd = "bash scripts/slurm/experiment/start.sh", help = "Run an experiment on slurm. Need to run slurm_setup first. Specify experiment name: 'uv run task slurm standard'" }
+slurm_setup = { cwd = ".", cmd = "bash scripts/slurm/tgi/start.sh && bash scripts/slurm/phoenix/start.sh", help = "Start Phoenix and TGI on Slurm, setup port forwarding via ssh to this computer. If cancelled, the jobs will still run on the server." }
+phoenix = { cmd = "uv run phoenix serve", cwd = ".", help = "Start the phoenix server. Please assert environment variables are correctly set, e.g.:  PHOENIX_ALLOW_EXTERNAL_RESOURCES=false PHOENIX_WORKING_DIR='./results/phoenix'" }
+pull_tgi_apptainer = { cwd = ".", cmd = "apptainer pull scripts/slurm/tgi/tgi.sif docker://ghcr.io/huggingface/text-generation-inference:2.3.0", help = "Pull the docker Image of TGI from huggingface and save it as apptainer sif." }
