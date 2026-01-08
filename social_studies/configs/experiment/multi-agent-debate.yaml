@@ -11,15 +11,16 @@ strategy:
     debate_agents:
       - number_of_agents: 3
         params:
-          backend: L3S-TGI
-          model_name: Qwen/Qwen2.5-0.5B-Instruct
           max_new_tokens: 1024
           temperature: 0.0
           top_p: 1.0
           top_k: 1
           typical_p: 1.0
           repetition_penalty: 1.03
+        backend:
+          backend: L3S-TGI
+          model_name: Qwen/Qwen2.5-0.5B-Instruct
 
 
 additional_info:
-  description: Basic Multi Agent <Debate>
+  description: Basic Multi Agent Debate

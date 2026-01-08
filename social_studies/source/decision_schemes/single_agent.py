@@ -1,4 +1,4 @@
-from config import LLMConfig, get_llm
+from config import BackendInfo, LLMConfig, get_llm
 from decision_schemes.base import (
     DecisionScheme,
     ExampleInput,
@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 class SingleAgentConfiguration(BaseModel):
     llm: LLMConfig
+    backend: BackendInfo
 
 
 @register_decision_scheme("single-agent")
@@ -26,7 +27,7 @@ class SingleAgentBaseline(DecisionScheme[SingleAgentConfiguration]):
             ),
         ]
 
-        ai_msg = get_llm(self.config.llm).invoke(messages)
+        ai_msg = get_llm(self.config.llm, self.config.backend).invoke(messages)
 
         return ExampleOutput(
             used_input_tokens=ai_msg.usage_metadata["input_tokens"],

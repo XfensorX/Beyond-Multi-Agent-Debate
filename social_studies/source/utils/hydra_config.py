@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Generic
 
+from config import Backend
 from decision_schemes.base import ConfigurationOptions
 from experiment.main_registry import (
     DECISION_SCHEMES,
@@ -34,6 +35,8 @@ class ExecutionConfig(BaseModel):
     num_workers: int = Field(ge=1)
     phoenix_graphql_url: str
     phoenix_server_url: str
+    backend_urls: dict[Backend, str]
+    backend_api_key_env_vars: dict[Backend, str]
 
 
 class DecisionSchemeStrategyConfig(BaseModel, Generic[ConfigurationOptions]):

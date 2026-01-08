@@ -11,9 +11,16 @@
 set -euo pipefail
 
 : "${EXPERIMENT_NAME}"
+: "${TGI_HOST}"
+: "${PHOENIX_HOST}"
 
 source $PROJECT_DIR/.venv/bin/activate
 cd $PROJECT_DIR
 
 uv sync
-uv run source/cli.py +experiment=$EXPERIMENT_NAME
+
+uv run source/cli.py \
+  +experiment="$EXPERIMENT_NAME" \
+  execution.backend_urls.L3S-TGI="http://$TGI_HOST:8000" \
+  execution.phoenix_server_url="http://$PHOENIX_HOST:6006" \
+  execution.phoenix_graphql_url="http://$PHOENIX_HOST:4317"

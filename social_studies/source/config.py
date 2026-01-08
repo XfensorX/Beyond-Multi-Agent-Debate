@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import os
 from enum import Enum
 from functools import cache
 
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from pydantic import BaseModel, ConfigDict
+from utils.global_config_holder import global_hydra_config
 
 LOG_FILE_NAME = "stdout.log"
 TRACK_FILE_NAME = "experiment_result.jsonl"
@@ -14,32 +17,8 @@ CLI_SUBTITLE = "Agent Swarm Experiments"
 LOG_LEVEL = "INFO"
 
 
-class BackendInfo(BaseModel):
-    base_url: str
-    api_key: str | None = ""
-
-
-class Backend(Enum):
-    INTERWEB = "interweb"
-    LMSTUDIO = "LMStudio"
-    L3S_TGI = "L3S-TGI"
-
-
-BACKENDS: dict[Backend, BackendInfo] = {
-    # FIXME: should this be defined somewhere else?
-    Backend.INTERWEB: BackendInfo(
-        base_url="https://interweb.l3s.uni-hannover.de/v1",
-        api_key=os.getenv("INTERWEB_API_KEY"),
-    ),
-    Backend.LMSTUDIO: BackendInfo(base_url="http://127.0.0.1:1234/v1", api_key=""),
-    Backend.L3S_TGI: BackendInfo(base_url=os.getenv("TGI_BASE_URL"), api_key=""),
-}
-
-
 class LLMConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
-    backend: Backend
-    model_name: str
     max_new_tokens: int
     top_k: int
     top_p: float
@@ -48,8 +27,31 @@ class LLMConfig(BaseModel):
     repetition_penalty: float
 
 
+class BackendInfo(BaseModel):
+    backend: Backend
+    model_name: str
+
+
 @cache
-def get_llm(config: LLMConfig) -> ChatHuggingFace:
+def get_llm(config: LLMConfig, backend: BackendInfo) -> ChatHuggingFace:
+    if backend.backend != Backend.L3S_TGI:
+        raise NotImplementedError()
+        # FIXME: if additional backends need to be added, this method has to change
+
+    if backend.model_name != "Qwen/Qwen2.5-0.5B-Instruct":
+        raise NotImplementedError()  # see below
+
+    if backend.api_key_env_var_name:
+        api_key = os.getenv(
+            global_hydra_config.execution.backend_api_key_env_vars[
+                backend.backend.value
+            ]
+        )
+    else:
+        api_key = ""
+
+    base_url = global_hydra_config.execution.backend_urls[backend.backend.value]
+
     model = HuggingFaceEndpoint(
         task="text-generation",
         max_new_tokens=config.max_new_tokens,
@@ -60,8 +62,14 @@ def get_llm(config: LLMConfig) -> ChatHuggingFace:
         typical_p=config.typical_p,
         # do_sample=False,
         # model=config.model_name, TODO: how to assure model is correct
-        endpoint_url=BACKENDS[config.backend].base_url,
-        huggingfacehub_api_token=BACKENDS[config.backend].api_key,
+        endpoint_url=base_url,
+        huggingfacehub_api_token=api_key,
     )
 
     return ChatHuggingFace(llm=model)
+
+
+class Backend(Enum):
+    INTERWEB = "interweb"
+    LMSTUDIO = "LMStudio"
+    L3S_TGI = "L3S-TGI"

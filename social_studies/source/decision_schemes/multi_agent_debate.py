@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from config import LLMConfig, get_llm
+from config import BackendInfo, LLMConfig, get_llm
 from decision_schemes.base import (
     DecisionScheme,
     ExampleInput,
@@ -15,6 +15,7 @@ from utils.phoenix import phoenix_log_span
 
 class DebateAgent(BaseModel):
     params: LLMConfig
+    backend: BackendInfo
     number_of_agents: int = 1
 
 
@@ -27,7 +28,7 @@ class MultiAgentDebateConfiguration(BaseModel):
 class MultiAgentDebate(DecisionScheme[MultiAgentDebateConfiguration]):
     def run_example(self, example_input: ExampleInput) -> ExampleOutput:
         llms = [
-            get_llm(agent.params)
+            get_llm(agent.params, agent.backend)
             for agent in self.config.debate_agents
             for _ in range(agent.number_of_agents)
         ]
