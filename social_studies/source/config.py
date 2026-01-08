@@ -28,6 +28,7 @@ class LLMConfig(BaseModel):
 
 
 class BackendInfo(BaseModel):
+    model_config = ConfigDict(frozen=True)
     backend: Backend
     model_name: str
 
