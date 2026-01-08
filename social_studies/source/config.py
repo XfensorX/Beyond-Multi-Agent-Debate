@@ -6,7 +6,7 @@ from functools import cache
 
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from pydantic import BaseModel, ConfigDict
-from utils.global_config_holder import global_hydra_config
+from utils import global_config_holder
 
 LOG_FILE_NAME = "stdout.log"
 TRACK_FILE_NAME = "experiment_result.jsonl"
@@ -42,16 +42,16 @@ def get_llm(config: LLMConfig, backend: BackendInfo) -> ChatHuggingFace:
     if backend.model_name != "Qwen/Qwen2.5-0.5B-Instruct":
         raise NotImplementedError()  # see below
 
-    if backend.api_key_env_var_name:
-        api_key = os.getenv(
-            global_hydra_config.execution.backend_api_key_env_vars[
-                backend.backend.value
-            ]
-        )
-    else:
-        api_key = ""
+    api_key = os.getenv(
+        global_config_holder.global_hydra_config.execution.backend_api_key_env_vars.get(
+            backend.backend, ""
+        ),
+        "",
+    )
 
-    base_url = global_hydra_config.execution.backend_urls[backend.backend.value]
+    base_url = global_config_holder.global_hydra_config.execution.backend_urls[
+        backend.backend
+    ]
 
     model = HuggingFaceEndpoint(
         task="text-generation",

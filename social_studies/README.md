@@ -69,5 +69,10 @@ PHOENIX_ALLOW_EXTERNAL_RESOURCES=false PHOENIX_WORKING_DIR="./results/phoenix" u
 ## Initialization of fresh sever repo:
 
 - Copy environment/.env.pascal
-- Create env: uv sync
+- Create venv: uv sync
 - Pull TGI Apptainer SIF: uv run task pull_tgi_apptainer
+
+Then locally in two terminals:
+
+- MODEL_ID="Qwen/Qwen2.5-0.5B-Instruct" uv run task slurm_setup
+- uv run task slurm standard

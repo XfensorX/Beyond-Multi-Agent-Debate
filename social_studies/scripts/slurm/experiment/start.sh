@@ -16,8 +16,11 @@ JOBID=$(
     source scripts/load_env.sh
     export EXPERIMENT_NAME=${EXPERIMENT_NAME}
 
+    squ() {
+      squeue -O jobid:8,name:32,state:16,timeused:10,reasonlist:40,tres-per-job:14,tres-alloc:0 --me
+    }
+    export -f squ
     cd ${REMOTE_DIR}
-    alias squ='squeue -O jobid:8,name:32,state:16,timeused:10,reasonlist:18,tres-per-job:14,tres-alloc:0 --me'
     export TGI_HOST=\$(squ | awk '\$2==\"tgi\" && \$3==\"RUNNING\" {print \$5}')
     export PHOENIX_HOST=\$(squ | awk '\$2==\"phoenix\" && \$3==\"RUNNING\" {print \$5}')
 

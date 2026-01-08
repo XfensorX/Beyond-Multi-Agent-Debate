@@ -101,7 +101,7 @@ def handle_failure_exception(console: Console, exception: Exception):
     else:
         console.print(
             Traceback.from_exception(
-                type(exception), exception, exception.__traceback__
+                type(exception), exception, exception.__traceback__, show_locals=True
             )
         )
 

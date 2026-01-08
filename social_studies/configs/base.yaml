@@ -18,7 +18,7 @@ execution:
   backend_urls:
     L3S-TGI: http://localhost:8000
   backend_api_key_env_vars: { }
-  num_workers: 50
+  num_workers: 10
 
 meta_info: #  PLACEHOLDER - Added on Run
   output_directory: /tmp
