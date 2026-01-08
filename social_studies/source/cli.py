@@ -1,4 +1,18 @@
+import re
+import socket
+
 import dotenv
+
+
+def load_correct_env():
+    hostname = socket.gethostname()
+    base_host = re.sub(r"-node\d+$", "", hostname)
+    dotenv.load_dotenv(f"scripts/environment/.env.{base_host}", verbose=True)
+
+
+load_correct_env()
+
+
 import hydra
 from experiment.run_experiment import run_experiment
 from omegaconf import DictConfig
@@ -36,5 +50,4 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    dotenv.load_dotenv("../.env")
     main()

@@ -32,7 +32,7 @@ BACKENDS: dict[Backend, BackendInfo] = {
         api_key=os.getenv("INTERWEB_API_KEY"),
     ),
     Backend.LMSTUDIO: BackendInfo(base_url="http://127.0.0.1:1234/v1", api_key=""),
-    Backend.L3S_TGI: BackendInfo(base_url="http://localhost:8000/v1", api_key=""),
+    Backend.L3S_TGI: BackendInfo(base_url=os.getenv("TGI_BASE_URL"), api_key=""),
 }
 
 
