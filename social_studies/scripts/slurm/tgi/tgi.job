@@ -22,9 +22,9 @@ set -euo pipefail
 cd "$PROJECT_DIR"
 
 # FIXME: could potentially cause errors in the future with different models
-MAX_BATCH_PREFILL_TOKENS=8192
+MAX_BATCH_PREFILL_TOKENS=8193
 MAX_TOTAL_TOKENS=8192
-MAX_INPUT_TOKENS=8192
+MAX_INPUT_TOKENS=7168
 
 
 ########################################
