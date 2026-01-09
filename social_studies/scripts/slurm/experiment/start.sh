@@ -29,4 +29,4 @@ JOBID=$(
 )
 
 echo "Submitted: $JOBID"
-echo "Output in ${LOGIN}:${REMOTE_DIR}"
+echo "Output in ${LOGIN} : ${REMOTE_DIR}/social_studies_experiment-${JOBID}.out"

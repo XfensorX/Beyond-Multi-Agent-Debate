@@ -21,6 +21,12 @@ set -euo pipefail
 
 cd "$PROJECT_DIR"
 
+# FIXME: could potentially cause errors in the future with different models
+MAX_BATCH_PREFILL_TOKENS=32818
+MAX_TOTAL_TOKENS=32768
+MAX_INPUT_TOKENS=32767
+
+
 ########################################
 # Detect GPU model → set flash attention
 
@@ -61,4 +67,7 @@ exec apptainer run --nv \
   "$SIF" \
   --model-id "$MODEL_ID" \
   --hostname "$HOST" \
-  --port "$TGI_PORT"
+  --port "$TGI_PORT" \
+  --max-batch-prefill-tokens "$MAX_BATCH_PREFILL_TOKENS" \
+  --max-total-tokens "$MAX_TOTAL_TOKENS" \
+  --max-input-tokens "$MAX_INPUT_TOKENS"
