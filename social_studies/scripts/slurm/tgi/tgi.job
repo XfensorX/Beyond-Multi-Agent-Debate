@@ -5,8 +5,7 @@
 #SBATCH --mem=32G
 #SBATCH --time=72:00:00
 #SBATCH --output=%x_%j.out
-#SBATCH --exclude=pascal-node03.l3s.intra
-# FIXME: include node03 if working again
+#SBATCH --partition=volta,ampere
 
 set -euo pipefail
 

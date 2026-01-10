@@ -59,7 +59,7 @@ def execute_experiment(
     def run_single_example(example: Example):
         with phoenix_example_span(
             example_id=example.question_id,
-            attributes={"question": example.model_dump()},
+            attributes={"question": example.model_dump_json()},
         ) as (
             span,
             span_info,
@@ -68,7 +68,7 @@ def execute_experiment(
             example_out = decision_scheme.run_example(example_in)
             span.set_attributes(
                 flatten_dict(
-                    {"output": example_out.model_dump(exclude={"history"})},
+                    {"output": example_out.model_dump_json(exclude={"history"})},
                     map_to_basic_types=True,
                 )
             )
