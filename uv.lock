@@ -485,6 +485,7 @@ dependencies = [
     { name = "paddlepaddle" },
     { name = "pandas" },
     { name = "pandas-stubs" },
+    { name = "patito" },
     { name = "pdf2image" },
     { name = "playwright" },
     { name = "polars" },
@@ -523,6 +524,7 @@ requires-dist = [
     { name = "paddlepaddle", specifier = ">=3.2.2" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "pandas-stubs", specifier = "==2.3.2.250926" },
+    { name = "patito", specifier = ">=0.8.5" },
     { name = "pdf2image", specifier = ">=1.17.0" },
     { name = "playwright", specifier = ">=1.56.0" },
     { name = "polars", specifier = ">=1.36.1" },
@@ -3098,6 +3100,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/fa/2a/52a8da6fe965dea6192eb716b357558e103aea0a1e9a8352ad575a8406ca/pathvalidate-3.3.1.tar.gz", hash = "sha256:b18c07212bfead624345bb8e1d6141cdcf15a39736994ea0b94035ad2b1ba177", size = 63262, upload-time = "2025-06-15T09:07:20.736Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9a/70/875f4a23bfc4731703a5835487d0d2fb999031bd415e7d17c0ae615c18b7/pathvalidate-3.3.1-py3-none-any.whl", hash = "sha256:5263baab691f8e1af96092fa5137ee17df5bdfbd6cff1fcac4d6ef4bc2e1735f", size = 24305, upload-time = "2025-06-15T09:07:19.117Z" },
+]
+
+[[package]]
+name = "patito"
+version = "0.8.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "polars" },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c8/a0/5b68034f3ee27adc4bf31f5cc2bed6c18ee4d5e28e1b52dc3dda339f0984/patito-0.8.5.tar.gz", hash = "sha256:c005f9dad8107a8952e50090119ccd967d232d3842f60d7353584490ff959459", size = 216387, upload-time = "2025-09-02T13:34:17.841Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/69/24/f825d9c4057f002c3ca760199899107b18e1923200d1059a15ba374bb436/patito-0.8.5-py3-none-any.whl", hash = "sha256:d7598ffbf6b388c93bd97f028fcd0ea9aaa923568a7ef819d6640b9650d97538", size = 43240, upload-time = "2025-09-02T13:34:16.635Z" },
 ]
 
 [[package]]
