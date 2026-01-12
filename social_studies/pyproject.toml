@@ -5,6 +5,7 @@ description = "Some Experiments on behaviour of Agents in Groups"
 readme = "README.md"
 requires-python = "==3.11.*"
 dependencies = [
+    "altair>=6.0.0",
     "arize-phoenix>=12.27.0",
     "arize-phoenix-client>=1.27.1",
     "beautifulsoup4>=4.14.2",

@@ -18,6 +18,7 @@ console = Console()
 
 @hydra.main(version_base=None, config_path="../configs", config_name="base")
 def main(cfg: DictConfig):
+    # TODO: disentangle meta information from config, such that the config is extra and meta information is actually saved
     config = setup_config(console, cfg)
     global_config_holder.global_hydra_config = config
 
