@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Dict, Generic, Iterable, Optional, TypeVar
 
-from utils.general import contains_whitespace
+from source.utils.general import contains_whitespace
 
 T = TypeVar("T", bound=type)
 

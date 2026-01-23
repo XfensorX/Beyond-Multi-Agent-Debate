@@ -4,8 +4,6 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=12G
 #SBATCH --output=%x-%j.out
-#SBATCH --exclude=pascal-node03.l3s.intra
-# FIXME: include node03 if working again
 
 
 set -euo pipefail

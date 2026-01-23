@@ -4830,6 +4830,7 @@ dependencies = [
     { name = "ruff" },
     { name = "streamlit" },
     { name = "taskipy" },
+    { name = "typer" },
     { name = "uv" },
     { name = "zstandard" },
 ]
@@ -4878,6 +4879,7 @@ requires-dist = [
     { name = "ruff", specifier = ">=0.14.8" },
     { name = "streamlit", specifier = ">=1.52.2" },
     { name = "taskipy", specifier = ">=1.14.1" },
+    { name = "typer", specifier = ">=0.21.0" },
     { name = "uv", specifier = ">=0.9.18" },
     { name = "zstandard", specifier = ">=0.25.0" },
 ]

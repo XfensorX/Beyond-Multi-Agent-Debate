@@ -1,0 +1,46 @@
+from abc import ABC, abstractmethod
+from enum import Enum
+
+from pydantic import BaseModel
+
+from orchestration.orchestrator import services
+from orchestration.orchestrator.models.execution_environment import ExecutionConfig
+from orchestration.orchestrator.models.slurm_config import SlurmConfiguration
+from orchestration.orchestrator.utils.general import make_exported_variables_block
+from source.utils.general import import_all_submodules, make_enum
+from source.utils.registry import Registry
+
+
+class SlurmService(BaseModel, ABC):
+    slurm_config: SlurmConfiguration
+
+    @abstractmethod
+    def create_env_dict(self, exec_config: ExecutionConfig) -> dict[str, str]: ...
+
+    @abstractmethod
+    def create_run_command(self, exec_config: ExecutionConfig) -> str: ...
+
+    def create_job_file_content(self, exec_config: ExecutionConfig) -> str:
+        return (
+            self.slurm_config.create_batch_file_header()
+            + "\n\n\n"
+            + make_exported_variables_block(self.create_env_dict(exec_config))
+            + "\n\n\n"
+            + self.create_run_command(exec_config)
+        )
+
+
+SLURM_SERVICE: Registry[type[SlurmService]] = Registry("slurm service")
+
+
+def _validate_slurm_service(cls: type[SlurmService]):
+    if not isinstance(cls, type) or not issubclass(cls, SlurmService):
+        raise TypeError("Only SlurmService subclasses can be registered")
+
+
+def register_slurm_service(name):
+    return SLURM_SERVICE.register(name, validate=_validate_slurm_service)
+
+
+import_all_submodules(services)
+SlurmServiceName: type[Enum] = make_enum("SlurmServiceName", set(SLURM_SERVICE.names()))

@@ -21,7 +21,11 @@ def import_all_submodules(package) -> list[ModuleType]:
 
 def make_enum(name: str, values: set[str]) -> type[Enum]:
     members = {v: v for v in sorted(values)}
-    return Enum(name, members)
+    return Enum(
+        name,
+        members,
+        module=__name__,
+    )
 
 
 class BaseModelWithExtraFields(BaseModel):
