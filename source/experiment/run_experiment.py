@@ -54,8 +54,6 @@ def execute_experiment(
     tracker: ExperimentTracker,
     execution_config: ExecutionConfig,
 ):
-    # TODO: implement seed and subset
-
     def run_single_example(example: Example):
         with phoenix_example_span(
             example_id=example.question_id,
@@ -79,13 +77,11 @@ def execute_experiment(
     futures = set()
 
     try:
-        data_it = iter(  # TODO: this tracks started tasks, not finished ones, should be changed
-            progress_iter(
-                data_connector.iterate_data(),
-                total=data_connector.data_length(),
-                desc="Running Examples ...",
-                logger=logger,
-            )
+        data_it = iter(data_connector.iterate_data())
+
+        total = data_connector.data_length()
+        progress_it = progress_iter(
+            range(total), total=total, desc="Running Examples ...", logger=logger
         )
 
         for _ in range(in_flight_cap):
@@ -95,15 +91,19 @@ def execute_experiment(
             done, futures = wait(futures, return_when=FIRST_COMPLETED)
             for fut in done:
                 example_input, example_output, phoenix_span_info = fut.result()
-                (
-                    tracker.write_line(
-                        TrackEntry(
-                            input=example_input,
-                            output=example_output,
-                            phoenix_span_info=phoenix_span_info,
-                        )
-                    ),
+
+                tracker.write_line(
+                    TrackEntry(
+                        input=example_input,
+                        output=example_output,
+                        phoenix_span_info=phoenix_span_info,
+                    )
                 )
+
+                try:
+                    next(progress_it)
+                except StopIteration:
+                    pass
 
                 try:
                     futures.add(executor.submit(run_single_example, next(data_it)))
