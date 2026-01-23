@@ -59,4 +59,4 @@ phoenix = { cmd = "uv run phoenix serve", cwd = ".", help = "Start the phoenix s
 
 
 pull_tgi_apptainer = { cwd = ".", cmd = "apptainer pull scripts/slurm/tgi/tgi.sif docker://ghcr.io/huggingface/text-generation-inference:2.3.0", help = "Pull the docker Image of TGI from huggingface and save it as apptainer sif." }
-orchestration = { cwd = ".", cmd = "uv run -m orchestration.orchestrate" }
+orch = { cwd = ".", cmd = "uv run -m orchestration.orchestrate" }

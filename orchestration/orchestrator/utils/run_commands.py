@@ -9,6 +9,11 @@ from orchestration.orchestrator.utils.types import PathLike
 logger = logging.getLogger(__name__)
 
 
+def run_local(args: list[str]) -> subprocess.CompletedProcess:
+    logger.debug(f"Running {args}")
+    return subprocess.run(args)
+
+
 def run_ssh(
     login: str,
     remote_cmd: str,

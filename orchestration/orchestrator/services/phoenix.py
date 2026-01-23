@@ -1,4 +1,6 @@
-from orchestration.orchestrator.models.execution_environment import ExecutionConfig
+from orchestration.orchestrator.models.execution_environment import (
+    ExecutionLocationConfig,
+)
 from orchestration.orchestrator.services.base import (
     SlurmService,
     register_slurm_service,
@@ -9,7 +11,7 @@ from orchestration.orchestrator.services.base import (
 class PhoenixConfiguration(SlurmService):
     port: int
 
-    def create_env_dict(self, exec_config: ExecutionConfig) -> dict[str, str]:
+    def create_env_dict(self, exec_config: ExecutionLocationConfig) -> dict[str, str]:
         working_dir = (  # TODO: make "results" a global variable
             exec_config.project_dir / "results" / exec_config.where.value / "sqlite"
         )
@@ -20,5 +22,5 @@ class PhoenixConfiguration(SlurmService):
             "PHOENIX_SQL_DATABASE_URL": f"sqlite:///{str(working_dir)}/phoenix.db",
         }
 
-    def create_run_command(self, exec_config: ExecutionConfig) -> str:
+    def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
         return f"source {exec_config.project_dir / '.venv' / 'bin' / 'activate'} && uv sync && uv run phoenix serve"

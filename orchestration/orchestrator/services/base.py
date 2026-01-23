@@ -1,10 +1,17 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from enum import Enum
 
+import yaml
 from pydantic import BaseModel
 
 from orchestration.orchestrator import services
-from orchestration.orchestrator.models.execution_environment import ExecutionConfig
+from orchestration.orchestrator.config import CONFIGURATIONS_PATH, YAML_ENDING
+from orchestration.orchestrator.models.execution_environment import (
+    ExecutionLocation,
+    ExecutionLocationConfig,
+)
 from orchestration.orchestrator.models.slurm_config import SlurmConfiguration
 from orchestration.orchestrator.utils.general import make_exported_variables_block
 from source.utils.general import import_all_submodules, make_enum
@@ -15,12 +22,14 @@ class SlurmService(BaseModel, ABC):
     slurm_config: SlurmConfiguration
 
     @abstractmethod
-    def create_env_dict(self, exec_config: ExecutionConfig) -> dict[str, str]: ...
+    def create_env_dict(
+        self, exec_config: ExecutionLocationConfig
+    ) -> dict[str, str]: ...
 
     @abstractmethod
-    def create_run_command(self, exec_config: ExecutionConfig) -> str: ...
+    def create_run_command(self, exec_config: ExecutionLocationConfig) -> str: ...
 
-    def create_job_file_content(self, exec_config: ExecutionConfig) -> str:
+    def create_job_file_content(self, exec_config: ExecutionLocationConfig) -> str:
         return (
             self.slurm_config.create_batch_file_header()
             + "\n\n\n"
@@ -44,3 +53,9 @@ def register_slurm_service(name):
 
 import_all_submodules(services)
 SlurmServiceName: type[Enum] = make_enum("SlurmServiceName", set(SLURM_SERVICE.names()))
+
+
+def load_config(service: SlurmServiceName, where: ExecutionLocation) -> SlurmService:
+    config_path = CONFIGURATIONS_PATH / where.value / f"{service.value}{YAML_ENDING}"
+    with open(config_path) as f:
+        return SLURM_SERVICE.get(service).model_validate(yaml.safe_load(f))

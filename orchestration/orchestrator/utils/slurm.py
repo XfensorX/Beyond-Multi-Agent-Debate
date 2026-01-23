@@ -145,3 +145,22 @@ def get_slurm_job_info(login: str, job_id: int) -> SlurmJobInfo | None:
     # squeue can output multiple lines (job steps etc) on some setups; take first
     first_line = line.splitlines()[0]
     return SlurmJobInfo.from_squeue_line(first_line)
+
+
+def get_job_info_by_name(login: str, service_name: str) -> list[SlurmJobInfo]:
+    """
+    Returns a list of SlurmJobInfo objects for jobs matching `service_name`
+    that are still visible in squeue (PENDING/RUNNING/etc).
+    """
+    # TODO: Could potentially show finished jobs using sacct
+
+    cmd = f"squeue -n {service_name} -h -o '%i|%T|%N|%C|%b|%m'"
+    out = run_ssh(login, cmd, capture=True)
+
+    lines = out.stdout.strip().splitlines()
+    if not lines:
+        return []
+
+    return [
+        SlurmJobInfo.from_squeue_line(line.strip()) for line in lines if line.strip()
+    ]

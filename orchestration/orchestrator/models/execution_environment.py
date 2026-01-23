@@ -1,32 +1,38 @@
-from __future__ import annotations
-
 import logging
 from enum import Enum
 from pathlib import Path
 
+import yaml
 from pydantic import BaseModel
 
+from orchestration.orchestrator.config import (
+    CONFIGURATIONS_PATH,
+    EXECUTION_ENVIRONMENT_CONFIG_NAME,
+)
 from orchestration.orchestrator.utils.run_commands import run_ssh
 from orchestration.orchestrator.utils.types import JobId
 
 logger = logging.getLogger(__name__)
 
 
-class ExecutionEnvironment(Enum):
+class ExecutionLocation(Enum):
     PASCAL = "pascal"
     NEUMANN = "neumann"
     LOCAL = "local"
 
 
-class ExecutionConfig(BaseModel):
-    where: ExecutionEnvironment
+class ExecutionLocationConfig(BaseModel):
+    where: ExecutionLocation
     ssh_login: str | None
     project_dir: Path
     slurm_log_dir_inside_project: Path
 
+    def get_logdir(self) -> Path:
+        return self.project_dir / self.slurm_log_dir_inside_project
+
     def submit_sbatch(self, sbatch_file: str) -> JobId:
         # This is important, as the uv run - command should be executed in the project_environment
-        sbatch_submit_dir = self.project_dir / self.slurm_log_dir_inside_project
+        sbatch_submit_dir = self.get_logdir()
         logger.info(
             f"Submit sbatch file of {self.__class__.__name__} to {self.where.name}"
         )
@@ -39,3 +45,9 @@ class ExecutionConfig(BaseModel):
         )
 
         return int(cp.stdout.strip().split()[-1])  # ~~ 'Submitted batch job XXXX'
+
+
+def load_execution_config(where: ExecutionLocation) -> ExecutionLocationConfig:
+    file_path = CONFIGURATIONS_PATH / where.value / EXECUTION_ENVIRONMENT_CONFIG_NAME
+    with open(file_path) as f:
+        return ExecutionLocationConfig.model_validate(yaml.safe_load(f))

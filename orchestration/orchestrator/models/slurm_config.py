@@ -1,6 +1,12 @@
+from __future__ import annotations
+
 from datetime import timedelta
 
 from pydantic import BaseModel
+
+from orchestration.orchestrator.config import (
+    get_slurm_log_filename,
+)
 
 
 class SlurmConfiguration(BaseModel):
@@ -23,7 +29,7 @@ class SlurmConfiguration(BaseModel):
                 f"#SBATCH --time={self.formatted_time}",
                 f"#SBATCH --cpus-per-task={self.cpus_per_task}",
                 f"#SBATCH --mem={self.memory_GB}G",
-                "#SBATCH --output=%x-%j.out",  # TODO: Change output file
+                f"#SBATCH --output={get_slurm_log_filename(self.job_name)}",  # TODO: Change output file
                 "",
                 "set -euo pipefail",
             ]
