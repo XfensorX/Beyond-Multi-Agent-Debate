@@ -3,7 +3,11 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
+import questionary
 import typer
+from questionary import Choice
+from rich import print
+from rich.text import Text
 
 from orchestration.orchestrator.config import (
     get_slurm_log_filename,
@@ -17,6 +21,7 @@ from orchestration.orchestrator.services.base import (
     load_config,
 )
 from orchestration.orchestrator.services.phoenix import PhoenixConfiguration
+from orchestration.orchestrator.services.tgi import TgiConfiguration
 from orchestration.orchestrator.utils.general import run_async
 from orchestration.orchestrator.utils.run_commands import run_local, run_ssh
 from orchestration.orchestrator.utils.slurm import (
@@ -36,13 +41,13 @@ async def run_service_on_slurm(
         SlurmServiceName, typer.Argument(help="Which service to start.")
     ],
 ):
-    typer.echo(f"Starting {service} on {where}")
+    print(f"Starting {service} on {where}")
 
     service_config = load_config(service, where)
     exec_config = load_execution_config(where)
 
-    typer.echo(exec_config.model_dump_json(indent=4))
-    typer.echo(service_config.model_dump_json(indent=4))
+    print(exec_config.model_dump_json(indent=4))
+    print(service_config.model_dump_json(indent=4))
 
     job_id = exec_config.submit_sbatch(
         service_config.create_job_file_content(exec_config=exec_config)
@@ -56,9 +61,9 @@ async def run_service_on_slurm(
 @app.command("show", help="[blue]{location}          [/blue] Show all slurm jobs.")
 def show_services(where: ExecutionLocation):
     exec_config = load_execution_config(where)
-    cmd = "squeue -O jobid:8,name:32,state:16,timeused:10,reasonlist:32,tres-per-job:30,tres-alloc:0 -u $(whoami)"
+    cmd = "squeue -O jobid:8,name:50,state:16,timeused:10,reasonlist:32,tres-per-job:30,tres-alloc:0 -u $(whoami)"
     out = run_ssh(exec_config.ssh_login, cmd, capture=True)
-    typer.echo(out.stdout)
+    print(out.stdout)
 
 
 @app.command("stop", help="[blue]{location} {service}[/blue] Stop a service. ")
@@ -68,7 +73,7 @@ def stop_service(where: ExecutionLocation, service: SlurmServiceName):
     cmd = f"scancel -n {service_config.slurm_config.job_name}"
 
     out = run_ssh(exec_config.ssh_login, cmd, capture=True)
-    typer.echo(out.stdout)
+    print(out)
 
 
 @app.command(
@@ -79,21 +84,34 @@ def show_logs(where: ExecutionLocation, service: SlurmServiceName):
     service_config = load_config(service, where)
 
     infos = get_job_info_by_name(
-        exec_config.ssh_login, service_name=service_config.slurm_config.job_name
+        exec_config.ssh_login,
+        service_name=service_config.slurm_config.job_name,
+        query_history=True,
     )
 
     if not infos:
-        typer.echo("No jobs found running")
-    # TODO: lets user select the jobId
+        print("No jobs found running")
     if len(infos) > 1:
-        typer.echo("Multiple jobs found running, selecting first.")
-    job_id = infos[0].job_id
+        selected = questionary.select(
+            "Multiple jobs found running, please select the log to use: ",
+            choices=[Choice(title=str(it), value=it) for it in infos],
+            qmark=">",
+            pointer="➤",
+        ).ask()
+        used_info = selected
+    else:
+        used_info = infos[0]
 
     # TODO: maybe make interactive with "less" or so
-    cmd = f"cat {exec_config.get_logdir() / get_slurm_log_filename(service_config.slurm_config.job_name, job_id)}"
+    file_path = exec_config.get_logdir() / get_slurm_log_filename(
+        service_config.slurm_config.job_name, used_info.job_id
+    )
+    cmd = f"cat {file_path}"
 
     out = run_ssh(exec_config.ssh_login, cmd, capture=True)
-    typer.echo(out.stdout)
+    print(f"\nShowing Log for: [blue]{used_info}[/blue]")
+    print(f"Located in {file_path} \n")
+    print(Text.from_ansi(out.stdout))
 
 
 @app.command(
@@ -103,7 +121,11 @@ def show_logs(where: ExecutionLocation, service: SlurmServiceName):
 def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
     exec_config = load_execution_config(where)
     service_config = load_config(service, where)
-    if not isinstance(service_config, PhoenixConfiguration):
+
+    if not (
+        isinstance(service_config, PhoenixConfiguration)
+        or isinstance(service_config, TgiConfiguration)
+    ):
         raise NotImplementedError()
 
     infos = get_job_info_by_name(
@@ -111,7 +133,7 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
     )
     # TODO: lets user select the jobId
     if len(infos) > 1:
-        typer.echo("Multiple jobs found running, selecting first.")
+        print("Multiple jobs found running, selecting first.")
     node = infos[0].node
     port = service_config.port
 

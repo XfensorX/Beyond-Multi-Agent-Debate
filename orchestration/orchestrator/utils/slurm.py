@@ -126,11 +126,73 @@ class SlurmJobInfo(BaseModel):
             mem_raw=mem_raw if mem_raw and mem_raw != "(null)" else None,
         )
 
+    @classmethod
+    def from_sacct_line(cls, line: str) -> "SlurmJobInfo":
+        """
+        Expects sacct output from:
+
+            sacct -n name -X --parsable2 -o JobIDRaw,State,NodeList,AllocCPUS,ReqGRES,ReqMem
+
+        Which yields:
+
+            "%i|%T|%N|%C|%b|%m"
+        """
+        parts = [p.strip() for p in line.strip().split("|")]
+        if len(parts) != 6:
+            raise ValueError(
+                f"Unexpected sacct format. Got {len(parts)} fields: {parts}"
+            )
+
+        job_id_s, state, node, cpus_s, gres_raw, mem_raw = parts
+
+        # Normalize null-ish values
+        def norm(s: str) -> Optional[str]:
+            if not s:
+                return None
+            if s in {"(null)", "Unknown", "None"}:
+                return None
+            return s
+
+        # Job id (should be numeric if JobIDRaw was used)
+        try:
+            job_id = int(job_id_s)
+        except ValueError:
+            # Fallback: if someone used JobID instead of JobIDRaw, we might see "123.batch"
+            # Take the base numeric part.
+            base = job_id_s.split(".", 1)[0]
+            job_id = int(base)
+
+        # CPUs
+        cpus: Optional[int] = None
+        cpus_s = norm(cpus_s) or ""
+        if cpus_s:
+            try:
+                cpus = int(cpus_s)
+            except ValueError:
+                cpus = None
+
+        gres_raw_n = norm(gres_raw)
+        mem_raw_n = norm(mem_raw)
+
+        # GPU count derived from GRES string
+        gpus = cls.parse_gpu_count_from_gres(gres_raw_n)
+
+        # Node sometimes comes as "node[01-02]" or empty
+        node_n = norm(node)
+
+        return cls(
+            job_id=job_id,
+            state=state,
+            node=node_n,
+            cpus=cpus,
+            gpus=gpus,
+            gres_raw=gres_raw_n,
+            mem_raw=mem_raw_n,
+        )
+
 
 def get_slurm_job_info(login: str, job_id: int) -> SlurmJobInfo | None:
     """
-    Uses run_ssh(login, run_cmd) which you said you already have.
-
     Returns:
       - SlurmJobInfo if job is still visible in squeue (PENDING/RUNNING/etc)
       - None if it is not in squeue anymore (finished/removed from queue)
@@ -147,20 +209,28 @@ def get_slurm_job_info(login: str, job_id: int) -> SlurmJobInfo | None:
     return SlurmJobInfo.from_squeue_line(first_line)
 
 
-def get_job_info_by_name(login: str, service_name: str) -> list[SlurmJobInfo]:
+def get_job_info_by_name(
+    login: str, service_name: str, query_history: bool = False
+) -> list[SlurmJobInfo]:
     """
     Returns a list of SlurmJobInfo objects for jobs matching `service_name`
     that are still visible in squeue (PENDING/RUNNING/etc).
     """
-    # TODO: Could potentially show finished jobs using sacct
+    if query_history:
+        cmd = (
+            f"sacct -n --name {service_name} -X --parsable2 "
+            f"-o JobIDRaw,State,NodeList,AllocCPUS,ReqTRES,ReqMem"
+        )
+    else:
+        cmd = f"squeue -n {service_name} -h -o '%i|%T|%N|%C|%b|%m'"
 
-    cmd = f"squeue -n {service_name} -h -o '%i|%T|%N|%C|%b|%m'"
     out = run_ssh(login, cmd, capture=True)
 
-    lines = out.stdout.strip().splitlines()
-    if not lines:
-        return []
+    lines = [l.strip() for l in out.stdout.strip().splitlines()]
 
-    return [
-        SlurmJobInfo.from_squeue_line(line.strip()) for line in lines if line.strip()
-    ]
+    if query_history:
+        infos = [SlurmJobInfo.from_squeue_line(line) for line in lines if line]
+    else:
+        infos = [SlurmJobInfo.from_sacct_line(line) for line in lines if line]
+
+    return infos
