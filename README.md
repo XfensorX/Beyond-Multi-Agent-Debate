@@ -1,5 +1,7 @@
 # TODO:
 
+- make meta configuration saved correctly
+- review TODOs
 - refactor the whole imports and structure
 - Analysis Website
 
