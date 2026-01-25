@@ -2,7 +2,7 @@ import hydra
 from omegaconf import DictConfig
 from rich.console import Console
 
-from social_groups.trialrunner.experiment import run_experiment
+from social_groups.trialrunner.experiment.run_experiment import run_experiment
 from social_groups.trialrunner.utils import global_config_holder
 from social_groups.trialrunner.utils.cli_utils import (
     handle_failure_exception,

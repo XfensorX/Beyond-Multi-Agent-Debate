@@ -185,9 +185,14 @@ async def run_service_on_slurm(
         )
         print(service_config._starting_info)
 
-        job_id = exec_config.submit_sbatch(
-            service_config.create_job_file_content(exec_config=exec_config)
-        )
+        job_file = service_config.create_job_file_content(exec_config=exec_config)
+
+        # TODO: remove
+        print("---Submitted Job File: ---------------------")
+        print(job_file)
+        print("--------------------------------------------")
+
+        job_id = exec_config.submit_sbatch(job_file)
 
         job_info = await wait_for_job_to_start(exec_config.ssh_login, job_id)
 

@@ -9,6 +9,7 @@ from social_groups.orchestrator.services.base import (
     SlurmService,
     register_slurm_service,
 )
+from social_groups.orchestrator.utils.types import to_hydra_value
 from social_groups.trialrunner.config import BackendInfoWithEndpoint
 
 
@@ -46,12 +47,8 @@ class ExperimentConfiguration(SlurmService):
         if self._starting_info is None:
             raise ValueError("starting_info has to be given first.")
 
-        model_backends_formatted = (
-            "["
-            + ", ".join(
-                [b.model_dump_json() for b in self._starting_info.model_backends]
-            )
-            + "]"
+        model_backends_formatted = to_hydra_value(
+            [b.model_dump() for b in self._starting_info.model_backends]
         )
 
         parts = [
@@ -60,7 +57,7 @@ class ExperimentConfiguration(SlurmService):
             "uv run trial",
             f'--config-dir="{exec_config.project_dir / self.experiment_configuration_dir_inside_project}"',
             f'+experiment="{self._starting_info.experiment_name}"',
-            f"execution.model_backends={model_backends_formatted}",
+            f"'execution.model_backends={model_backends_formatted}'",
             f'execution.phoenix_server_url="{self._starting_info.phoenix_server_endpoint}"',
             f'execution.phoenix_graphql_url="{self._starting_info.phoenix_graphql_endpoint}"',
         ]
