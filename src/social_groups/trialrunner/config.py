@@ -57,7 +57,7 @@ def get_llm(config: LLMConfig, backend: BackendInfo) -> ChatHuggingFace:
     base_url = global_config_holder.global_hydra_config.execution.get_endpoint(backend)
 
     model = HuggingFaceEndpoint(
-        model="ignored",  # this is ignored by TGI
+        # model="ignored",  # this is ignored by TGI
         task="text-generation",
         max_new_tokens=config.max_new_tokens,
         temperature=config.temperature,
