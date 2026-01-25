@@ -31,4 +31,4 @@ class PhoenixConfiguration(SlurmService):
         }
 
     def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
-        return f"source {exec_config.project_dir / '.venv' / 'bin' / 'activate'} && uv sync && uv run phoenix serve"
+        return f"source {exec_config.project_dir / '.venv' / 'bin' / 'activate'} && uv run phoenix serve"

@@ -63,7 +63,7 @@ def register_slurm_service(name):
     return SLURM_SERVICE.register(name, validate=_validate_slurm_service)
 
 
-import_all_submodules(services)
+import_all_submodules(services, ignore_prefix="base")
 SlurmServiceName: type[Enum] = make_enum("SlurmServiceName", set(SLURM_SERVICE.names()))
 
 

@@ -1,0 +1,54 @@
+from abc import ABC
+from typing import Optional
+
+from pydantic import BaseModel, field_validator
+
+from social_groups.orchestrator.models.slurm_config import SlurmConfiguration
+from social_groups.orchestrator.services.base import (
+    SlurmService,
+)
+from social_groups.orchestrator.utils.types import ModelId
+
+
+class ModelConfiguration(BaseModel):
+    port: int
+
+    max_batch_prefill_tokens: Optional[int] = None
+    max_total_tokens: Optional[int] = None
+    max_input_tokens: Optional[int] = None
+
+
+def model_id_to_job_name_appendix(model_id: str) -> str:
+    return model_id.replace("/", "__")
+
+
+class BaseInferenceService(SlurmService, ABC):
+    llm_models: dict[ModelId, ModelConfiguration]
+    _chosen_model_id: ModelId | None = None  # The model to actually run
+
+    @field_validator("slurm_config")
+    @classmethod
+    def require_partition_specification(
+        cls, v: SlurmConfiguration
+    ) -> SlurmConfiguration:
+        if v.partition is None:
+            raise ValueError(
+                "Please specify partition parameter for Inference Service."
+            )
+        return v
+
+    def check_model_config_exists(self, to_test: list[ModelId]):
+        all_model_ids = set(self.llm_models.keys())
+        not_available = set(to_test) - all_model_ids
+        if not_available:
+            raise ValueError(
+                "\nInvalid Model Ids: \n - "
+                + "\n - ".join(sorted(not_available))
+                + "\n\n>> Please add them to the yaml-config first."
+                "\n\nAvailable models: \n - "
+                + "\n - ".join(sorted(self.llm_models.keys()))
+            )
+
+    def set_used_model(self, modelid: ModelId):
+        self.check_model_config_exists([modelid])
+        self._chosen_model_id = modelid

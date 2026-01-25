@@ -1,0 +1,48 @@
+from pydantic import computed_field
+
+from social_groups.orchestrator.models.execution_environment import (
+    ExecutionLocationConfig,
+)
+from social_groups.orchestrator.services.base import register_slurm_service
+from social_groups.orchestrator.services.base_inference import (
+    BaseInferenceService,
+    model_id_to_job_name_appendix,
+)
+
+
+@register_slurm_service("vllm")
+class VLLMConfiguration(BaseInferenceService):
+    @computed_field
+    @property
+    def used_job_name(self) -> str:
+        if self._chosen_model_id is None:
+            return "vllm___{model_id_placeholder}"
+
+        return "vllm" + f"___{model_id_to_job_name_appendix(self._chosen_model_id)}"
+
+    @staticmethod
+    def job_name_is_matching_this_service(given_job_name: str) -> bool:
+        return given_job_name.startswith("vllm___")
+
+    def create_env_dict(self, exec_config: ExecutionLocationConfig) -> dict[str, str]:
+        return {}
+
+    def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
+        if self._chosen_model_id is None:
+            raise ValueError(
+                "Have to set the used model before generation of slurm job file."
+            )
+        used_model = self.llm_models[self._chosen_model_id]
+
+        return (
+            f"source {exec_config.project_dir / '.venv' / 'bin' / 'activate'} && "
+            f"uv run vllm serve {self._chosen_model_id}"
+            f"--host=0.0.0.0 "
+            f"--port={used_model.port} "
+            + (
+                f"--max-model-len={used_model.max_total_tokens}"
+                if used_model.max_input_tokens
+                else ""
+            )
+            # f"--quantization=" # For the future
+        )

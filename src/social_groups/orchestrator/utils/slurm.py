@@ -15,32 +15,6 @@ from social_groups.orchestrator.utils.types import JobId
 logger = logging.getLogger(__name__)
 
 
-class JobNotStartedError(Exception):
-    pass
-
-
-async def wait_for_job_to_start(
-    login: str,
-    job_id: JobId,
-    no_retries: int = 5,
-    wait_seconds_after_check: int = 5,
-) -> SlurmJobInfo:
-    for _ in range(no_retries):
-        logger.info(f"Trying to fetch job info {job_id}")
-        out = (
-            await asyncio.to_thread(
-                run_ssh, login, f"squeue -j {job_id} -h -o %N | head -n1"
-            )
-        ).stdout
-
-        if out.strip() != "(null)" and out.strip():
-            return await asyncio.to_thread(get_slurm_job_info_by_job_id, login, job_id)
-
-        await asyncio.sleep(wait_seconds_after_check)
-
-    raise JobNotStartedError()
-
-
 class SlurmJobInfo(BaseModel):
     job_id: int = Field(..., description="Slurm job id")
     job_name: str = Field(..., description="Slurm job name")
@@ -48,8 +22,8 @@ class SlurmJobInfo(BaseModel):
     node: Optional[str] = Field(
         None, description="Allocated node (None if not allocated yet)"
     )
-    cpus: Optional[int] = Field(None, ge=1, description="Allocated CPUs")
-    gpus: int = Field(0, ge=0, description="Allocated GPUs (derived from GRES)")
+    cpus: Optional[int] = Field(None, description="Allocated CPUs")
+    gpus: int = Field(0, description="Allocated GPUs (derived from GRES)")
     gres_raw: Optional[str] = Field(
         None, description="Raw GRES field from Slurm, e.g. gpu:2"
     )
@@ -232,3 +206,28 @@ def get_slurm_job_info(login: str, query_history: bool = False) -> list[SlurmJob
         infos = [SlurmJobInfo.from_sacct_line(line) for line in lines if line]
 
     return infos
+
+
+class JobNotStartedError(Exception):
+    pass
+
+
+async def wait_for_job_to_start(
+    login: str,
+    job_id: JobId,
+    no_retries: int = 5,
+    wait_seconds_after_check: int = 5,
+) -> SlurmJobInfo:
+    for _ in range(no_retries):
+        logger.info(f"Trying to fetch job info {job_id}")
+
+        out: SlurmJobInfo | None = await asyncio.to_thread(
+            get_slurm_job_info_by_job_id, login, job_id
+        )
+
+        if out:
+            return out
+        else:
+            await asyncio.sleep(wait_seconds_after_check)
+
+    raise JobNotStartedError()

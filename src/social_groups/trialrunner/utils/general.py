@@ -11,10 +11,14 @@ def contains_whitespace(s):
     return any((whitespace_char in s) for whitespace_char in string.whitespace)
 
 
-def import_all_submodules(package) -> list[ModuleType]:
+def import_all_submodules(
+    package, ignore_prefix: str | None = None
+) -> list[ModuleType]:
     mods = []
     prefix = package.__name__ + "."
     for m in pkgutil.iter_modules(package.__path__, prefix):
+        if ignore_prefix and m.name.split(".")[-1].startswith(ignore_prefix):
+            continue
         mods.append(importlib.import_module(m.name))
     return mods
 

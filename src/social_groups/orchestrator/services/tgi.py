@@ -1,37 +1,22 @@
 from pathlib import Path
 
-from pydantic import BaseModel, computed_field, field_validator
+from pydantic import computed_field
 
 from social_groups.orchestrator.models.execution_environment import (
     ExecutionLocationConfig,
 )
-from social_groups.orchestrator.models.slurm_config import SlurmConfiguration
-from social_groups.orchestrator.services.base import (
-    SlurmService,
-    register_slurm_service,
+from social_groups.orchestrator.services.base import register_slurm_service
+from social_groups.orchestrator.services.base_inference import (
+    BaseInferenceService,
+    model_id_to_job_name_appendix,
 )
-from social_groups.orchestrator.utils.types import ModelId
-
-
-class ModelConfiguration(BaseModel):
-    port: int
-
-    max_batch_prefill_tokens: int
-    max_total_tokens: int
-    max_input_tokens: int
-
-
-def model_id_to_job_name_appendix(model_id: str) -> str:
-    return model_id.replace("/", "__")
 
 
 @register_slurm_service("tgi")
-class TgiConfiguration(SlurmService):
+class TgiConfiguration(BaseInferenceService):
     sif_path_in_project: Path
     data_bind_directory: Path
     huggingface_cache_directory: Path
-    llm_models: dict[ModelId, ModelConfiguration]
-    _chosen_model_id: ModelId | None = None  # The model to actually run
 
     @computed_field
     @property
@@ -44,31 +29,6 @@ class TgiConfiguration(SlurmService):
     @staticmethod
     def job_name_is_matching_this_service(given_job_name: str) -> bool:
         return given_job_name.startswith("tgi___")
-
-    @field_validator("slurm_config")
-    @classmethod
-    def require_partition_specification(
-        cls, v: SlurmConfiguration
-    ) -> SlurmConfiguration:
-        if v.partition is None:
-            raise ValueError("Please specify partition parameter for TGI.")
-        return v
-
-    def check_model_config_exists(self, to_test: list[ModelId]):
-        all_model_ids = set(self.llm_models.keys())
-        not_available = set(to_test) - all_model_ids
-        if not_available:
-            raise ValueError(
-                "\nInvalid Model Ids: \n - "
-                + "\n - ".join(sorted(not_available))
-                + "\n\n>> Please add them to the yaml-config first."
-                "\n\nAvailable models: \n - "
-                + "\n - ".join(sorted(self.llm_models.keys()))
-            )
-
-    def set_used_model(self, modelid: ModelId):
-        self.check_model_config_exists([modelid])
-        self._chosen_model_id = modelid
 
     def create_env_dict(self, exec_config: ExecutionLocationConfig) -> dict[str, str]:
         return {}
@@ -97,9 +57,14 @@ class TgiConfiguration(SlurmService):
             f'--model-id "{self._chosen_model_id}"',
             '--hostname "0.0.0.0"',
             f'--port "{used_model.port}"',
-            f'--max-batch-prefill-tokens "{used_model.max_batch_prefill_tokens}"',
-            f'--max-total-tokens "{used_model.max_total_tokens}"',
-            f'--max-input-tokens "{used_model.max_input_tokens}"',
         ]
+        if used_model.max_batch_prefill_tokens is not None:
+            parts.append(
+                f'--max-batch-prefill-tokens "{used_model.max_batch_prefill_tokens}"'
+            )
+        if used_model.max_total_tokens is not None:
+            parts.append(f'--max-total-tokens "{used_model.max_total_tokens}"')
+        if used_model.max_input_tokens is not None:
+            parts.append(f'--max-input-tokens "{used_model.max_input_tokens}"')
 
         return " ".join(parts)
