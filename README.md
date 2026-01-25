@@ -1,11 +1,12 @@
 # TODO:
 
-- Experiment Configs easily (subset, etc.)
-- implement seeding
+- refactor the whole imports and structure
 - Analysis Website
-- refactor the scrupts/slurm directory
 
 ---
+
+phoenix = { cmd = "uv run phoenix serve", cwd = ".", help = "Start the phoenix server. Please assert environment
+variables are correctly set, e.g.:  PHOENIX_ALLOW_EXTERNAL_RESOURCES=false PHOENIX_WORKING_DIR='./results/phoenix'" }
 
 ```ssh
 

@@ -3,7 +3,8 @@ from pathlib import Path
 
 import polars as pl
 import streamlit as st
-from utils.phoenix import PhoenixExampleHandle
+
+from social_groups.trialrunner import PhoenixExampleHandle
 
 PHOENIX_BASE_URL = "http://localhost:6006"
 RESULTS_DIR = "/Users/philipp/Documents/Studium/Informatik/Masterthesis/Repository/social_studies/sandbox/results"

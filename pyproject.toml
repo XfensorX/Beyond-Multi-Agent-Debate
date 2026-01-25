@@ -1,5 +1,5 @@
 [project]
-name = "social_studies"
+name = "social_groups"
 version = "0.1.0"
 description = "Some Experiments on behaviour of Agents in Groups"
 readme = "README.md"
@@ -53,11 +53,25 @@ dependencies = [
     "zstandard>=0.25.0",
 ]
 
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.uv]
+package = true
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
+[project.scripts]
+orch = "social_groups.orchestrator.__main__:main"
+trial = "social_groups.trialrunner.__main__:main"
+
+
 [tool.taskipy.tasks]
-slurm = { cwd = ".", cmd = "bash scripts/slurm/experiment/start.sh", help = "Run an experiment on slurm. Need to run slurm_setup first. Specify experiment name: 'uv run task slurm standard'" }
-slurm_setup = { cwd = ".", cmd = "bash scripts/slurm/tgi/start.sh && bash scripts/slurm/phoenix/start.sh", help = "Start Phoenix and TGI on Slurm, setup port forwarding via ssh to this computer. If cancelled, the jobs will still run on the server." }
-phoenix = { cmd = "uv run phoenix serve", cwd = ".", help = "Start the phoenix server. Please assert environment variables are correctly set, e.g.:  PHOENIX_ALLOW_EXTERNAL_RESOURCES=false PHOENIX_WORKING_DIR='./results/phoenix'" }
-
-
 pull_tgi_apptainer = { cwd = ".", cmd = "apptainer pull orchestration/assets/tgi.sif docker://ghcr.io/huggingface/text-generation-inference:2.3.0", help = "Pull the docker Image of TGI from huggingface and save it as apptainer sif." }
-orch = { cwd = ".", cmd = "uv run -m orchestration.orchestrate" }
