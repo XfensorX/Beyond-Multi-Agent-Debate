@@ -70,4 +70,4 @@ trial = "social_groups.trialrunner.__main__:main"
 
 
 [tool.taskipy.tasks]
-pull_tgi_apptainer = { cwd = ".", cmd = "apptainer pull orchestration/assets/tgi.sif docker://ghcr.io/huggingface/text-generation-inference:2.3.0", help = "Pull the docker Image of TGI from huggingface and save it as apptainer sif." }
+pull_tgi_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/tgi.sif docker://ghcr.io/huggingface/text-generation-inference:2.3.0", help = "Pull the docker Image of TGI from huggingface and save it as apptainer sif." }

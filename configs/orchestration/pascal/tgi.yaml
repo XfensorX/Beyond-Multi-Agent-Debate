@@ -6,7 +6,7 @@ slurm_config:
   partition: volta
 
 
-sif_path_in_project: orchestration/assets/tgi.sif
+sif_path_in_project: assets/orchestration/tgi.sif
 data_bind_directory: /home/philipp.link/tgi-data
 huggingface_cache_directory: /home/philipp.link/.cache/huggingface
 
