@@ -16,13 +16,11 @@ from social_groups.trialrunner.experiment.main_registry import (
     DataConnectorName,
     DecisionSchemeName,
 )
-from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
 
 
 class MainConfig(BaseModel):
     experiment: ExperimentConfig
     execution: ExecutionConfig
-    meta_info: ExperimentMetaInfo
 
 
 class ExperimentInformation(BaseModel):

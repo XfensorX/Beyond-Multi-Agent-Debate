@@ -1,6 +1,8 @@
 defaults:
   - _self_
 
+
+#TODO: include run environment (pascal, neumann,... in the path)
 hydra:
   run:
     dir: results/runs/${experiment.name}/${now:%Y-%m-%d-%H-%M-%S}
@@ -18,22 +20,3 @@ execution:
   model_backends: [ ] # To fill on startup
   backend_api_key_env_vars: { } # to fill on startup
   num_workers: 10
-
-# TODO: remove this from here
-meta_info: #  PLACEHOLDER - Added on Run
-  output_directory: /tmp
-  phoenix_project_name: "Not Set"
-
-  execution:
-    started_at_utc: "Unknown"        # ISO-8601 UTC timestamp
-    argv: [ ]                         # CLI arguments used to start the run
-    command: "Unknown"               # Full command string
-  git:
-    repo_root: null                  # Path to git repo root
-    remote_url: null                 # Origin URL
-    branch: null
-    commit_sha: null
-    commit_short_sha: null
-    is_dirty: null                   # true / false / null if unknown
-    diff_sha256: null                # Hash of git diff
-    describe: null                   # git describe output

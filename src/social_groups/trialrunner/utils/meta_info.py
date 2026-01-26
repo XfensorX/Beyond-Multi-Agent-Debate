@@ -7,8 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+import yaml
 from hydra.core.hydra_config import HydraConfig
 from pydantic import BaseModel
+
+from social_groups.trialrunner.config import META_FILE_NAME
 
 
 class GitInfo(BaseModel):
@@ -126,9 +129,14 @@ def generate_meta_information() -> ExperimentMetaInfo:
 
     output_dir = Path(HydraConfig.get().runtime.output_dir)
 
-    return ExperimentMetaInfo(
+    info = ExperimentMetaInfo(
         execution=ExecutionInfo(started_at_utc=started_at, argv=argv, command=command),
         git=git_info,
         output_directory=output_dir,
         phoenix_project_name=output_dir.parent.name + " - " + output_dir.name,
     )
+
+    with open(output_dir / META_FILE_NAME, "w") as f:
+        yaml.safe_dump(info.model_dump(), f, sort_keys=False)
+
+    return info

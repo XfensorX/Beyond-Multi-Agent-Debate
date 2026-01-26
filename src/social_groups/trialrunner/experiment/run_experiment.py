@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from pathlib import Path
 
 from social_groups.trialrunner.data_connectors.base import DataConnector, Example
 from social_groups.trialrunner.decision_schemes.base import DecisionScheme
@@ -21,7 +22,7 @@ from social_groups.trialrunner.utils.tracking import ExperimentTracker, TrackEnt
 logger = logging.getLogger(__name__)
 
 
-def run_experiment(config: MainConfig):
+def run_experiment(config: MainConfig, output_directory: Path):
     try:
         logger.info(f"Building Strategy {config.experiment.strategy.name}")
         decision_scheme = DECISION_SCHEMES.get(config.experiment.strategy.name)(
@@ -41,7 +42,7 @@ def run_experiment(config: MainConfig):
         )
 
     try:
-        with ExperimentTracker(config.meta_info.output_directory) as tracker:
+        with ExperimentTracker(output_directory) as tracker:
             execute_experiment(data, decision_scheme, tracker, config.execution)
 
     except KeyboardInterrupt:

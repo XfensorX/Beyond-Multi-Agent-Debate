@@ -13,30 +13,32 @@ from social_groups.trialrunner.utils.cli_utils import (
     setup_config,
 )
 from social_groups.trialrunner.utils.logging import setup_logging
+from social_groups.trialrunner.utils.meta_info import generate_meta_information
 
 console = Console()
 
 
 @hydra.main(version_base=None, config_name="base")
 def main(cfg: DictConfig):
-    # TODO: disentangle meta information from config, such that the config is extra and meta information is actually saved
     config = setup_config(console, cfg)
+    meta_info = generate_meta_information()
+
     global_config_holder.global_hydra_config = config
 
     try:
         print_title(console)
-        setup_logging(output_directory=config.meta_info.output_directory)
+        setup_logging(output_directory=meta_info.output_directory)
         print_config_overview(console, config)
 
-        initialize_phoenix(console, config)
+        initialize_phoenix(console, config, meta_info)
 
-        run_experiment(config)
+        run_experiment(config, meta_info.output_directory)
 
     except Exception as e:
         handle_failure_exception(console, e)
 
     finally:
-        print_final_message(console, config)
+        print_final_message(console, config, meta_info)
 
 
 if __name__ == "__main__":

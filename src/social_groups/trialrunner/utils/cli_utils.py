@@ -15,7 +15,7 @@ from rich.traceback import Traceback
 
 from social_groups.trialrunner.config import CLI_SUBTITLE, CLI_TITLE
 from social_groups.trialrunner.utils.hydra_config import MainConfig
-from social_groups.trialrunner.utils.meta_info import generate_meta_information
+from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
 from social_groups.trialrunner.utils.phoenix import phoenix_server_is_up, setup_phoenix
 
 log = logging.getLogger(__name__)
@@ -31,14 +31,16 @@ def print_title(console: Console):
     )
 
 
-def initialize_phoenix(console: Console, conf: MainConfig):
+def initialize_phoenix(
+    console: Console, conf: MainConfig, meta_info: ExperimentMetaInfo
+):
     log.info("Checking Phoenix Server connection...")
 
     if phoenix_server_is_up(url=f"{conf.execution.phoenix_server_url}/healthz"):
         log.info("Writing LLM Interactions into Phoenix. It is up and running.")
         setup_phoenix(
             endpoint=conf.execution.phoenix_graphql_url,
-            project_name=conf.meta_info.phoenix_project_name,
+            project_name=meta_info.phoenix_project_name,
         )
 
         return
@@ -78,13 +80,15 @@ def print_config_overview(console: Console, config: MainConfig):
     )
 
 
-def print_final_message(console: Console, config: MainConfig):
+def print_final_message(
+    console: Console, config: MainConfig, meta_info: ExperimentMetaInfo
+):
     console.print(
         Panel(
             Group(
                 Text("✅ Done\n", style="bold green"),
-                Text(f"Results: {config.meta_info.output_directory}"),
-                Text(f"Phoenix Project: {config.meta_info.phoenix_project_name}"),
+                Text(f"Results: {meta_info.output_directory}"),
+                Text(f"Phoenix Project: {meta_info.phoenix_project_name}"),
             ),
             title="Success",
         )
@@ -112,9 +116,7 @@ def handle_failure_exception(console: Console, exception: Exception):
 
 def setup_config(console: Console, cfg: DictConfig) -> MainConfig:
     try:
-        config = MainConfig.model_validate(OmegaConf.to_container(cfg, resolve=True))
-        config.meta_info = generate_meta_information()
-        return config
+        return MainConfig.model_validate(OmegaConf.to_container(cfg, resolve=True))
 
     except ValidationError:
         console.print(
