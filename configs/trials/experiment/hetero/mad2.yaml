@@ -45,7 +45,7 @@ experiment:
 
 
   additional_info:
-    description: Multi Agent Debate Evaluation — ${_models.0},${_models.1},${_models.2}
+    description: Multi Agent Debate Evaluation — ${_models.0},${_models.1}
 
 
 
