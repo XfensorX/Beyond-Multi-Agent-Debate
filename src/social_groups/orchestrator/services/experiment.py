@@ -18,6 +18,7 @@ class ExperimentStartingInformation(BaseModel):
     experiment_name: str
     phoenix_server_endpoint: str
     phoenix_graphql_endpoint: str
+    use_hydra_multirun: bool
 
 
 @register_slurm_service("experiment")
@@ -55,10 +56,18 @@ class ExperimentConfiguration(SlurmService):
             f"source {exec_config.project_dir / '.venv' / 'bin' / 'activate'} &&",
             f"cd {exec_config.project_dir} &&",
             "uv run trial",
-            f'--config-dir="{exec_config.project_dir / self.experiment_configuration_dir_inside_project}"',
-            f'+experiment="{self._starting_info.experiment_name}"',
-            f"'execution.model_backends={model_backends_formatted}'",
-            f'execution.phoenix_server_url="{self._starting_info.phoenix_server_endpoint}"',
-            f'execution.phoenix_graphql_url="{self._starting_info.phoenix_graphql_endpoint}"',
         ]
+
+        if self._starting_info.use_hydra_multirun:
+            parts.append("-m")
+
+        parts.extend(
+            [
+                f'--config-dir="{exec_config.project_dir / self.experiment_configuration_dir_inside_project}"',
+                f'+experiment="{self._starting_info.experiment_name}"',
+                f"'execution.model_backends={model_backends_formatted}'",
+                f'execution.phoenix_server_url="{self._starting_info.phoenix_server_endpoint}"',
+                f'execution.phoenix_graphql_url="{self._starting_info.phoenix_graphql_endpoint}"',
+            ]
+        )
         return " ".join(parts)

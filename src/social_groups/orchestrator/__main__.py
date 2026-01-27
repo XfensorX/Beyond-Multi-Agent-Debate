@@ -64,6 +64,12 @@ async def run_service_on_slurm(
         "-e",
         help="If starting an experiment, declaring which experiment to start.",
     ),
+    multirun: Optional[bool] = typer.Option(
+        False,
+        "--multirun",
+        "-m",
+        help="Activates the hydra multirun when starting an experiment.",
+    ),
 ):
     # TODO: refactor this method
     if llm:
@@ -150,6 +156,7 @@ async def run_service_on_slurm(
                     )
                     for b in available_model_backends
                 ],
+                use_hydra_multirun=multirun,
             )
         )
         print(service_config._starting_info)

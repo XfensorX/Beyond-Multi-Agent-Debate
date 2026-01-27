@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 import sys
 import time
-from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Iterable, Iterator, Optional, TypeVar
 
+from rich.console import Console, ConsoleRenderable
 from rich.logging import RichHandler
 from rich.progress import (
     BarColumn,
@@ -20,7 +20,52 @@ from rich.traceback import install as install_rich_traceback
 
 from social_groups.trialrunner.config import LOG_FILE_NAME, LOG_LEVEL
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("setup-logging")
+
+
+def is_rich_renderable(x) -> bool:
+    return hasattr(x, "__rich_console__") or hasattr(x, "__rich__")
+
+
+class RichRenderableHandler(RichHandler):
+    def emit(self, record: logging.LogRecord) -> None:
+        msg = record.msg
+        if (
+            isinstance(msg, ConsoleRenderable)
+            or hasattr(msg, "__rich_console__")
+            or hasattr(msg, "__rich__")
+        ):
+            try:
+                traceback = None
+                log_renderable = self.render(
+                    record=record, traceback=traceback, message_renderable=msg
+                )
+                self.console.print(log_renderable)
+            except Exception:
+                self.handleError(record)
+            return
+        # Fallback: normal RichHandler behavior for strings, numbers, etc.
+        super().emit(record)
+
+
+class RichToTextFormatter(logging.Formatter):
+    """
+    Turns Rich renderables into plain text for file logs.
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        if is_rich_renderable(record.msg):
+            console = Console(record=True, width=120, quiet=True)
+            console.print(record.msg)
+            rendered = console.export_text(clear=True)
+            original_msg = record.msg
+            try:
+                record.msg = rendered.rstrip("\n")
+                record.args = ()
+                return super().format(record)
+            finally:
+                record.msg = original_msg
+        return super().format(record)
 
 
 def setup_logging(
@@ -44,7 +89,7 @@ def setup_logging(
     # Clear any existing handlers (important with Hydra / re-entry)
     root.handlers.clear()
 
-    console_handler = RichHandler(
+    console_handler = RichRenderableHandler(
         rich_tracebacks=rich_tracebacks,
         markup=True,
         show_time=True,
@@ -52,19 +97,29 @@ def setup_logging(
         show_path=True,
     )
     console_handler.setLevel(level.upper())
+    console_handler.setFormatter(logging.Formatter("%(message)s"))
     root.addHandler(console_handler)
 
     log_file_path.parent.mkdir(parents=True, exist_ok=True)
-    file_handler = RotatingFileHandler(
-        log_file_path, maxBytes=5_000_000, backupCount=3, encoding="utf-8"
+    file_console = Console(file=open(log_file_path, "wt"), width=200)
+
+    # Configure the RichHandler to use this file-based console
+    file_handler = RichRenderableHandler(
+        console=file_console,
+        rich_tracebacks=rich_tracebacks,
+        markup=True,
+        show_time=True,
+        show_level=True,
+        show_path=True,
     )
     file_handler.setLevel(level.upper())
-    file_handler.setFormatter(
-        logging.Formatter(
-            fmt="%(asctime)s %(levelname)s %(name)s: %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
-    )
+    # file_handler.setFormatter(
+    #     RichToTextFormatter(
+    #         fmt="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    #         datefmt="%Y-%m-%d %H:%M:%S",
+    #     )
+    # )
+    file_handler.setFormatter(logging.Formatter("%(message)s"))
     root.addHandler(file_handler)
 
     # Silence noisy libraries

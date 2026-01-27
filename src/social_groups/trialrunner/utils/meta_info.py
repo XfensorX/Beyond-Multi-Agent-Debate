@@ -137,6 +137,6 @@ def generate_meta_information() -> ExperimentMetaInfo:
     )
 
     with open(output_dir / META_FILE_NAME, "w") as f:
-        yaml.safe_dump(info.model_dump(), f, sort_keys=False)
+        yaml.safe_dump(info.model_dump(mode="json"), f, sort_keys=False)
 
     return info

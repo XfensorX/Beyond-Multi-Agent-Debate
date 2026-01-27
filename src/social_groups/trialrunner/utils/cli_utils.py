@@ -7,7 +7,7 @@ from omegaconf import DictConfig, OmegaConf
 from openai import APIConnectionError
 from pydantic import ValidationError
 from pyfiglet import figlet_format
-from rich.console import Console, Group
+from rich.console import Group
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
@@ -18,22 +18,19 @@ from social_groups.trialrunner.utils.hydra_config import MainConfig
 from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
 from social_groups.trialrunner.utils.phoenix import phoenix_server_is_up, setup_phoenix
 
-log = logging.getLogger(__name__)
+log = logging.getLogger("startup")
 
 
-def print_title(console: Console):
-    console.print(
-        Panel.fit(
-            figlet_format(CLI_TITLE, font="ansi_shadow", width=200),
-            subtitle=CLI_SUBTITLE,
-        ),
-        justify="center",
+def print_title():
+    banner = figlet_format(CLI_TITLE, font="ansi_shadow", width=200)
+    log.info(
+        Panel(
+            banner, subtitle=CLI_SUBTITLE, title_align="center", subtitle_align="center"
+        )
     )
 
 
-def initialize_phoenix(
-    console: Console, conf: MainConfig, meta_info: ExperimentMetaInfo
-):
+def initialize_phoenix(conf: MainConfig, meta_info: ExperimentMetaInfo):
     log.info("Checking Phoenix Server connection...")
 
     if phoenix_server_is_up(url=f"{conf.execution.phoenix_server_url}/healthz"):
@@ -45,7 +42,7 @@ def initialize_phoenix(
 
         return
 
-    console.print(
+    log.warning(
         Panel(
             Group(
                 Text("❌ Abort", style="bold red"),
@@ -61,8 +58,8 @@ def initialize_phoenix(
     exit(1)
 
 
-def print_config_overview(console: Console, config: MainConfig):
-    console.print(
+def print_config_overview(config: MainConfig):
+    log.info(
         Panel(
             Syntax(
                 OmegaConf.to_yaml(
@@ -76,14 +73,12 @@ def print_config_overview(console: Console, config: MainConfig):
             ),
             title=f"Resolved config - {HydraConfig.get().runtime.choices['experiment']}",
             title_align="left",
-        ),
+        )
     )
 
 
-def print_final_message(
-    console: Console, config: MainConfig, meta_info: ExperimentMetaInfo
-):
-    console.print(
+def print_final_message(meta_info: ExperimentMetaInfo):
+    log.info(
         Panel(
             Group(
                 Text("✅ Done\n", style="bold green"),
@@ -95,16 +90,16 @@ def print_final_message(
     )
 
 
-def handle_failure_exception(console: Console, exception: Exception):
-    console.print(Panel(str(exception), title="Run failed", style="red"))
+def handle_failure_exception(exception: Exception):
+    log.info(Panel(str(exception), title="Run failed", style="red"))
     if isinstance(exception, APIConnectionError):
-        console.print(
+        log.exception(
             Panel(repr(exception.request), title="Failed Request", style="yellow")
         )
     elif isinstance(exception, ValidationError):
         pass
     else:
-        console.print(
+        log.exception(
             Traceback.from_exception(
                 type(exception), exception, exception.__traceback__, show_locals=True
             )
@@ -114,12 +109,12 @@ def handle_failure_exception(console: Console, exception: Exception):
     exit(1)
 
 
-def setup_config(console: Console, cfg: DictConfig) -> MainConfig:
+def setup_config(cfg: DictConfig) -> MainConfig:
     try:
         return MainConfig.model_validate(OmegaConf.to_container(cfg, resolve=True))
 
     except ValidationError:
-        console.print(
+        log.warning(
             "\n[bold yellow] Did you select an experiment config? (experiment=<exp name>)[/bold yellow]\n"
         )
         raise
