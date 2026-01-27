@@ -1,12 +1,12 @@
 from pydantic import computed_field
 
+from social_groups.orchestrator.config import random_string_to_job_name_appendix
 from social_groups.orchestrator.models.execution_environment import (
     ExecutionLocationConfig,
 )
 from social_groups.orchestrator.services.base import register_slurm_service
 from social_groups.orchestrator.services.base_inference import (
     BaseInferenceService,
-    model_id_to_job_name_appendix,
 )
 
 
@@ -18,7 +18,9 @@ class VLLMConfiguration(BaseInferenceService):
         if self._chosen_model_id is None:
             return "vllm___{model_id_placeholder}"
 
-        return "vllm" + f"___{model_id_to_job_name_appendix(self._chosen_model_id)}"
+        return (
+            "vllm" + f"___{random_string_to_job_name_appendix(self._chosen_model_id)}"
+        )
 
     @staticmethod
     def job_name_is_matching_this_service(given_job_name: str) -> bool:
@@ -36,7 +38,7 @@ class VLLMConfiguration(BaseInferenceService):
 
         return (
             f"source {exec_config.project_dir / '.venv' / 'bin' / 'activate'} && "
-            f"uv run vllm serve {self._chosen_model_id}"
+            f"uv run vllm serve {self._chosen_model_id} "
             f"--host=0.0.0.0 "
             f"--port={used_model.port} "
             + (

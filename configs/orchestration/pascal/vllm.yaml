@@ -1,9 +1,9 @@
 slurm_config:
-  time: 72:00:00
+  time: 16:00:00
   cpus_per_task: 16
-  memory_GB: 32
+  memory_GB: 16
   gres: gpu:1
-  partition: volta
+  partition: ampere, volta
 
 llm_models:
   Qwen/Qwen2.5-0.5B-Instruct:
@@ -12,6 +12,9 @@ llm_models:
   #    max_total_tokens: 8192
   #    max_input_tokens: 7168
 
-  Qwen/Qwen3-32B:
-    port: 8003
-
+  Qwen/Qwen3-0.6B:
+    port: 8006
+  Qwen/Qwen3-4B:
+    port: 8004
+  Qwen/Qwen3-14B:
+    port: 8014

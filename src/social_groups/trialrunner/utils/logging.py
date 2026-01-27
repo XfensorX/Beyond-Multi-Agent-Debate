@@ -20,6 +20,7 @@ from rich.traceback import install as install_rich_traceback
 
 from social_groups.trialrunner.config import LOG_FILE_NAME, LOG_LEVEL
 
+DEFAULT_CONSOLE_WIDTH = 240
 log = logging.getLogger("setup-logging")
 
 
@@ -55,7 +56,7 @@ class RichToTextFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         if is_rich_renderable(record.msg):
-            console = Console(record=True, width=120, quiet=True)
+            console = Console(record=True, width=DEFAULT_CONSOLE_WIDTH, quiet=True)
             console.print(record.msg)
             rendered = console.export_text(clear=True)
             original_msg = record.msg
@@ -101,7 +102,7 @@ def setup_logging(
     root.addHandler(console_handler)
 
     log_file_path.parent.mkdir(parents=True, exist_ok=True)
-    file_console = Console(file=open(log_file_path, "wt"), width=200)
+    file_console = Console(file=open(log_file_path, "wt"), width=DEFAULT_CONSOLE_WIDTH)
 
     # Configure the RichHandler to use this file-based console
     file_handler = RichRenderableHandler(

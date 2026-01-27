@@ -16,3 +16,7 @@ def get_slurm_log_filename(job_name: str, jobId: JobId | None = None) -> str:
         return f"{job_name}-%j.out"
     else:
         return f"{job_name}-{jobId}.out"
+
+
+def random_string_to_job_name_appendix(model_id: str) -> str:
+    return model_id.replace("/", "__")

@@ -12,7 +12,10 @@ from questionary import Choice
 from rich import print
 from rich.text import Text
 
-from social_groups.orchestrator.config import get_slurm_log_filename
+from social_groups.orchestrator.config import (
+    get_slurm_log_filename,
+    random_string_to_job_name_appendix,
+)
 from social_groups.orchestrator.models.execution_environment import (
     ExecutionLocation,
     load_execution_config,
@@ -26,7 +29,6 @@ from social_groups.orchestrator.services import (
     TgiConfiguration,
     VLLMConfiguration,
     load_config,
-    model_id_to_job_name_appendix,
 )
 from social_groups.orchestrator.utils.general import run_async
 from social_groups.orchestrator.utils.run_commands import run_local, run_ssh
@@ -228,7 +230,7 @@ def parse_running_inference_backends(
     for llm_models, jobs, backend in backend_specs:
         for model_id, info in llm_models.items():
             for job in jobs:
-                if model_id_to_job_name_appendix(model_id) in job.job_name:
+                if random_string_to_job_name_appendix(model_id) in job.job_name:
                     available_model_backends.append(
                         RunningBackend(
                             backend=backend, port=info.port, job=job, model_id=model_id
@@ -349,7 +351,10 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
     elif isinstance(service_config, BaseInferenceService):
         port = None
         for backend in available_model_backends:
-            if model_id_to_job_name_appendix(backend.model_id) in used_info.job_name:
+            if (
+                random_string_to_job_name_appendix(backend.model_id)
+                in used_info.job_name
+            ):
                 port = backend.port
 
         if port is None:

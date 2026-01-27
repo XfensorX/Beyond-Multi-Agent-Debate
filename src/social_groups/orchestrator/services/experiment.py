@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, computed_field
 
+from social_groups.orchestrator.config import random_string_to_job_name_appendix
 from social_groups.orchestrator.models.execution_environment import (
     ExecutionLocationConfig,
 )
@@ -32,7 +33,10 @@ class ExperimentConfiguration(SlurmService):
         if self._starting_info is None:
             return "experiment___{experiment_name_placeholder}"
 
-        return "experiment" + f"___{self._starting_info.experiment_name}"
+        return (
+            "experiment"
+            + f"___{random_string_to_job_name_appendix(self._starting_info.experiment_name)}"
+        )
 
     @staticmethod
     def job_name_is_matching_this_service(given_job_name: str) -> bool:

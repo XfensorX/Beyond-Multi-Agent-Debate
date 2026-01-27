@@ -18,10 +18,6 @@ class ModelConfiguration(BaseModel):
     max_input_tokens: Optional[int] = None
 
 
-def model_id_to_job_name_appendix(model_id: str) -> str:
-    return model_id.replace("/", "__")
-
-
 class BaseInferenceService(SlurmService, ABC):
     llm_models: dict[ModelId, ModelConfiguration]
     _chosen_model_id: ModelId | None = None  # The model to actually run

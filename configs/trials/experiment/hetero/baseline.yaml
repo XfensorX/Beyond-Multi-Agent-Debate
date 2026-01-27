@@ -19,10 +19,10 @@ experiment:
       llm:
         max_new_tokens: 1024
         temperature: 0.0
-        top_p: 1.0
+        top_p: null
         top_k: 1
-        typical_p: 1.0
-        repetition_penalty: 1.03
+        typical_p: null
+        repetition_penalty: null
 
 
 

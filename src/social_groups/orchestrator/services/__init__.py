@@ -5,7 +5,7 @@ from .base import (
     load_config,
     register_slurm_service,
 )
-from .base_inference import BaseInferenceService, model_id_to_job_name_appendix
+from .base_inference import BaseInferenceService
 from .experiment import ExperimentConfiguration, ExperimentStartingInformation
 from .phoenix import PhoenixConfiguration
 from .tgi import TgiConfiguration
@@ -22,6 +22,5 @@ __all__ = [
     "register_slurm_service",
     "SlurmServiceName",
     "load_config",
-    "model_id_to_job_name_appendix",
     "ExperimentStartingInformation",
 ]

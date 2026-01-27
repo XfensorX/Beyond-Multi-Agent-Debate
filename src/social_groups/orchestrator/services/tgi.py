@@ -2,13 +2,13 @@ from pathlib import Path
 
 from pydantic import computed_field
 
+from social_groups.orchestrator.config import random_string_to_job_name_appendix
 from social_groups.orchestrator.models.execution_environment import (
     ExecutionLocationConfig,
 )
 from social_groups.orchestrator.services.base import register_slurm_service
 from social_groups.orchestrator.services.base_inference import (
     BaseInferenceService,
-    model_id_to_job_name_appendix,
 )
 
 
@@ -24,7 +24,7 @@ class TgiConfiguration(BaseInferenceService):
         if self._chosen_model_id is None:
             return "tgi___{model_id_placeholder}"
 
-        return "tgi" + f"___{model_id_to_job_name_appendix(self._chosen_model_id)}"
+        return "tgi" + f"___{random_string_to_job_name_appendix(self._chosen_model_id)}"
 
     @staticmethod
     def job_name_is_matching_this_service(given_job_name: str) -> bool:
