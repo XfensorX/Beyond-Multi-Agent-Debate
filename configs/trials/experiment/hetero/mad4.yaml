@@ -1,16 +1,16 @@
 # @package _global_
 defaults:
   - _self_
-  - /experiment/hetero/groups@_models: LLL
+  - /experiment/hetero/groups@_models: LLLL
 
 hydra:
   sweeper:
     params:
-      experiment/hetero/groups@_models: LLL, LLM, HLL, LMM, HLM, HHL, MMM, HMM, HHM, HHH
+      experiment/hetero/groups@_models: LLLL, LLLM, HLLL, LLMM, HLLM, HHLL, LMMM, HLMM, HHLM, HHHL, MMMM, HMMM, HHMM, HHHM, HHHH
 
 
 experiment:
-  name: heterogeneous_group_mad3
+  name: heterogeneous_group_mad4
   data: mmlu-pro-subset
 
   strategy:
@@ -52,6 +52,17 @@ experiment:
             typical_p: null
             repetition_penalty: null
           backend: ${_models.2}
+
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 1024
+            temperature: 0.0
+            top_p: 1.0
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+          backend: ${_models.3}
+
 
 
 
