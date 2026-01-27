@@ -3,7 +3,7 @@ slurm_config:
   cpus_per_task: 16
   memory_GB: 16
   gres: gpu:1
-  partition: ampere, volta
+  partition: ampere,volta
 
 llm_models:
   Qwen/Qwen2.5-0.5B-Instruct:
