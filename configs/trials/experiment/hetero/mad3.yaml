@@ -16,15 +16,12 @@ experiment:
   strategy:
     name: multi-agent-debate
     configuration:
-      temperature: 0.5
-      top_p: 0.001
-      max_tokens: 1024
       number_of_rounds: 3
 
       debate_agents:
         - number_of_agents: 1
           params:
-            max_new_tokens: 1024
+            max_new_tokens: 4096
             temperature: 0.0
             top_p: 1.0
             top_k: null
@@ -34,7 +31,7 @@ experiment:
 
         - number_of_agents: 1
           params:
-            max_new_tokens: 1024
+            max_new_tokens: 4096
             temperature: 0.0
             top_p: 1.0
             top_k: null
@@ -45,7 +42,7 @@ experiment:
 
         - number_of_agents: 1
           params:
-            max_new_tokens: 1024
+            max_new_tokens: 4096
             temperature: 0.0
             top_p: 1.0
             top_k: null

@@ -85,4 +85,10 @@ orch start pascal experiment -m -e 'hetero/baseline'
 orch start pascal experiment -m -e 'hetero/mad2'
 orch start pascal experiment -m -e 'hetero/mad3'
 orch start pascal experiment -m -e 'hetero/mad4'
+
+
+orch start neumann experiment -m -e 'hetero/baseline'
+orch start neumann experiment -m -e 'hetero/mad2'
+orch start neumann experiment -m -e 'hetero/mad3'
+orch start neumann experiment -m -e 'hetero/mad4'
 ```
