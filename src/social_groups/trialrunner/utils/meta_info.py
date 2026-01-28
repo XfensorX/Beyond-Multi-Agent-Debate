@@ -11,7 +11,7 @@ import yaml
 from hydra.core.hydra_config import HydraConfig
 from pydantic import BaseModel
 
-from social_groups.trialrunner.config import META_FILE_NAME
+from social_groups.directories import META_FILE_NAME
 
 
 class GitInfo(BaseModel):

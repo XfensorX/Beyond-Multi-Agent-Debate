@@ -18,7 +18,8 @@ from rich.progress import (
 )
 from rich.traceback import install as install_rich_traceback
 
-from social_groups.trialrunner.config import LOG_FILE_NAME, LOG_LEVEL
+from social_groups.directories import LOG_FILE_NAME
+from social_groups.trialrunner.config import LOG_LEVEL
 
 DEFAULT_CONSOLE_WIDTH = 240
 log = logging.getLogger("setup-logging")

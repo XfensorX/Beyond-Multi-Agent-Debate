@@ -10,10 +10,6 @@ from pydantic import BaseModel, ConfigDict
 
 from social_groups.trialrunner.utils import global_config_holder
 
-LOG_FILE_NAME = "stdout.log"
-META_FILE_NAME = "meta.yaml"
-TRACK_FILE_NAME = "experiment_result.jsonl"
-
 CLI_TITLE = "Social Studies"
 CLI_SUBTITLE = "Agent Swarm Experiments"
 

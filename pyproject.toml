@@ -44,6 +44,8 @@ dependencies = [
     "ruff>=0.14.8",
     "streamlit>=1.52.2",
     "taskipy>=1.14.1",
+    "textual[syntax]>=7.4.0",
+    "textual-dev>=1.8.0",
     "typer>=0.21.0",
     "uv>=0.9.18",
     "vllm>=0.13.0; sys_platform == 'linux'",
@@ -67,8 +69,12 @@ where = ["src"]
 
 [project.scripts]
 orch = "social_groups.orchestrator.__main__:main"
+orchestrator = "social_groups.orchestrator.__main__:main"
 trial = "social_groups.trialrunner.__main__:main"
-
+trialrunner = "social_groups.trialrunner.__main__:main"
+slorch = "social_groups.slorch.__main__:main"
+ana = "social_groups.analyzer.__main__:main"
+analyzer = "social_groups.analyzer.__main__:main"
 
 [tool.taskipy.tasks]
 pull_tgi_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/tgi.sif docker://ghcr.io/huggingface/text-generation-inference:2.3.0", help = "Pull the docker Image of TGI from huggingface and save it as apptainer sif." }

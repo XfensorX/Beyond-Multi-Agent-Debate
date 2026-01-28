@@ -1,14 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from social_groups.orchestrator.utils.types import JobId
 
 YAML_ENDING = ".yaml"
 EXECUTION_ENVIRONMENT_CONFIG_NAME = "general" + YAML_ENDING
-CONFIGURATIONS_PATH = (
-    Path(__file__).parent.parent.parent.parent / "configs" / "orchestration"
-)
 
 
 def get_slurm_log_filename(job_name: str, jobId: JobId | None = None) -> str:

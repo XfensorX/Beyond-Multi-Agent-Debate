@@ -6,8 +6,9 @@ from enum import Enum
 import yaml
 from pydantic import BaseModel, computed_field
 
+from social_groups.directories import ORCHESTRATION_CONFIGS_DIR
 from social_groups.orchestrator import services
-from social_groups.orchestrator.config import CONFIGURATIONS_PATH, YAML_ENDING
+from social_groups.orchestrator.config import YAML_ENDING
 from social_groups.orchestrator.models.execution_environment import (
     ExecutionLocation,
     ExecutionLocationConfig,
@@ -68,6 +69,8 @@ SlurmServiceName: type[Enum] = make_enum("SlurmServiceName", set(SLURM_SERVICE.n
 
 
 def load_config(service: SlurmServiceName, where: ExecutionLocation) -> SlurmService:
-    config_path = CONFIGURATIONS_PATH / where.value / f"{service.value}{YAML_ENDING}"
+    config_path = (
+        ORCHESTRATION_CONFIGS_DIR / where.value / f"{service.value}{YAML_ENDING}"
+    )
     with open(config_path) as f:
         return SLURM_SERVICE.get(service).model_validate(yaml.safe_load(f))

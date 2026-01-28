@@ -8,7 +8,7 @@ from pathlib import Path
 import zstandard as zstd
 from pydantic import BaseModel
 
-from social_groups.trialrunner.config import TRACK_FILE_NAME
+from social_groups.directories import TRACK_FILE_NAME
 from social_groups.trialrunner.decision_schemes.base import ExampleInput, ExampleOutput
 from social_groups.trialrunner.utils.phoenix import PhoenixExampleHandle
 

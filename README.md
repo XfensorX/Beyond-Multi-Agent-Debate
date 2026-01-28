@@ -79,3 +79,10 @@ Then locally in two terminals:
 
 - MODEL_ID="Qwen/Qwen2.5-0.5B-Instruct" uv run task slurm_setup
 - uv run task slurm standard
+
+```shell
+orch start pascal experiment -m -e 'hetero/baseline'
+orch start pascal experiment -m -e 'hetero/mad2'
+orch start pascal experiment -m -e 'hetero/mad3'
+orch start pascal experiment -m -e 'hetero/mad4'
+```

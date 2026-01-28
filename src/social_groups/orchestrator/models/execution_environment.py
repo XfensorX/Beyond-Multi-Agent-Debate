@@ -5,8 +5,8 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel
 
+from social_groups.directories import ORCHESTRATION_CONFIGS_DIR
 from social_groups.orchestrator.config import (
-    CONFIGURATIONS_PATH,
     EXECUTION_ENVIRONMENT_CONFIG_NAME,
 )
 from social_groups.orchestrator.utils.run_commands import run_ssh
@@ -48,6 +48,8 @@ class ExecutionLocationConfig(BaseModel):
 
 
 def load_execution_config(where: ExecutionLocation) -> ExecutionLocationConfig:
-    file_path = CONFIGURATIONS_PATH / where.value / EXECUTION_ENVIRONMENT_CONFIG_NAME
+    file_path = (
+        ORCHESTRATION_CONFIGS_DIR / where.value / EXECUTION_ENVIRONMENT_CONFIG_NAME
+    )
     with open(file_path) as f:
         return ExecutionLocationConfig.model_validate(yaml.safe_load(f))
