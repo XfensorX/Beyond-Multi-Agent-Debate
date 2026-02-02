@@ -64,6 +64,16 @@ query ($after: String = null) {
 }
 """
 
+_URL_INFOS_QUERY = """
+query ($spanId: String!) {
+  s0: getSpanByOtelId(spanId: $spanId) {
+    id
+    project { id }
+    context { traceId }
+  }
+}
+"""
+
 
 def get_phoenix_project_id(
     *,
@@ -71,10 +81,6 @@ def get_phoenix_project_id(
     project_name: str,
     timeout_s: float = 10.0,
 ) -> str:
-    """
-    Returns Phoenix's GraphQL 'project id' for a given project name.
-    Works for local Phoenix (default http://localhost:6006) and hosted Phoenix, as long as /graphql is reachable.
-    """
     base = phoenix_base_url.rstrip("/")
     after: Optional[str] = None
 
@@ -101,6 +107,29 @@ def get_phoenix_project_id(
         f"Phoenix project '{project_name}' not found at {phoenix_base_url}. "
         f"Tip: make sure at least one trace/span has been sent to that project."
     )
+
+
+def retrieve_phoenix_url_from_span_id(
+    span_id: str,
+    *,
+    phoenix_base_url: str,
+    timeout_s: float = 10.0,
+) -> str:
+    """
+    Returns Phoenix's GraphQL 'project id' for a given project name.
+    Works for local Phoenix (default http://localhost:6006) and hosted Phoenix, as long as /graphql is reachable.
+    """
+    base = phoenix_base_url.rstrip("/")
+
+    with httpx.Client(base_url=base, timeout=timeout_s) as client:
+        r = client.post(
+            "/graphql",
+            json={"query": _URL_INFOS_QUERY, "variables": {"spanId": span_id}},
+        )
+        r.raise_for_status()
+        payload = r.json()["data"]["s0"]
+
+        return f"{phoenix_base_url}/projects/{payload['project']['id']}/spans/{payload['context']['traceId']}?selectedNoteSpanId={payload['id']}"
 
 
 class PhoenixExampleHandle(BaseModel):

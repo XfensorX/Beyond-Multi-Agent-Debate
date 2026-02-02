@@ -50,6 +50,11 @@ dependencies = [
     "uv>=0.9.18",
     "vllm>=0.13.0; sys_platform == 'linux'",
     "zstandard>=0.25.0",
+    "pyfonts>=1.2.0",
+    "highlight-text>=0.2",
+    "drawarrow>=0.1.0",
+    "plotly>=6.5.2",
+    "watchdog>=6.0.0",
 ]
 
 

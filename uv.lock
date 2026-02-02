@@ -937,6 +937,18 @@ wheels = [
 ]
 
 [[package]]
+name = "drawarrow"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/49/30/0a9b0cb8cc08c8a70406ddb0b6c6704b8281f12c13334b76ec195994f764/drawarrow-0.1.0.tar.gz", hash = "sha256:e7be36bac90f13054e58b3ea8ffaa52f9c13a6189c25d86d2a930a00c26875ad", size = 10383, upload-time = "2025-03-18T20:53:29.092Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/dd/7a9d9846a46670b4012fac9afa52aa922f27bf412b437eee8d76de90f6aa/drawarrow-0.1.0-py3-none-any.whl", hash = "sha256:aafd22658a05d31562c18089b3c7b5769e9af3182e6b29a26a1475920017f619", size = 8208, upload-time = "2025-03-18T20:53:26.819Z" },
+]
+
+[[package]]
 name = "einops"
 version = "0.8.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1347,6 +1359,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/0b/dd/7ac658d54b9fb7999a0ccb07ad863b413cbaf5cf172f48ebcd9497ec7263/hf_xet-1.2.0-cp37-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:4c1428c9ae73ec0939410ec73023c4f842927f39db09b063b9482dac5a3bb737", size = 3413812, upload-time = "2025-10-24T19:04:24.585Z" },
     { url = "https://files.pythonhosted.org/packages/92/68/89ac4e5b12a9ff6286a12174c8538a5930e2ed662091dd2572bbe0a18c8a/hf_xet-1.2.0-cp37-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:a55558084c16b09b5ed32ab9ed38421e2d87cf3f1f89815764d1177081b99865", size = 3508920, upload-time = "2025-10-24T19:04:26.927Z" },
     { url = "https://files.pythonhosted.org/packages/cb/44/870d44b30e1dcfb6a65932e3e1506c103a8a5aea9103c337e7a53180322c/hf_xet-1.2.0-cp37-abi3-win_amd64.whl", hash = "sha256:e6584a52253f72c9f52f9e549d5895ca7a471608495c4ecaa6cc73dba2b24d69", size = 2905735, upload-time = "2025-10-24T19:04:35.928Z" },
+]
+
+[[package]]
+name = "highlight-text"
+version = "0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9a/67/819151e5e9a4580b26620f86d95f0f11f46bdd792feffa16d3819a2cb4d4/highlight_text-0.2.tar.gz", hash = "sha256:062d8f648fd474157367e435e37ef5c68cc58b1c8d0b006baab2e7c1c60bdc37", size = 13273, upload-time = "2021-04-07T14:58:52.251Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b2/ca/acb9567cf3cde352a08e2b6bb6e0b0e278061d07b2e0bf9bdd7cfaa9bded/highlight_text-0.2-py3-none-any.whl", hash = "sha256:fb1333628f500a0ff2c25af757511eb39034c1d19571994821b2e0f76d040f75", size = 11973, upload-time = "2021-04-07T14:58:48.962Z" },
 ]
 
 [[package]]
@@ -3285,6 +3306,19 @@ wheels = [
 ]
 
 [[package]]
+name = "plotly"
+version = "6.5.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "narwhals" },
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e3/4f/8a10a9b9f5192cb6fdef62f1d77fa7d834190b2c50c0cd256bd62879212b/plotly-6.5.2.tar.gz", hash = "sha256:7478555be0198562d1435dee4c308268187553cc15516a2f4dd034453699e393", size = 7015695, upload-time = "2026-01-14T21:26:51.222Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8a/67/f95b5460f127840310d2187f916cf0023b5875c0717fdf893f71e1325e87/plotly-6.5.2-py3-none-any.whl", hash = "sha256:91757653bd9c550eeea2fa2404dba6b85d1e366d54804c340b2c874e5a7eb4a4", size = 9895973, upload-time = "2026-01-14T21:26:47.135Z" },
+]
+
+[[package]]
 name = "ply"
 version = "3.11"
 source = { registry = "https://pypi.org/simple" }
@@ -3624,6 +3658,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c8/e3/0a86276ad2c383ce08d76110a8eec2fe22e7051c4b8ba3fa163a0b08c428/pyfiglet-1.0.4.tar.gz", hash = "sha256:db9c9940ed1bf3048deff534ed52ff2dafbbc2cd7610b17bb5eca1df6d4278ef", size = 1560615, upload-time = "2025-08-15T18:32:47.302Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9f/5c/fe9f95abd5eaedfa69f31e450f7e2768bef121dbdf25bcddee2cd3087a16/pyfiglet-1.0.4-py3-none-any.whl", hash = "sha256:65b57b7a8e1dff8a67dc8e940a117238661d5e14c3e49121032bd404d9b2b39f", size = 1806118, upload-time = "2025-08-15T18:32:45.556Z" },
+]
+
+[[package]]
+name = "pyfonts"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "matplotlib" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4a/7f/3f6a942980a20fc0658c5142eaa351e6800586e70e00791416501f6de58f/pyfonts-1.2.0.tar.gz", hash = "sha256:42e70c6518cba702852d5814db50f5a05b77e2b6b1b7752aafcbe01d8facaada", size = 266529, upload-time = "2025-11-19T12:59:33.688Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/81/49/9a2ffc68c9d1d8796a887ef48a7037502dbf04f266e808944f29a7539e3b/pyfonts-1.2.0-py3-none-any.whl", hash = "sha256:2629f9065ad2edbce215f4011c25a9f74d4a67f18be34d8a873b722c41eeb51e", size = 12447, upload-time = "2025-11-19T12:59:32.33Z" },
 ]
 
 [[package]]
@@ -4211,8 +4258,10 @@ dependencies = [
     { name = "bitsandbytes" },
     { name = "datamodel-code-generator" },
     { name = "datasets" },
+    { name = "drawarrow" },
     { name = "grpcio" },
     { name = "grpcio-health-checking" },
+    { name = "highlight-text" },
     { name = "httpx" },
     { name = "hydra-core" },
     { name = "hydra-joblib-launcher" },
@@ -4234,8 +4283,10 @@ dependencies = [
     { name = "pandas-stubs" },
     { name = "patito" },
     { name = "playwright" },
+    { name = "plotly" },
     { name = "polars" },
     { name = "pydantic" },
+    { name = "pyfonts" },
     { name = "python-dotenv" },
     { name = "questionary" },
     { name = "rich" },
@@ -4248,6 +4299,7 @@ dependencies = [
     { name = "typer" },
     { name = "uv" },
     { name = "vllm", marker = "sys_platform == 'linux'" },
+    { name = "watchdog" },
     { name = "zstandard" },
 ]
 
@@ -4260,8 +4312,10 @@ requires-dist = [
     { name = "bitsandbytes", specifier = ">=0.46.1" },
     { name = "datamodel-code-generator", specifier = ">=0.52.2" },
     { name = "datasets", specifier = ">=4.4.1" },
+    { name = "drawarrow", specifier = ">=0.1.0" },
     { name = "grpcio", specifier = ">=1.76.0" },
     { name = "grpcio-health-checking", specifier = ">=1.76.0" },
+    { name = "highlight-text", specifier = ">=0.2" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "hydra-core", specifier = ">=1.3.2" },
     { name = "hydra-joblib-launcher", specifier = ">=1.2.0" },
@@ -4283,8 +4337,10 @@ requires-dist = [
     { name = "pandas-stubs", specifier = "==2.3.2.250926" },
     { name = "patito", specifier = ">=0.8.5" },
     { name = "playwright", specifier = ">=1.56.0" },
+    { name = "plotly", specifier = ">=6.5.2" },
     { name = "polars", specifier = ">=1.36.1" },
     { name = "pydantic", specifier = ">=2.12.4" },
+    { name = "pyfonts", specifier = ">=1.2.0" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "questionary", specifier = ">=2.1.1" },
     { name = "rich", specifier = ">=14.2.0" },
@@ -4297,6 +4353,7 @@ requires-dist = [
     { name = "typer", specifier = ">=0.21.0" },
     { name = "uv", specifier = ">=0.9.18" },
     { name = "vllm", marker = "sys_platform == 'linux'", specifier = ">=0.13.0" },
+    { name = "watchdog", specifier = ">=6.0.0" },
     { name = "zstandard", specifier = ">=0.25.0" },
 ]
 
@@ -5300,6 +5357,9 @@ version = "6.0.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/db/7d/7f3d619e951c88ed75c6037b246ddcf2d322812ee8ea189be89511721d54/watchdog-6.0.0.tar.gz", hash = "sha256:9ddf7c82fda3ae8e24decda1338ede66e1c99883db93711d8fb941eaa2d8c282", size = 131220, upload-time = "2024-11-01T14:07:13.037Z" }
 wheels = [
+    { url = "https://files.pythonhosted.org/packages/e0/24/d9be5cd6642a6aa68352ded4b4b10fb0d7889cb7f45814fb92cecd35f101/watchdog-6.0.0-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:6eb11feb5a0d452ee41f824e271ca311a09e250441c262ca2fd7ebcf2461a06c", size = 96393, upload-time = "2024-11-01T14:06:31.756Z" },
+    { url = "https://files.pythonhosted.org/packages/63/7a/6013b0d8dbc56adca7fdd4f0beed381c59f6752341b12fa0886fa7afc78b/watchdog-6.0.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:ef810fbf7b781a5a593894e4f439773830bdecb885e6880d957d5b9382a960d2", size = 88392, upload-time = "2024-11-01T14:06:32.99Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/40/b75381494851556de56281e053700e46bff5b37bf4c7267e858640af5a7f/watchdog-6.0.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:afd0fe1b2270917c5e23c2a65ce50c2a4abb63daafb0d419fde368e272a76b7c", size = 89019, upload-time = "2024-11-01T14:06:34.963Z" },
     { url = "https://files.pythonhosted.org/packages/a9/c7/ca4bf3e518cb57a686b2feb4f55a1892fd9a3dd13f470fca14e00f80ea36/watchdog-6.0.0-py3-none-manylinux2014_aarch64.whl", hash = "sha256:7607498efa04a3542ae3e05e64da8202e58159aa1fa4acddf7678d34a35d4f13", size = 79079, upload-time = "2024-11-01T14:06:59.472Z" },
     { url = "https://files.pythonhosted.org/packages/5c/51/d46dc9332f9a647593c947b4b88e2381c8dfc0942d15b8edc0310fa4abb1/watchdog-6.0.0-py3-none-manylinux2014_armv7l.whl", hash = "sha256:9041567ee8953024c83343288ccc458fd0a2d811d6a0fd68c4c22609e3490379", size = 79078, upload-time = "2024-11-01T14:07:01.431Z" },
     { url = "https://files.pythonhosted.org/packages/d4/57/04edbf5e169cd318d5f07b4766fee38e825d64b6913ca157ca32d1a42267/watchdog-6.0.0-py3-none-manylinux2014_i686.whl", hash = "sha256:82dc3e3143c7e38ec49d61af98d6558288c415eac98486a5c581726e0737c00e", size = 79076, upload-time = "2024-11-01T14:07:02.568Z" },

@@ -1,0 +1,135 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict, Iterator, Optional
+
+import httpx
+import polars as pl
+import pyarrow
+import pyarrow.parquet as pq
+import yaml
+import zstandard as zstd
+from omegaconf import OmegaConf
+from pyarrow.parquet import ParquetWriter
+
+from social_groups.directories import META_FILE_NAME
+from social_groups.trialrunner.utils.hydra_config import MainConfig
+from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
+
+
+def polars_schema_to_arrow_schema(polars_schema: pl.Schema) -> pyarrow.Schema:
+    return pl.DataFrame(schema=polars_schema).to_arrow().schema
+
+
+def create_parquet_writer(location: Path, schema: pl.Schema) -> ParquetWriter:
+    return pq.ParquetWriter(
+        location,
+        polars_schema_to_arrow_schema(schema),
+        compression="zstd",
+        use_dictionary=True,
+        write_statistics=True,
+    )
+
+
+SpanId = str
+
+
+def get_span_attributes(
+    *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
+) -> dict[SpanId, dict[str, Any]]:
+    fields = "\n".join(
+        f's_{oid}: getSpanByOtelId(spanId: "{oid}") {{ attributes }}'
+        for oid in span_ids
+    )
+    query = f"query GetSpans {{\n{fields}\n}}"
+
+    with httpx.Client() as client:
+        response = client.post(
+            phoenix_graphql_endpoint,
+            json={
+                "query": query,
+            },
+            headers={"Content-Type": "application/json"},
+        )
+
+    response.raise_for_status()
+    data = response.json()
+
+    if "errors" in data:
+        raise RuntimeError(data["errors"])
+
+    out = {}
+    for alias, node in data["data"].items():
+        original_oid = alias[2:]
+        if node is None:
+            out[original_oid] = None
+            continue
+
+        attrs = node["attributes"]
+        span = json.loads(attrs) if isinstance(attrs, str) else attrs
+        out[original_oid] = span
+
+    return out
+
+
+def read_hydra_config(run_dir: Path) -> MainConfig:
+    """
+    Common Hydra output: <run_dir>/.hydra/config.yaml (and overrides.yaml).
+    Adjust paths for your setup.
+    """
+    cfg_path = run_dir / ".hydra" / "config.yaml"
+    if not cfg_path.exists():
+        raise FileNotFoundError(cfg_path)
+
+    return MainConfig.model_validate(
+        OmegaConf.to_container(
+            OmegaConf.create(yaml.safe_load(cfg_path.read_text(encoding="utf-8"))),
+            resolve=True,
+        ),
+        strict=False,
+    )
+
+
+def read_meta_config(run_dir: Path) -> ExperimentMetaInfo:
+    """
+    Common Hydra output: <run_dir>/.hydra/config.yaml (and overrides.yaml).
+    Adjust paths for your setup.
+    """
+    cfg_path = run_dir / META_FILE_NAME
+    if not cfg_path.exists():
+        raise FileNotFoundError(cfg_path)
+
+    config = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    config = ExperimentMetaInfo.model_validate(config, strict=False)
+
+    return config
+
+
+def read_log_text(run_dir: Path, log_filename: str = "main.log") -> Optional[str]:
+    p = run_dir / log_filename
+    if not p.exists():
+        return None
+    return p.read_text(encoding="utf-8", errors="replace")
+
+
+def iter_jsonl_zst(path: Path) -> Iterator[Dict[str, Any]]:
+    """
+    Streams a .jsonl.zst file and yields dict per line.
+    """
+    with path.open("rb") as f:
+        dctx = zstd.ZstdDecompressor()
+        with dctx.stream_reader(f) as reader:
+            buf = b""
+            while True:
+                chunk = reader.read(1 << 20)
+                if not chunk:
+                    break
+                buf += chunk
+                while b"\n" in buf:
+                    line, buf = buf.split(b"\n", 1)
+                    if not line.strip():
+                        continue
+                    yield json.loads(line)
+            if buf.strip():
+                yield json.loads(buf)

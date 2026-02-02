@@ -9,6 +9,11 @@ RESULTS_DIR = PROJECT_DIR / "results"
 MULTIRUN_FINAL_RESULTS_DIR = RESULTS_DIR / "multirun" / "final"
 RUNS_FINAL_RESULTS_DIR = RESULTS_DIR / "runs" / "final"
 
+ANALYSIS_DIR = RESULTS_DIR / "analysis"
+PARQUET_ANALYSIS_DIR = ANALYSIS_DIR / "parquet"
+REPORTING_DIR = ANALYSIS_DIR / "reporting"
+
+
 CONFIGS_DIR = PROJECT_DIR / "configs"
 ORCHESTRATION_CONFIGS_DIR = CONFIGS_DIR / "orchestration"
 
@@ -16,3 +21,4 @@ ORCHESTRATION_CONFIGS_DIR = CONFIGS_DIR / "orchestration"
 LOG_FILE_NAME = "stdout.log"
 META_FILE_NAME = "meta.yaml"
 TRACK_FILE_NAME = "experiment_result.jsonl"
+TRACK_FILE_NAME_COMPRESSED = TRACK_FILE_NAME + ".zst"

@@ -1,0 +1,45 @@
+from __future__ import annotations
+
+from typing import List, Optional
+
+from social_groups.analyzer.models.base import PolarsBaseModel
+from social_groups.trialrunner.utils.hydra_config import MainConfig
+from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
+from social_groups.trialrunner.utils.tracking import TrackEntry
+
+MessageId = int
+
+
+class Answer(PolarsBaseModel):
+    id: int
+    run_id: int
+    message_ids: List[MessageId]
+    question_id: int
+    phoenix_span_id: str
+    run_identifier: str
+    answers_at_beginning: List[str]
+    answers_at_end: List[str]
+    final_answer: Optional[str]
+
+    @classmethod
+    def from_raw_data(
+        cls,
+        *,
+        assigned_id: int,
+        run_id: int,
+        entry: TrackEntry,
+        hydra_config: MainConfig,
+        meta_info: ExperimentMetaInfo,
+        question_id: int,
+    ) -> Answer:
+        return cls(
+            id=assigned_id,
+            run_id=run_id,
+            message_ids=[],  # TODO
+            question_id=question_id,
+            phoenix_span_id=entry.phoenix_span_info.span_id_hex,
+            run_identifier=meta_info.phoenix_project_name,
+            answers_at_beginning=entry.output.answers_at_beginning or [],
+            answers_at_end=entry.output.answers_at_end or [],
+            final_answer=entry.output.final_answer,
+        )
