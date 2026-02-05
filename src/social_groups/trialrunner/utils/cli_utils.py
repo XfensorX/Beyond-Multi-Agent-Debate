@@ -14,6 +14,7 @@ from rich.text import Text
 from rich.traceback import Traceback
 
 from social_groups.trialrunner.config import CLI_SUBTITLE, CLI_TITLE
+from social_groups.trialrunner.utils import global_config_holder
 from social_groups.trialrunner.utils.hydra_config import MainConfig
 from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
 from social_groups.trialrunner.utils.phoenix import phoenix_server_is_up, setup_phoenix
@@ -111,7 +112,10 @@ def handle_failure_exception(exception: Exception):
 
 def setup_config(cfg: DictConfig) -> MainConfig:
     try:
-        return MainConfig.model_validate(OmegaConf.to_container(cfg, resolve=True))
+        cfg = MainConfig.model_validate(OmegaConf.to_container(cfg, resolve=True))
+
+        global_config_holder.global_hydra_config = cfg
+        return cfg
 
     except ValidationError:
         log.warning(

@@ -23,7 +23,6 @@ class Question(PolarsBaseModel):
     category: str
     question: str
 
-    # TODO: Rename this to "correct_ ..."
     answer_options: list[str]
     answer_index: int
     answer_string: str

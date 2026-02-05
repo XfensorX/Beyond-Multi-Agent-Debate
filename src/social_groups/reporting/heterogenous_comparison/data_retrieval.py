@@ -113,7 +113,6 @@ def apply_parsing_and_group_decision(
             ),
             group_constellation=(
                 pl.col("model_names")
-                # TODO: should probably be a parameter instead
                 .list.eval(pl.element().replace(MODEL_NAME_TO_LETTER_MAPPING))
                 .list.sort()
                 .list.join("")

@@ -4,7 +4,6 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 
 from social_groups.trialrunner.experiment.run_experiment import run_experiment
-from social_groups.trialrunner.utils import global_config_holder
 from social_groups.trialrunner.utils.cli_utils import (
     handle_failure_exception,
     initialize_phoenix,
@@ -22,7 +21,6 @@ def _main(cfg: DictConfig):
     config = setup_config(cfg)
     meta_info = generate_meta_information()
 
-    global_config_holder.global_hydra_config = config
     try:
         setup_logging(output_directory=meta_info.output_directory)
 

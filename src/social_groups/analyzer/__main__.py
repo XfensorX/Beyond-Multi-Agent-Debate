@@ -11,6 +11,7 @@ from typing import Any, List
 
 import httpx
 import polars as pl
+import typer
 from rich import print
 from typer import Typer
 
@@ -43,7 +44,6 @@ IN_QUEUE_MAXSIZE = 10000
 OUT_QUEUE_MAXSIZE = 10000
 CHUNK_SIZE = 100
 MAX_RETRIES = 1000
-PHOENIX_GRAPHQL_ENDPOINT = "http://localhost:6006/graphql"  # TODO: make configurable
 
 QUEUE_TIMEOUT = 10  # seconds
 
@@ -69,6 +69,7 @@ SpanAttributesFuture = Future[dict[str, dict[str, Any]]]
 def main_process_loop(
     in_q: queue.Queue,
     out_q: queue.Queue,
+    phoenix_graphql_endpoint: str,
 ):
     retries = 0
     pool = ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS)
@@ -121,7 +122,7 @@ def main_process_loop(
                 future = pool.submit(
                     get_span_attributes,
                     span_ids=[b.span_id for b in batch],
-                    phoenix_graphql_endpoint=PHOENIX_GRAPHQL_ENDPOINT,
+                    phoenix_graphql_endpoint=phoenix_graphql_endpoint,
                 )
                 submitted_requests.add(future)
                 submitted_batches[future] = batch
@@ -151,7 +152,7 @@ def main_process_loop(
                             new_future = pool.submit(
                                 get_span_attributes,
                                 span_ids=[b.span_id for b in batch],
-                                phoenix_graphql_endpoint=PHOENIX_GRAPHQL_ENDPOINT,
+                                phoenix_graphql_endpoint=phoenix_graphql_endpoint,
                             )
                             submitted_requests.add(new_future)
                             submitted_batches[new_future] = batch
@@ -215,15 +216,9 @@ def read_experiment_paths() -> dict[ExperimentName, list[Path]]:
     return project_paths_per_experiment
 
 
-async def build_parquet_files(output_directory: Path):
+async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: str):
     models = [Question, Answer, Run, Experiment]
 
-    writers = {
-        model: create_parquet_writer(
-            output_directory / f"{model.__name__}.parquet", model.get_polars_schema()
-        )
-        for model in models
-    }
     id_generators = {model: count() for model in models}
 
     # maps from run_id to configs
@@ -235,6 +230,13 @@ async def build_parquet_files(output_directory: Path):
     ] = {}  # tracks question_hashes and respective question_ids to track duplicate questions
 
     buffer: list[Package] = []
+
+    writers = {
+        model: create_parquet_writer(
+            output_directory / f"{model.__name__}.parquet", model.get_polars_schema()
+        )
+        for model in models
+    }
 
     def try_flush(buf: list[Package], force: bool = False) -> None:
         if not buf or (len(buffer) < CHUNK_SIZE and not force):
@@ -270,7 +272,6 @@ async def build_parquet_files(output_directory: Path):
 
         writers[Question].write_table(Question.create_parquet_table(new_questions))
 
-        # TODO: refactor this, the base class should accept the package configs + id
         answer_items = [
             Answer.from_raw_data(
                 assigned_id=next(id_generators[Answer]),
@@ -293,7 +294,9 @@ async def build_parquet_files(output_directory: Path):
 
     project_paths_per_experiment = read_experiment_paths()
 
-    thread = threading.Thread(target=main_process_loop, args=(in_q, out_q))
+    thread = threading.Thread(
+        target=main_process_loop, args=(in_q, out_q, phoenix_graphql_endpoint)
+    )
     thread.start()
 
     try:
@@ -374,11 +377,13 @@ async def build_parquet_files(output_directory: Path):
 
 @app.command("parse", help="Parse results to produce parquet files.")
 @run_async
-async def produce_parquet():
+async def produce_parquet(
+    phoenix_graphql_endpoint: str = typer.Argument("http://localhost:6006/graphql"),
+):
     print("Producing Parquet files ...")
 
     os.makedirs(PARQUET_ANALYSIS_DIR, exist_ok=True)
-    await build_parquet_files(PARQUET_ANALYSIS_DIR)
+    await build_parquet_files(PARQUET_ANALYSIS_DIR, phoenix_graphql_endpoint)
 
 
 @app.command("show", help="Show nothing.")

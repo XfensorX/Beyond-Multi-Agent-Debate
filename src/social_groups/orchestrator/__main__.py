@@ -330,7 +330,6 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
 
     available_model_backends = parse_running_inference_backends(where, infos)
 
-    # TODO: lets user select the jobId
     if len(infos) > 1:
         print("Multiple jobs found running, selecting first.")
 
