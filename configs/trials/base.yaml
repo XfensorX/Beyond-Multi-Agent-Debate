@@ -20,4 +20,4 @@ execution:
   phoenix_graphql_url: http://localhost:4317
   model_backends: [ ] # To fill on startup
   backend_api_key_env_vars: { } # to fill on startup
-  num_workers: 10
+  num_workers: 20
