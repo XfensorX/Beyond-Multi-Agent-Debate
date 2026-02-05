@@ -27,11 +27,12 @@ _ANSWER_OPTIONS: dict[AnswerOptions, set[str]] = {
 _ANSWER_PATTERNS: dict[AnswerOptions, set[str]] = {
     AnswerOptions.letters_A_to_J: {
         r"answer\s+is\s*:?\s*\(?([A-J])\)?",  # ...answer is (C)... | ...answer is C ...
-        r"^\s*([A-J])\s*$",  # single letter: C
-        r"^\s*\(?\s*([A-J])\s*\)?\s*$",  # single letter in braces: (C)
         r"answer\s*:\s*\(?\s*([A-J])\s*\)?\s*[\.\!\?]*\s*$",
         # ... Answer: (C) | ... Answer: C  |# at the end of the string with optional punctuation
-        r"^\s*\(\s*([A-J])\s*\)\s*:?.*$",  # (C): ... | (C) .... |# at the beginning of the string
+        r"\s*\(\s*([A-J])\s*\)\s*$",  # ... (C) at the end of the string
+        r"^\s*\(?\s*([A-J])\s*\)?\s*$",  # single letter in braces: (C)
+        r"^\s*([A-J])\s*$",  # single letter: C
+        r"answer\s*:\s*\(?\s*([A-J])\s*\)?\s*[\.\!\?]*\s*",  # ... Answer: (C) | ... Answer: C  | # Somewhere in the string
     }
 }
 
@@ -46,8 +47,14 @@ def get_string_parser(
 
         answer = answer.replace("*", "")
         for pat in patterns_to_check:
-            m = re.search(pat, answer, flags=re.IGNORECASE)
-            if m and ((final_letter := m.group(1).upper()) in possible_answers):
+            last_match = None
+            for m in re.finditer(pat, answer, flags=re.IGNORECASE):
+                if not last_match or m.start() > last_match.start():
+                    last_match = m
+
+            if last_match and (
+                (final_letter := last_match.group(1).upper()) in possible_answers
+            ):
                 return final_letter
 
         return ParsingResultError.NOT_PARSABLE.value

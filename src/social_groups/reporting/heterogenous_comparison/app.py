@@ -8,8 +8,11 @@ import streamlit as st
 from social_groups.directories import REPORTING_DIR
 from social_groups.reporting.analysis_columns import AnalysisColumn
 from social_groups.reporting.group_decision_scheme import (
+    MEMBERS_CORRECT_BEGINNING,
+    MEMBERS_CORRECT_END,
     calculate_decision_scheme,
     calculate_extended_decision_scheme,
+    extend_by_group_info_before_and_after,
 )
 from social_groups.reporting.group_reply import (
     GroupReplyAggregator,
@@ -26,15 +29,18 @@ from social_groups.reporting.plots.decision_scheme_extended import (
 )
 from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
 from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
-from social_groups.trialrunner.utils.phoenix import (
-    retrieve_phoenix_url_from_span_id,
-)
 
 st.set_page_config(layout="wide")
 
 PHOENIX_BASE_URL = "http://localhost:6006"
 
 DATA_DIR = REPORTING_DIR / "heterogeneous_group"
+
+COLUMN_CONFIG = {
+    "phoenix_span_url": st.column_config.LinkColumn(
+        display_text=":material/open_in_new:", pinned=True, width="small"
+    )
+}
 
 
 st.title("Multi-Agent Debate (MAD) with heterogeneous groups")
@@ -54,41 +60,7 @@ human_group_overview = load_csv(DATA_DIR / "human_based_table_page_46.csv")
 llm_group_overview = load_csv(DATA_DIR / "llm_based_table_page_46.csv")
 
 
-@st.cache_data
-def get_span_url(span_id: str):
-    return retrieve_phoenix_url_from_span_id(
-        span_id,
-        phoenix_base_url=PHOENIX_BASE_URL,
-    )
-
-
-def set_selected_span_id(span_id: str | None):
-    if st.session_state["SELECTED_PHOENIX_SPAN_ID"] == span_id:
-        return
-
-    if span_id is None:
-        st.session_state["SELECTED_PHOENIX_SPAN_ID"] = None
-        st.session_state["SELECTED_PHOENIX_SPAN_URL"] = None
-        return
-
-    st.session_state["SELECTED_PHOENIX_SPAN_ID"] = span_id
-    st.session_state["SELECTED_PHOENIX_SPAN_URL"] = get_span_url(span_id)
-
-
-set_selected_span_id(None)
-
-with st.sidebar:
-    set_selected_span_id("df570665ee8d0095")
-
-    if st.session_state["SELECTED_PHOENIX_SPAN_URL"]:
-        st.link_button(
-            "Open Phoenix Span", url=st.session_state["SELECTED_PHOENIX_SPAN_URL"]
-        )
-
-    comparison_mode = st.checkbox("Comparison Mode")
-
 with tabs[0]:
-    set_selected_span_id(None)
     st.dataframe(decision_schemes)
 
     def min_max_normalize(df):
@@ -112,10 +84,14 @@ with tabs[0]:
 
 
 with tabs[1]:
+    comparison_mode = st.checkbox("Comparison Mode")
     mad_frame = st.cache_data(get_mad_frame)()
 
     with st.expander("All Data for Multi-Agent Debate"):
-        st.dataframe(mad_frame)
+        st.dataframe(
+            mad_frame,
+            column_config=COLUMN_CONFIG,
+        )
 
     for i, col in enumerate(st.columns(2 if comparison_mode else 1)):
         with col:
@@ -151,7 +127,10 @@ with tabs[1]:
             )
 
             with st.expander("Analyzed Data"):
-                st.dataframe(mad_analysis)
+                st.dataframe(
+                    mad_analysis,
+                    column_config=COLUMN_CONFIG,
+                )
 
             with col1:
                 group = st.selectbox(
@@ -188,23 +167,77 @@ with tabs[1]:
                 extended_decision_scheme, title=f"Group {group}"
             )
 
-            st.subheader("Normal Decision Scheme")
-            st.table(
-                normal_decision_scheme.select(
-                    [
-                        "Correct Members Beginning",
-                        pl.col("correct").alias("Fraction Correct Group Response"),
-                        pl.col("incorrect").alias("Fraction Incorrect Group Response"),
-                    ]
-                ).to_pandas(),
-            )
-            st.subheader("Extended Decision Scheme")
-            st.dataframe(
-                extended_decision_scheme.drop("incorrect").to_pandas(),
-                key=f"extended_ds_{i}",
-            )
-            st.subheader("Decision Scheme Plot")
-            st.plotly_chart(extended_decision_scheme_plot, key=f"chart_{i}")
+            with st.expander("Normal Decision Scheme"):
+                st.table(
+                    normal_decision_scheme.select(
+                        [
+                            "Correct Members Beginning",
+                            pl.col("correct").alias("Fraction Correct Group Response"),
+                            pl.col("incorrect").alias(
+                                "Fraction Incorrect Group Response"
+                            ),
+                        ]
+                    )
+                )
+
+                overall_correct = extended_decision_scheme.select(
+                    pl.col("correct").dot(pl.col("occurrences"))
+                    / pl.col("occurrences").sum()
+                ).item()
+                st.metric(
+                    "Overall Correct",
+                    f"{overall_correct:.2f}",
+                )
+            with st.expander("Extended Decision Scheme"):
+                st.dataframe(
+                    extended_decision_scheme.drop("incorrect"),
+                    key=f"extended_ds_{i}",
+                    column_config=COLUMN_CONFIG,
+                )
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    correct_beginning = st.radio(
+                        "Members Correct Beginning",
+                        extended_decision_scheme["Correct Members Beginning"]
+                        .unique()
+                        .sort()
+                        .to_list(),
+                        key=f"correct_beginning_radio_{i}",
+                    )
+                with col2:
+                    correct_end = st.radio(
+                        "Members Correct End",
+                        extended_decision_scheme["Correct Members End"]
+                        .unique()
+                        .sort()
+                        .to_list(),
+                        key=f"correct_end_radio_{i}",
+                    )
+                st.dataframe(
+                    extend_by_group_info_before_and_after(
+                        selected_med_analysis,
+                        AnalysisColumn.parsed_individual_answers_before.value,
+                        AnalysisColumn.parsed_individual_answers_after.value,
+                        "answer_string",
+                        group_reply,
+                        comparer,
+                    )
+                    .rename(
+                        {
+                            MEMBERS_CORRECT_BEGINNING: "Correct Members Beginning",
+                            MEMBERS_CORRECT_END: "Correct Members End",
+                        }
+                    )
+                    .filter(
+                        pl.col("Correct Members Beginning") == correct_beginning,
+                        pl.col("Correct Members End") == correct_end,
+                    ),
+                    column_config=COLUMN_CONFIG,
+                )
+
+            with st.expander("Decision Scheme Plot"):
+                st.plotly_chart(extended_decision_scheme_plot, key=f"chart_{i}")
 
             with st.expander("Experiment Configuration"):
                 st.json(
@@ -230,8 +263,8 @@ with tabs[1]:
                     ).model_dump_json()
                 )
 
-            with st.expander("Messages"):
-                selection = st.dataframe(
+            with st.expander("All Messages"):
+                st.dataframe(
                     selected_med_analysis.drop(
                         [
                             "id",
@@ -245,15 +278,9 @@ with tabs[1]:
                             "answers_at_end",
                             "question",
                             "group_constellation",
+                            "phoenix_span_id",
                         ]
                     ),
-                    selection_mode="single-row",
-                    on_select="rerun",
+                    column_config=COLUMN_CONFIG,
                     key=f"messages_df_{i}",
-                )
-            if selection.selection.rows:
-                set_selected_span_id(
-                    selected_med_analysis[selection.selection.rows[0]][
-                        "phoenix_span_id"
-                    ].item()
                 )

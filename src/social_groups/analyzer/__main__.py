@@ -60,6 +60,7 @@ class Package:
     run_id: int
 
     span_info: dict[str, Any] | None = None
+    span_url: str | None = None
 
 
 SpanAttributesFuture = Future[dict[str, dict[str, Any]]]
@@ -269,6 +270,7 @@ async def build_parquet_files(output_directory: Path):
 
         writers[Question].write_table(Question.create_parquet_table(new_questions))
 
+        # TODO: refactor this, the base class should accept the package configs + id
         answer_items = [
             Answer.from_raw_data(
                 assigned_id=next(id_generators[Answer]),
@@ -277,6 +279,7 @@ async def build_parquet_files(output_directory: Path):
                 hydra_config=run_configs[b.run_id],
                 question_id=q_id,
                 meta_info=run_meta_infos[b.run_id],
+                span_attributes=b.span_info,
             )
             for b, q_id in zip(buf, question_ids)
         ]

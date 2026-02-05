@@ -129,7 +129,16 @@ def retrieve_phoenix_url_from_span_id(
         r.raise_for_status()
         payload = r.json()["data"]["s0"]
 
-        return f"{phoenix_base_url}/projects/{payload['project']['id']}/spans/{payload['context']['traceId']}?selectedNoteSpanId={payload['id']}"
+        return build_span_url(
+            phoenix_base_url,
+            payload["project"]["id"],
+            payload["context"]["traceId"],
+            payload["id"],
+        )
+
+
+def build_span_url(base_url, project_id, trace_id, noteSpanId):
+    return f"{base_url}/projects/{project_id}/spans/{trace_id}?selectedNoteSpanId={noteSpanId}"
 
 
 class PhoenixExampleHandle(BaseModel):

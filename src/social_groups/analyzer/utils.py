@@ -16,6 +16,7 @@ from pyarrow.parquet import ParquetWriter
 from social_groups.directories import META_FILE_NAME
 from social_groups.trialrunner.utils.hydra_config import MainConfig
 from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
+from social_groups.trialrunner.utils.phoenix import build_span_url
 
 
 def polars_schema_to_arrow_schema(polars_schema: pl.Schema) -> pyarrow.Schema:
@@ -32,6 +33,7 @@ def create_parquet_writer(location: Path, schema: pl.Schema) -> ParquetWriter:
     )
 
 
+ATTRIBUTE_KEY_SPAN_URL = "custom_phoenix_span_url_attribute"
 SpanId = str
 
 
@@ -39,7 +41,7 @@ def get_span_attributes(
     *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
 ) -> dict[SpanId, dict[str, Any]]:
     fields = "\n".join(
-        f's_{oid}: getSpanByOtelId(spanId: "{oid}") {{ attributes }}'
+        f's_{oid}: getSpanByOtelId(spanId: "{oid}") {{ attributes id project {{ id }} context {{ traceId }} }}'
         for oid in span_ids
     )
     query = f"query GetSpans {{\n{fields}\n}}"
@@ -68,6 +70,12 @@ def get_span_attributes(
 
         attrs = node["attributes"]
         span = json.loads(attrs) if isinstance(attrs, str) else attrs
+        span[ATTRIBUTE_KEY_SPAN_URL] = build_span_url(
+            phoenix_graphql_endpoint.rstrip("/graphql"),
+            node["project"]["id"],
+            node["context"]["traceId"],
+            node["id"],
+        )
         out[original_oid] = span
 
     return out

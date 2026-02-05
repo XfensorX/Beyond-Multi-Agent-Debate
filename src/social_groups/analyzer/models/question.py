@@ -41,7 +41,7 @@ class Question(PolarsBaseModel):
         match hydra_config.experiment.data.value:
             case "mmlu-pro" | "mmlu-pro-subset":
                 question = MMLUProExample.model_validate(
-                    json.loads(span_attributes["attributes"]["question"])
+                    json.loads(span_attributes["question"])
                 )
 
                 return cls(

@@ -42,7 +42,7 @@ MEMBERS_CORRECT_END = "___calculate_decision_scheme__members_correct_end"
 END_GROUP_VOTE_CORRECT = "___calculate_decision_scheme__end_group_vote_correct"
 
 
-def calculate_extended_decision_scheme(
+def extend_by_group_info_before_and_after(
     df: pl.DataFrame,
     answers_before_col: str,
     answers_after_col: str,
@@ -73,6 +73,25 @@ def calculate_extended_decision_scheme(
         df, answers_after_col, "answer_string", new_col=MEMBERS_CORRECT_END
     )
 
+    return df
+
+
+def calculate_extended_decision_scheme(
+    df: pl.DataFrame,
+    answers_before_col: str,
+    answers_after_col: str,
+    target_answer_col: str,
+    group_reply_strategy: GroupReplyAggregator,
+    comparison_strategy: AnswerComparer,
+) -> pl.DataFrame:
+    df = extend_by_group_info_before_and_after(
+        df,
+        answers_before_col,
+        answers_after_col,
+        target_answer_col,
+        group_reply_strategy,
+        comparison_strategy,
+    )
     return (
         df.group_by(MEMBERS_CORRECT_BEGINNING, MEMBERS_CORRECT_END)
         .agg(
@@ -111,10 +130,10 @@ def calculate_decision_scheme(
         .agg(
             correct=(
                 pl.col("correct").dot(pl.col("occurrences")) / pl.sum("occurrences")
-            ).mean(),
+            ),
             incorrect=(
                 pl.col("incorrect").dot(pl.col("occurrences")) / pl.sum("occurrences")
-            ).mean(),
+            ),
         )
         .select("correct", "incorrect", "Correct Members Beginning")
     )

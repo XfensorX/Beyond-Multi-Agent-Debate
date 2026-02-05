@@ -36,7 +36,7 @@ class SingularityVote(GroupReplyStrategy):
         if not valid_votes:
             return GroupReplyError.ALL_VOTES_INVALID.value
 
-        if all_equal(votes):
+        if all_equal(valid_votes):
             return votes[0]
 
         return GroupReplyError.DIFFERENT_VOTES.value
@@ -51,7 +51,7 @@ class MajorityVote(GroupReplyStrategy):
         if not valid_votes:
             return GroupReplyError.ALL_VOTES_INVALID.value
 
-        m = collections.Counter(votes).most_common(2)
+        m = collections.Counter(valid_votes).most_common(2)
         if len(m) == 1:
             return m[0][0]
 
