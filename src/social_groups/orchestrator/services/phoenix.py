@@ -1,4 +1,3 @@
-from social_groups.directories import RESULTS_DIR
 from social_groups.orchestrator.models.execution_environment import (
     ExecutionLocationConfig,
 )
@@ -21,7 +20,9 @@ class PhoenixConfiguration(SlurmService):
         return given_job_name == "phoenix"
 
     def create_env_dict(self, exec_config: ExecutionLocationConfig) -> dict[str, str]:
-        working_dir = RESULTS_DIR / exec_config.where.value / "sqlite"
+        working_dir = (  # This cannot use the global variable, because it is used in orchestrator
+            exec_config.project_dir / "results" / exec_config.where.value / "sqlite"
+        )
         return {
             "PHOENIX_PORT": str(self.port),
             "PHOENIX_ALLOW_EXTERNAL_RESOURCES": "false",
