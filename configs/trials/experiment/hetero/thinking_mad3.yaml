@@ -8,7 +8,7 @@ hydra:
   sweeper:
     params:
       experiment/hetero/groups@_models: LLL, LLM, HLL, LMM, HLM, HHL, MMM, HMM, HHM, HHH
-      experiment/hetero/groups@_openly_thinking_models: only_L, only_H, nobody
+      experiment/hetero/thinking@_openly_thinking_models: only_L, only_H, nobody
 
 
 experiment:
