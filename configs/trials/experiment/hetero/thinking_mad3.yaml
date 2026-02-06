@@ -1,0 +1,62 @@
+# @package _global_
+defaults:
+  - _self_
+  - /experiment/hetero/groups@_models: LLL
+  - /experiment/hetero/thinking@_openly_thinking_models: only_L
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/groups@_models: LLL, LLM, HLL, LMM, HLM, HHL, MMM, HMM, HHM, HHH
+      experiment/hetero/groups@_openly_thinking_models: only_L, only_H, nobody
+
+
+experiment:
+  name: het_group_thinking_mad3
+  data: mmlu-pro-subset
+
+  strategy:
+    name: multi-agent-debate
+    configuration:
+      number_of_rounds: 3
+      openly_thinking_models: ${oc.dict.values:_openly_thinking_models}
+
+      debate_agents:
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 4096
+            temperature: 0.0
+            top_p: 1.0
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+          backend: ${_models.0}
+
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 4096
+            temperature: 0.0
+            top_p: 1.0
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+          backend: ${_models.1}
+
+
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 4096
+            temperature: 0.0
+            top_p: 1.0
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+          backend: ${_models.2}
+
+
+
+  additional_info:
+    description: MAD with thinking stripped only ${_openly_thinking_models} are thinking openly. — ${_models.0},${_models.1},${_models.2}
+
+
+

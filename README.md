@@ -94,3 +94,11 @@ orch start neumann experiment -m -e 'hetero/mad2'
 orch start neumann experiment -m -e 'hetero/mad3'
 orch start neumann experiment -m -e 'hetero/mad4'
 ```
+
+```shell
+# Running example locally
+uv run phoenix serve
+uv run trial --config-dir configs/trials +experiment=hetero/diversity_param_sweep_mad3 'execution.model_backends=[{backend:"LMStudio",model_name:"Qwen/Qwen3-0.6B",endpoint:"http://127.0.0.1:1234"}]'
+
+
+```

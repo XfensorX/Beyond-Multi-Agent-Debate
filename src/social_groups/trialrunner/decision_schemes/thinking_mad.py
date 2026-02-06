@@ -1,9 +1,10 @@
+import re
 from copy import deepcopy
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel
 
-from social_groups.trialrunner.config import BackendInfo, LLMConfig, get_llm
+from social_groups.trialrunner.config import BackendInfo, DebateAgent, get_llm
 from social_groups.trialrunner.decision_schemes.base import (
     DecisionScheme,
     ExampleInput,
@@ -14,25 +15,63 @@ from social_groups.trialrunner.experiment.main_registry import register_decision
 from social_groups.trialrunner.utils.phoenix import phoenix_log_span
 
 
-class DebateAgent(BaseModel):
-    params: LLMConfig
-    backend: BackendInfo
-    number_of_agents: int = 1
-
-
-class DiversityDebateConfiguration(BaseModel):
+class ThinkingMadConfiguration(BaseModel):
     debate_agents: list[DebateAgent]
     number_of_rounds: int
+    openly_thinking_models: set[BackendInfo]
 
 
-@register_decision_scheme("diversity-debate")
-class MultiAgentDebate(DecisionScheme[DiversityDebateConfiguration]):
+THINKING_TAGS = {
+    "think",
+    "thinking",
+    "reasoning",
+    "step",
+    "steps",
+    "thought",
+    "thoughts",
+}
+
+
+def strip_out_thinking_process(response: str):
+    """
+    Very fast version using regex.
+    Removes everything between any combination of the listed thinking tags.
+    """
+    if not THINKING_TAGS:
+        return response
+
+    # Build pattern like: <think>.*?</think>|<thinking>.*?</thinking>|...
+    tags_pattern = "|".join(
+        f"<{re.escape(tag)}>.+?</{re.escape(tag)}>" for tag in THINKING_TAGS
+    )
+
+    # (?s) = dot matches newline, *? = non-greedy
+    pattern = re.compile(f"(?s){tags_pattern}")
+
+    # Remove all matches repeatedly until none left (handles nesting & multiple types)
+    prev_len = -1
+    while len(response) != prev_len:
+        prev_len = len(response)
+        response = pattern.sub("", response)
+
+    return response.strip()
+
+
+@register_decision_scheme("thinking-mad")
+class ThinkingMad(DecisionScheme[ThinkingMadConfiguration]):
     def run_example(self, example_input: ExampleInput) -> ExampleOutput:
         llms = [
             get_llm(agent.params, agent.backend)
             for agent in self.config.debate_agents
             for _ in range(agent.number_of_agents)
         ]
+
+        agent_allowed_to_think_openly = [
+            (agent.backend in self.config.openly_thinking_models)
+            for agent in self.config.debate_agents
+            for _ in range(agent.number_of_agents)
+        ]
+
         no_of_agents = len(llms)
 
         history = []
@@ -76,7 +115,17 @@ class MultiAgentDebate(DecisionScheme[DiversityDebateConfiguration]):
                 }
 
             else:
-                combined_answers = "\n\n".join(last_agent_answers)
+                combined_answers = "\n\n".join(
+                    (
+                        response
+                        if can_think_openly
+                        else strip_out_thinking_process(response)
+                    )
+                    for can_think_openly, response in zip(
+                        agent_allowed_to_think_openly, last_agent_answers
+                    )
+                )
+
                 messages = {
                     a: [
                         SystemMessage(

@@ -36,6 +36,12 @@ class BackendInfoWithEndpoint(BackendInfo):
     endpoint: str
 
 
+class DebateAgent(BaseModel):
+    params: LLMConfig
+    backend: BackendInfo
+    number_of_agents: int = 1
+
+
 @cache
 def get_llm(config: LLMConfig, backend: BackendInfo) -> ChatHuggingFace | ChatOpenAI:
     api_key = os.getenv(
@@ -62,7 +68,7 @@ def get_llm(config: LLMConfig, backend: BackendInfo) -> ChatHuggingFace | ChatOp
 
         return ChatHuggingFace(llm=model)
 
-    elif backend.backend == Backend.vLLMExternal:
+    elif backend.backend in {Backend.vLLMExternal, Backend.LMSTUDIO}:
         if (
             config.top_k is not None
             or config.typical_p is not None

@@ -1,6 +1,6 @@
 slurm_config:
   time: 72:00:00
-  cpus_per_task: 8
+  cpus_per_task: 16
   memory_GB: 24
 
 experiment_configuration_dir_inside_project: configs/trials

@@ -28,6 +28,7 @@ def run_experiment(config: MainConfig, output_directory: Path):
         decision_scheme = DECISION_SCHEMES.get(config.experiment.strategy.name)(
             config.experiment.strategy.configuration
         )
+        logger.info("... Done Building Strategy")
     except KeyError:
         raise NotImplementedError(
             f"Strategy '{config.experiment.strategy}' not implemented or registered."
@@ -36,6 +37,7 @@ def run_experiment(config: MainConfig, output_directory: Path):
     try:
         logger.info(f"Building Data {config.experiment.data}")
         data = DATA_CONNECTORS.get(config.experiment.data)()
+        logger.info("... Done Building Data")
     except KeyError:
         raise NotImplementedError(
             f"Data Connector '{config.experiment.data}' not implemented or registered."
@@ -79,8 +81,8 @@ def execute_experiment(
 
     try:
         data_it = iter(data_connector.iterate_data())
-
         total = data_connector.data_length()
+
         progress_it = progress_iter(
             range(total), total=total, desc="Running Examples ...", logger=logger
         )
@@ -118,5 +120,10 @@ def execute_experiment(
         executor.shutdown(wait=False, cancel_futures=True)
         raise
 
+    except Exception as e:
+        logger.error("Received Unhandled exception: %s", e)
+        raise
+
     finally:
+        logger.info("Shutting Down the experiment executor. Collecting Workers...")
         executor.shutdown(wait=True, cancel_futures=True)

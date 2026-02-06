@@ -3,7 +3,7 @@ from copy import deepcopy
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel
 
-from social_groups.trialrunner.config import BackendInfo, LLMConfig, get_llm
+from social_groups.trialrunner.config import get_llm, DebateAgent
 from social_groups.trialrunner.decision_schemes.base import (
     DecisionScheme,
     ExampleInput,
@@ -12,12 +12,6 @@ from social_groups.trialrunner.decision_schemes.base import (
 )
 from social_groups.trialrunner.experiment.main_registry import register_decision_scheme
 from social_groups.trialrunner.utils.phoenix import phoenix_log_span
-
-
-class DebateAgent(BaseModel):
-    params: LLMConfig
-    backend: BackendInfo
-    number_of_agents: int = 1
 
 
 class MultiAgentDebateConfiguration(BaseModel):
