@@ -1,4 +1,5 @@
 import json
+from functools import reduce
 from pathlib import Path
 
 import pandas as pd
@@ -60,6 +61,43 @@ human_group_overview = load_csv(DATA_DIR / "human_based_table_page_46.csv")
 llm_group_overview = load_csv(DATA_DIR / "llm_based_table_page_46.csv")
 
 
+def make_question_comparison_table_nice(df):
+    df_display = df
+    for col in df_display.columns:
+        if col.startswith("is_correct"):
+            df_display = df_display.with_columns(
+                pl.when(pl.col(col))
+                .then(pl.lit("**✔ Yes**"))
+                .otherwise(pl.lit("**✖ No**"))
+                .alias(col)
+            )
+        if col.startswith("phoenix_span_url"):
+            df_display = df_display.with_columns(
+                pl.col(col)
+                .map_elements(
+                    lambda url: f"[🔗 link]({url})" if len(url) > 60 else url,
+                    return_dtype=pl.String,
+                )
+                .alias(col)
+            )
+        if col.startswith("question_id"):
+            df_display = df_display.with_columns(pl.col(col).cast(pl.String).alias(col))
+
+    patterns = {
+        "question_id": "**Q ID**",
+        "is_correct": "**Correct**",
+        "phoenix_span_url": "**Phoenix Span**",
+        "category": "**Category**",
+        "original_question_id": "**Orig. Q ID**",
+    }
+    pretty_names = {
+        key: reduce(lambda s, kv: s.replace(*kv), patterns.items(), key)
+        for key in df.columns
+    }
+
+    return df_display.rename(pretty_names).to_pandas()
+
+
 with tabs[0]:
     st.dataframe(decision_schemes)
 
@@ -92,6 +130,8 @@ with tabs[1]:
             mad_frame,
             column_config=COLUMN_CONFIG,
         )
+
+    selected_constellations = []
 
     for i, col in enumerate(st.columns(2 if comparison_mode else 1)):
         with col:
@@ -141,6 +181,7 @@ with tabs[1]:
                     .to_list(),
                     key=f"group_{i}",
                 )
+                selected_constellations.append(group)
 
             selected_med_analysis = mad_analysis.filter(
                 pl.col("group_constellation") == group
@@ -283,4 +324,83 @@ with tabs[1]:
                     ),
                     column_config=COLUMN_CONFIG,
                     key=f"messages_df_{i}",
+                )
+
+    if comparison_mode:
+        with st.expander("Compare Answers directly"):
+            st.text("Treats not parsable answers as wrong.")
+            g1, g2 = selected_constellations
+
+            if g1 == g2:
+                st.text("Irrelevant when comparing a group constellation with itself.")
+            else:
+                group_aggregator = st.selectbox(
+                    "Group Aggregator",
+                    options=[MajorityVote(), SingularityVote()],
+                    format_func=lambda x: {
+                        MajorityVote: "Majority Vote",
+                        SingularityVote: "Singularity Vote",
+                    }[type(x)],
+                    key=f"group_aggregator_{i}",
+                )
+
+                comparison_analysis = (
+                    apply_parsing_and_group_decision(
+                        mad_frame,
+                        AnswerParser(AnswerOptions.letters_A_to_J),
+                        AnswerComparer(
+                            AnswerOptions.letters_A_to_J,
+                            triple_underscore_handling="wrong",
+                        ),
+                        GroupReplyAggregator(group_aggregator),
+                    )
+                    .filter(
+                        (pl.col("group_constellation") == g1)
+                        | (pl.col("group_constellation") == g2)
+                    )
+                    .unique(
+                        subset=[
+                            "question_id",
+                            "is_correct",
+                        ],
+                        keep="none",
+                    )
+                    .select(
+                        [
+                            "group_constellation",
+                            "question_id",
+                            "is_correct",
+                            "phoenix_span_url",
+                            "category",
+                            "original_question_id",
+                        ]
+                    )
+                    .sort(["question_id", "group_constellation"])
+                )
+
+                combined = (
+                    comparison_analysis.filter(pl.col("group_constellation") == g1)
+                    .drop("group_constellation")
+                    .join(
+                        comparison_analysis.filter(
+                            pl.col("group_constellation") == g2
+                        ).drop("group_constellation"),
+                        on=["question_id", "category", "original_question_id"],
+                        maintain_order="left",
+                        how="inner",
+                        validate="1:1",
+                        suffix=f"\n{g2}",
+                        coalesce=True,
+                    )
+                    .rename(
+                        {
+                            "is_correct": f"is_correct\n{g1}",
+                            "phoenix_span_url": f"phoenix_span_url \n{g1}",
+                        }
+                    )
+                )
+
+                st.table(
+                    make_question_comparison_table_nice(combined),
+                    border="horizontal",
                 )
