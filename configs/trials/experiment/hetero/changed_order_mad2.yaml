@@ -1,0 +1,48 @@
+# @package _global_
+defaults:
+  - _self_
+  - /experiment/hetero/groups@_models: LL
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/groups@_models: LL, LM, LH, ML, MM, MH, HL, HM, HH
+
+
+experiment:
+  name: changed_order_mad3
+  data: mmlu-pro-subset
+
+  strategy:
+    name: multi-agent-debate
+    configuration:
+      number_of_rounds: 3
+
+      debate_agents:
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 4096
+            temperature: 0.0
+            top_p: 1.0
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+          backend: ${_models.0}
+
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 4096
+            temperature: 0.0
+            top_p: 1.0
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+          backend: ${_models.1}
+
+
+
+  additional_info:
+    description: Changed Order MAD2 — ${_models.0},${_models.1}
+
+
+
