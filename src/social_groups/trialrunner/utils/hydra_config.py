@@ -40,6 +40,8 @@ class ExecutionConfig(BaseModel):
     phoenix_server_url: str
     model_backends: list[BackendInfoWithEndpoint]
     backend_api_key_env_vars: dict[Backend, str]
+    llm_request_timeout: int = Field(ge=1)
+    llm_request_max_retries: int = Field(ge=1)
 
     @field_validator("model_backends")
     def assert_model_backends_unique(
