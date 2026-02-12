@@ -1,3 +1,5 @@
+import re
+
 from pydantic import computed_field
 
 from social_groups.orchestrator.config import random_string_to_job_name_appendix
@@ -36,6 +38,10 @@ class VLLMConfiguration(BaseInferenceService):
             )
         used_model = self.llm_models[self._chosen_model_id]
 
+        number_gpus = int(
+            re.fullmatch(r"gpu:(\d+)", self.slurm_config.gres).groups()[0]
+        )
+
         return (
             f"source {exec_config.project_dir / '.venv' / 'bin' / 'activate'} && "
             f"uv run vllm serve {self._chosen_model_id} "
@@ -46,5 +52,6 @@ class VLLMConfiguration(BaseInferenceService):
                 if used_model.max_input_tokens
                 else ""
             )
+            + (f"--data-parallel-size={number_gpus} " if number_gpus != 1 else "")
             # f"--quantization=" # For the future
         )

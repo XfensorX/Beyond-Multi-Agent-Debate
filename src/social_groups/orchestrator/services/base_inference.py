@@ -45,6 +45,8 @@ class BaseInferenceService(SlurmService, ABC):
                 + "\n - ".join(sorted(self.llm_models.keys()))
             )
 
-    def set_used_model(self, modelid: ModelId):
+    def set_used_model(self, modelid: ModelId, used_gpus: int | None = None):
         self.check_model_config_exists([modelid])
         self._chosen_model_id = modelid
+        if used_gpus is not None:
+            self.slurm_config.gres = f"gpu:{used_gpus}"
