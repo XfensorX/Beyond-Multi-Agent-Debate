@@ -10,7 +10,7 @@ hydra:
 
 
 experiment:
-  name: changed_order_mad3
+  name: changed_order_mad2
   data: mmlu-pro-subset
 
   strategy:
