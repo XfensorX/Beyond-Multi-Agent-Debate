@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
@@ -89,6 +90,7 @@ def execute_experiment(
 
         for _ in range(in_flight_cap):
             futures.add(executor.submit(run_single_example, next(data_it)))
+            time.sleep(1)  # Prevent Bursting the LLM Server with a lot of workers.
 
         while futures:
             done, futures = wait(futures, return_when=FIRST_COMPLETED)
