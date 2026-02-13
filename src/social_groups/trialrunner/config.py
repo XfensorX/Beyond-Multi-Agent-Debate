@@ -84,8 +84,8 @@ def get_llm(config: LLMConfig, backend: BackendInfo) -> ChatHuggingFace | ChatOp
             temperature=config.temperature,
             max_tokens=config.max_new_tokens,
             top_p=config.top_p,
-            timeout=global_config_holder.global_hydra_config.execution.llm_request_timeout,
-            max_retries=global_config_holder.global_hydra_config.execution.llm_request_max_retries,
+            # timeout=global_config_holder.global_hydra_config.execution.llm_request_timeout,
+            # max_retries=global_config_holder.global_hydra_config.execution.llm_request_max_retries,
         )
     else:
         raise NotImplementedError()
