@@ -22,7 +22,6 @@ from social_groups.reporting.group_reply import (
 )
 from social_groups.reporting.heterogenous_comparison.data_retrieval import (
     apply_parsing_and_group_decision,
-    get_mad_frame,
 )
 from social_groups.reporting.parsing import AnswerComparer, AnswerOptions, AnswerParser
 from social_groups.reporting.plots.decision_scheme_extended import (
@@ -51,6 +50,13 @@ st.divider()
 @st.cache_data
 def load_csv(path: Path):
     return pd.read_csv(path)
+
+
+@st.cache_data
+def load_mad_dataframe():
+    from social_groups.analysis.definitions import defs
+
+    return defs.load_fn().load_asset_value("hetero_mad")
 
 
 tabs = st.tabs(["Broad Overview", "Decision Schemes"])
@@ -123,7 +129,7 @@ with tabs[0]:
 
 with tabs[1]:
     comparison_mode = st.checkbox("Comparison Mode")
-    mad_frame = st.cache_data(get_mad_frame)()
+    mad_frame = load_mad_dataframe()
 
     with st.expander("All Data for Multi-Agent Debate"):
         st.dataframe(

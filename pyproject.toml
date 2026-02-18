@@ -55,6 +55,11 @@ dependencies = [
     "drawarrow>=0.1.0",
     "plotly>=6.5.2",
     "watchdog>=6.0.0",
+    "dagster>=1.12.14",
+    "dagster-webserver>=1.12.14",
+    "dagster-dg-cli>=1.12.14",
+    "dagster-polars>=0.27.9",
+    "dagstermill>=0.28.14",
 ]
 
 
@@ -83,3 +88,13 @@ analyzer = "social_groups.analyzer.__main__:main"
 
 [tool.taskipy.tasks]
 pull_tgi_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/tgi.sif docker://ghcr.io/huggingface/text-generation-inference:2.3.0", help = "Pull the docker Image of TGI from huggingface and save it as apptainer sif." }
+
+
+[tool.dg]
+directory_type = "project"
+
+[tool.dg.project]
+root_module = "social_groups.analysis"
+registry_modules = [
+    "social_groups.analysis.components.*",
+]
