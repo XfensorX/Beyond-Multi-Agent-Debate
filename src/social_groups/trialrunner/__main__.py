@@ -1,7 +1,5 @@
-import socket
-
 import hydra
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 from social_groups.trialrunner.experiment.run_experiment import run_experiment
 from social_groups.trialrunner.utils.cli_utils import (
@@ -17,7 +15,7 @@ from social_groups.trialrunner.utils.meta_info import generate_meta_information
 
 
 @hydra.main(version_base=None, config_name="base")
-def _main(cfg: DictConfig):
+def main(cfg: DictConfig):
     config = setup_config(cfg)
     meta_info = generate_meta_information()
 
@@ -36,11 +34,6 @@ def _main(cfg: DictConfig):
 
     finally:
         print_final_message(meta_info)
-
-
-def main():
-    OmegaConf.register_new_resolver("hostname", lambda: socket.gethostname())
-    _main()
 
 
 if __name__ == "__main__":

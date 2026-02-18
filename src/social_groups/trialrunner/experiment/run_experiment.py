@@ -89,7 +89,10 @@ def execute_experiment(
         )
 
         for _ in range(in_flight_cap):
-            futures.add(executor.submit(run_single_example, next(data_it)))
+            try:
+                futures.add(executor.submit(run_single_example, next(data_it)))
+            except StopIteration:
+                break
             time.sleep(1)  # Prevent Bursting the LLM Server with a lot of workers.
 
         while futures:

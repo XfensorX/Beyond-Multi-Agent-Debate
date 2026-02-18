@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import socket
 
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
@@ -112,6 +113,9 @@ def handle_failure_exception(exception: Exception):
 
 def setup_config(cfg: DictConfig) -> MainConfig:
     try:
+        if not OmegaConf.has_resolver("hostname"):
+            OmegaConf.register_new_resolver("hostname", lambda: socket.gethostname())
+
         cfg = MainConfig.model_validate(OmegaConf.to_container(cfg, resolve=True))
 
         global_config_holder.global_hydra_config = cfg
