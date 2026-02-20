@@ -17,7 +17,7 @@ from social_groups.trialrunner.utils.meta_info import generate_meta_information
 
 
 @hydra.main(version_base=None, config_name="base")
-def main(cfg: DictConfig):
+def _main(cfg: DictConfig):
     config = setup_config(cfg)
     meta_info = generate_meta_information()
 
@@ -38,6 +38,10 @@ def main(cfg: DictConfig):
         print_final_message(meta_info)
 
 
-if __name__ == "__main__":
+def main():
     OmegaConf.register_new_resolver("hostname", lambda: socket.gethostname())
+    _main()
+
+
+if __name__ == "__main__":
     main()
