@@ -1,5 +1,7 @@
+import socket
+
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from social_groups.trialrunner.experiment.run_experiment import run_experiment
 from social_groups.trialrunner.utils.cli_utils import (
@@ -37,4 +39,5 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
+    OmegaConf.register_new_resolver("hostname", lambda: socket.gethostname())
     main()
