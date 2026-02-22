@@ -9,11 +9,11 @@ from functools import cache
 from typing import Any, Dict, Iterator, Optional
 
 import httpx
+import phoenix.otel
 from openinference.instrumentation import capture_span_context
 from opentelemetry import trace
 from opentelemetry.trace import Span
 from opentelemetry.trace.span import format_span_id, format_trace_id
-from phoenix.otel import register
 from pydantic import BaseModel
 
 from social_groups.trialrunner.utils.general import flatten_dict
@@ -46,7 +46,7 @@ def phoenix_server_is_up(
 
 
 def setup_phoenix(endpoint: str, project_name: str) -> None:
-    register(
+    phoenix.otel.register(
         project_name=project_name,
         batch=True,
         endpoint=endpoint,

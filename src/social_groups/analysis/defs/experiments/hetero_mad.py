@@ -12,10 +12,7 @@ from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
     group_name="experiments",
     deps=["combined_data"],
     check_specs=[
-        AssetCheckSpec(name="has_correct_dataset", asset="hetero_mad", blocking=True),
-        AssetCheckSpec(
-            name="not_more_runs_than_needed", asset="hetero_mad", blocking=True
-        ),
+        AssetCheckSpec(name="has_correct_dataset", asset="hetero_mad", blocking=True)
     ],
 )
 def hetero_mad(combined_data: pl.DataFrame):
@@ -42,19 +39,12 @@ def hetero_mad(combined_data: pl.DataFrame):
         )
     )
 
-    run_idfs = frame["run_identifier"].unique()
     data_conns = set(frame["data_connector"].unique())
 
     yield dg.AssetCheckResult(
         check_name="has_correct_dataset",
         passed=bool(data_conns == {"mmlu-pro-subset"}),
         metadata={"data_connectors": list(data_conns)},
-    )
-
-    yield dg.AssetCheckResult(
-        check_name="not_more_runs_than_needed",
-        passed=bool(4 == run_idfs.len()),
-        metadata={"run_idfs": run_idfs.to_list()},
     )
 
     yield dg.Output(

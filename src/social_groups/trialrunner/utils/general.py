@@ -3,6 +3,7 @@ import pkgutil
 import string
 from enum import Enum
 from types import ModuleType
+from typing import Iterator, TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
@@ -119,3 +120,20 @@ def unflatten_dict(d, sep="."):
         set_path(result, parts, value)
 
     return result
+
+
+T = TypeVar("T")
+
+
+def unique_item(seq: Iterator[T]) -> T:
+    """
+    Consumes the Iterator!
+    """
+    items = None
+
+    try:
+        (item,) = (items := set(seq))
+    except ValueError:
+        raise ValueError(f"Found more than one unique item in the collection: {items}")
+
+    return item

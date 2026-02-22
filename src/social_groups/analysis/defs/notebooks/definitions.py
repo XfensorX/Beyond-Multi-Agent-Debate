@@ -51,5 +51,15 @@ defs = dg.Definitions(
                 "baseline_frame": dg.AssetIn("baseline"),
             },
         ),
+        create_notebook_asset(
+            "thinking_mad_analysis.ipynb",
+            deps=["thinking_mad"],
+            ins={"thinking_frame": dg.AssetIn("thinking_mad")},
+        ),
+        create_notebook_asset(
+            "diversity_params.ipynb",
+            deps=["diversity_params_mad"],
+            ins={"diversity_frame": dg.AssetIn("diversity_params_mad")},
+        ),
     ]
 )

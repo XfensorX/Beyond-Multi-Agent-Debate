@@ -6,6 +6,10 @@ import pandas as pd
 import polars as pl
 import streamlit as st
 
+from social_groups.analysis.polars_transformations import make_group_constellation
+from social_groups.analysis.polars_transformations.apply_parsing_and_group_decision import (
+    apply_parsing_and_group_decision,
+)
 from social_groups.directories import REPORTING_DIR
 from social_groups.reporting.analysis_columns import AnalysisColumn
 from social_groups.reporting.group_decision_scheme import (
@@ -19,9 +23,6 @@ from social_groups.reporting.group_reply import (
     GroupReplyAggregator,
     MajorityVote,
     SingularityVote,
-)
-from social_groups.reporting.heterogenous_comparison.data_retrieval import (
-    apply_parsing_and_group_decision,
 )
 from social_groups.reporting.parsing import AnswerComparer, AnswerOptions, AnswerParser
 from social_groups.reporting.plots.decision_scheme_extended import (
@@ -170,7 +171,7 @@ with tabs[1]:
 
             mad_analysis = apply_parsing_and_group_decision(
                 mad_frame, parser, comparer, group_reply
-            )
+            ).with_columns(make_group_constellation())
 
             with st.expander("Analyzed Data"):
                 st.dataframe(
@@ -360,6 +361,7 @@ with tabs[1]:
                         ),
                         GroupReplyAggregator(group_aggregator),
                     )
+                    .with_columns(make_group_constellation())
                     .filter(
                         (pl.col("group_constellation") == g1)
                         | (pl.col("group_constellation") == g2)

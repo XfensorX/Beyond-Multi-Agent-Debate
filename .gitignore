@@ -5,6 +5,7 @@ __pycache__/
 *$py.class
 
 .tmp_dagster_home*/
+debug_failures/
 .vscode/
 
 # C extensions

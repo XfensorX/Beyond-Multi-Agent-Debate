@@ -15,10 +15,3 @@ PAPER_COLORSCALE = [
 
 
 PAPER_BG = "#EFE9DD"
-
-
-MODEL_NAME_TO_LETTER_MAPPING = {
-    "Qwen/Qwen3-14B": "H",
-    "Qwen/Qwen3-4B": "M",
-    "Qwen/Qwen3-0.6B": "L",
-}
