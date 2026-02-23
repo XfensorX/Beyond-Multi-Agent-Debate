@@ -46,6 +46,8 @@ class VLLMConfiguration(BaseInferenceService):
             f"source {exec_config.project_dir / '.venv' / 'bin' / 'activate'} && "
             f"uv run vllm serve {self._chosen_model_id} "
             f"--host=0.0.0.0 "
+            "--enable-auto-tool-choice "
+            "--tool-call-parser hermes "
             f"--port={used_model.port} "
             + (
                 f"--max-model-len={used_model.max_total_tokens}"
