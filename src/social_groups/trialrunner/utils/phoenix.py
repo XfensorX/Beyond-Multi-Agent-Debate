@@ -220,7 +220,7 @@ def phoenix_example_span(
 
 @contextmanager
 def phoenix_log_span(
-    message: str, *, tracer_name: str = "experiment", **attrs: Any
+    message: str, *, tracer_name: str = "experiment", title: str = "log", **attrs: Any
 ) -> Iterator[Span]:
     """
     Creates a small child span for a human-readable log/message that will show up in Phoenix.
@@ -228,7 +228,7 @@ def phoenix_log_span(
     """
     tracer = trace.get_tracer(tracer_name)
     with tracer.start_as_current_span(
-        "log",
+        title,
         attributes={"log.message": message, "openinference.span.kind": "tool", **attrs},
     ) as span:
         yield span

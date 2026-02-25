@@ -196,6 +196,7 @@ def progress_iter(
         )
         with prog:
             task_id = prog.add_task(desc, total=total or 0)
+            maybe_log(0, force=True)
 
             done = 0
             for item in iterable:
@@ -212,7 +213,7 @@ def progress_iter(
             if total is not None:
                 prog.update(task_id, completed=total)
             if logger and total:
-                maybe_log(total)
+                maybe_log(total, force=True)
                 logger.info("%s: done", desc)
     else:
         done = 0
