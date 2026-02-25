@@ -42,6 +42,7 @@ class ExecutionConfig(BaseModel):
     backend_api_key_env_vars: dict[Backend, str]
     llm_request_timeout: int | None = Field(ge=1, default=None)
     llm_request_max_retries: int | None = Field(ge=1, default=None)
+    seconds_between_start_of_new_experiment: float = Field(ge=0, default=1.0)
 
     @field_validator("model_backends")
     def assert_model_backends_unique(

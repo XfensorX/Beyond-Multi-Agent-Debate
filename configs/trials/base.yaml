@@ -16,6 +16,7 @@ hydra:
 
 
 execution:
+  seconds_between_start_of_new_experiment: 1.0
   phoenix_server_url: http://localhost:6006
   phoenix_graphql_url: http://localhost:4317
   model_backends: [ ] # To fill on startup

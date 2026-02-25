@@ -93,7 +93,9 @@ def execute_experiment(
                 futures.add(executor.submit(run_single_example, next(data_it)))
             except StopIteration:
                 break
-            time.sleep(1)  # Prevent Bursting the LLM Server with a lot of workers.
+            time.sleep(
+                execution_config.seconds_between_start_of_new_experiment
+            )  # Prevent Bursting the LLM Server with a lot of workers.
 
         while futures:
             done, futures = wait(futures, return_when=FIRST_COMPLETED)
