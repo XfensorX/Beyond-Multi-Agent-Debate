@@ -3,7 +3,7 @@ from copy import deepcopy
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel
 
-from social_groups.trialrunner.config import get_llm, DebateAgent
+from social_groups.trialrunner.config import DebateAgent, get_llm
 from social_groups.trialrunner.decision_schemes.base import (
     DecisionScheme,
     ExampleInput,
@@ -95,7 +95,8 @@ class MultiAgentDebate(DecisionScheme[MultiAgentDebateConfiguration]):
 
             if r == 1:
                 answers_at_beginning = deepcopy(last_agent_answers)
-            elif r == self.config.number_of_rounds:
+
+            if r == self.config.number_of_rounds:
                 answers_at_end = deepcopy(last_agent_answers)
 
         return ExampleOutput(
