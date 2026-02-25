@@ -38,8 +38,8 @@ from social_groups.trialrunner.utils.tracking import TrackEntry
 app = Typer(no_args_is_help=True)
 
 
-MAX_PARALLEL_REQUESTS = 5
-MAX_IDS_PER_REQUEST = 2
+MAX_PARALLEL_REQUESTS = 20
+MAX_IDS_PER_REQUEST = 20
 IN_QUEUE_MAXSIZE = 10000
 OUT_QUEUE_MAXSIZE = 10000
 CHUNK_SIZE = 100
@@ -202,11 +202,17 @@ def read_experiment_paths() -> dict[ExperimentName, list[Path]]:
     project_paths_per_experiment: dict[ExperimentName, list[Path]] = defaultdict(list)
 
     for experiment_dir in RUNS_FINAL_RESULTS_DIR.iterdir():
+        if experiment_dir == ".DS_Store":
+            continue
         for run_dir in experiment_dir.iterdir():
             project_paths_per_experiment[experiment_dir.name].append(run_dir)
 
     for experiment_dir in MULTIRUN_FINAL_RESULTS_DIR.iterdir():
+        if experiment_dir == ".DS_Store":
+            continue
         for run_dir in experiment_dir.iterdir():
+            if run_dir == ".DS_Store":
+                continue
             for sub_run_dir in run_dir.iterdir():
                 if not sub_run_dir.is_dir():
                     continue  # hydra multirun config files

@@ -5,6 +5,7 @@ import polars as pl
 from dagster import AssetCheckSpec
 
 import social_groups.polars_columns as plc
+from social_groups.analysis.asset_checks import check_unique_data_connector
 from social_groups.analysis.polars_transformations import make_group_constellation
 from social_groups.trialrunner.utils.general import unique_item
 from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
@@ -16,7 +17,9 @@ from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
     deps=["combined_data"],
     check_specs=[
         AssetCheckSpec(
-            name="has_correct_dataset", asset="diversity_params_mad", blocking=True
+            name="check_unique_data_connector",
+            asset="diversity_params_mad",
+            blocking=True,
         )
     ],
 )
@@ -68,13 +71,7 @@ def diversity_params_mad(combined_data: pl.DataFrame):
         .with_columns(make_group_constellation())
     )
 
-    data_conns = set(frame["data_connector"].unique())
-
-    yield dg.AssetCheckResult(
-        check_name="has_correct_dataset",
-        passed=bool(data_conns == {"mmlu-pro-subset"}),
-        metadata={"data_connectors": list(data_conns)},
-    )
+    yield check_unique_data_connector(frame)
 
     yield dg.Output(
         frame.drop(

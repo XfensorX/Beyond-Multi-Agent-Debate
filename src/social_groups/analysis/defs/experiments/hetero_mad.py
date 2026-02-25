@@ -4,6 +4,12 @@ import dagster as dg
 import polars as pl
 from dagster import AssetCheckSpec
 
+import src.social_groups.polars_columns as plc
+from social_groups.analysis.asset_checks import (
+    check_standard_group_constellations,
+    check_unique_data_connector,
+)
+from social_groups.analysis.polars_transformations import make_group_constellation
 from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
 
 
@@ -12,7 +18,14 @@ from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
     group_name="experiments",
     deps=["combined_data"],
     check_specs=[
-        AssetCheckSpec(name="has_correct_dataset", asset="hetero_mad", blocking=True)
+        AssetCheckSpec(
+            name="check_unique_data_connector", asset="hetero_mad", blocking=True
+        ),
+        AssetCheckSpec(
+            name="check_standard_group_constellations",
+            asset="hetero_mad",
+            blocking=True,
+        ),
     ],
 )
 def hetero_mad(combined_data: pl.DataFrame):
@@ -26,7 +39,8 @@ def hetero_mad(combined_data: pl.DataFrame):
             }
         )
     ).with_columns(
-        model_names=pl.col("experiment_configuration_json").map_elements(
+        model_names=pl.col(plc.experiment_configuration_json)
+        .map_elements(
             lambda x: list(
                 map(
                     lambda d: d.backend.model_name,
@@ -37,15 +51,13 @@ def hetero_mad(combined_data: pl.DataFrame):
             ),
             return_dtype=pl.List(pl.Utf8),
         )
+        .alias(plc.model_names)
     )
 
-    data_conns = set(frame["data_connector"].unique())
-
-    yield dg.AssetCheckResult(
-        check_name="has_correct_dataset",
-        passed=bool(data_conns == {"mmlu-pro-subset"}),
-        metadata={"data_connectors": list(data_conns)},
+    yield check_standard_group_constellations(
+        frame.with_columns(make_group_constellation())
     )
+    yield check_unique_data_connector(frame)
 
     yield dg.Output(
         frame.drop(

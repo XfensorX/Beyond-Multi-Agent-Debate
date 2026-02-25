@@ -6,7 +6,10 @@ from dagster import AssetCheckSpec
 
 import social_groups.polars_columns as plc
 import social_groups.polars_values as plv
-from social_groups.analysis.asset_checks import check_standard_group_constellations
+from social_groups.analysis.asset_checks import (
+    check_standard_group_constellations,
+    check_unique_data_connector,
+)
 from social_groups.analysis.polars_transformations import make_group_constellation
 from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
 
@@ -16,7 +19,9 @@ from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
     group_name="experiments",
     deps=["combined_data"],
     check_specs=[
-        AssetCheckSpec(name="has_correct_dataset", asset="thinking_mad", blocking=True),
+        AssetCheckSpec(
+            name="check_unique_data_connector", asset="thinking_mad", blocking=True
+        ),
         AssetCheckSpec(
             name="check_standard_group_constellations",
             asset="thinking_mad",
@@ -76,13 +81,7 @@ def thinking_mad(combined_data: pl.DataFrame):
         .with_columns(pl.col(plc.model_names).alias(plc.thinking_models)),
     )
 
-    data_conns = set(frame["data_connector"].unique())
-
-    yield dg.AssetCheckResult(
-        check_name="has_correct_dataset",
-        passed=bool(data_conns == {"mmlu-pro-subset"}),
-        metadata={"data_connectors": list(data_conns)},
-    )
+    yield check_unique_data_connector(frame)
 
     # format the "thinking" models column
     frame = frame.with_columns(
