@@ -34,6 +34,8 @@ def with_retry_on_fail(
                 try:
                     result = func(*args, **kwargs)
                     return result
+                except KeyboardInterrupt:
+                    exit(1)
 
                 except retry_on as exc:
                     if attempt == max_retries:
