@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Any, Iterable
 
 import datasets
+from pydantic import ConfigDict
 
 from social_groups.trialrunner.data_connectors.base import DataConnector, ExampleBase
 from social_groups.trialrunner.decision_schemes.base import ExampleInput
@@ -52,6 +53,8 @@ def get_example_questions(validation_data) -> dict[MMLUProCategory, str]:
 
 
 class MMLUProExample(ExampleBase):
+    model_config = ConfigDict(frozen=True)
+
     question: str
     src: str
     category: MMLUProCategory
