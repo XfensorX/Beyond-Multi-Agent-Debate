@@ -7,7 +7,7 @@ hydra:
   sweeper:
     params:
       params_temperature: 0.0, 0.2, 0.7, 1.3
-      params_top_p: 0.1, 0.3
+      params_top_p: 0.1
       experiment/hetero/groups@_models: LLL, LLM, HLL, LMM, HLM, HHL, MMM, HMM, HHM, HHH
 
 params_temperature: 0.0

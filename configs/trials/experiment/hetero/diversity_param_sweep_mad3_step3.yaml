@@ -7,14 +7,14 @@ hydra:
   sweeper:
     params:
       params_temperature: 0.0, 0.2, 0.7, 1.3
-      params_top_p: 0.3
+      params_top_p: 0.75
       experiment/hetero/groups@_models: LLL, LLM, HLL, LMM, HLM, HHL, MMM, HMM, HHM, HHH
 
 params_temperature: 0.0
 params_top_p: 1.0
 
 experiment:
-  name: diversity_parameter_sweep_mad3_step2
+  name: diversity_parameter_sweep_mad3_step3
   data: mmlu-pro-subset
 
   strategy:
@@ -57,7 +57,7 @@ experiment:
 
 
   additional_info:
-    description: Step2 MAD3 Param Sweep top_p=${params_top_p}, temp=${params_temperature}— ${_models.0},${_models.1},${_models.2}
+    description: Step3 MAD3 Param Sweep top_p=${params_top_p}, temp=${params_temperature}— ${_models.0},${_models.1},${_models.2}
 
 
 
