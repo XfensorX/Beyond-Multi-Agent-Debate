@@ -1,7 +1,6 @@
 # @package _global_
 defaults:
   - _self_
-  - _temperature: 0.0
   - /experiment/hetero/groups@_models: L
 
 hydra:
@@ -10,6 +9,7 @@ hydra:
       _temperature: 0.0, 0.1, 0.3
       experiment/hetero/groups@_models: L, M, H
 
+_temperature: 0.0
 
 experiment:
   name: no_discussion_voting
