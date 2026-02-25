@@ -1,15 +1,13 @@
 # @package _global_
 defaults:
   - _self_
-  - _num_different_proposals: 2
-  - _council_size: 2
   - /experiment/hetero/groups@_models: LL
 
 hydra:
   sweeper:
     params:
-      _num_different_proposals: 2, 3
-      _council_size: 2, 3
+      experiment.strategy.configuration.num_different_proposals: 2, 3
+      experiment.strategy.configuration.council_size: 2, 3
       experiment/hetero/groups@_models: LL, LM, LH, ML, MM, MH, HL, HM, HH
 
 experiment:
@@ -18,7 +16,7 @@ experiment:
   strategy:
     name: tribal-council-standard
     configuration:
-      num_different_proposals: ${_num_different_proposals}
+      num_different_proposals: 2
       accept_after_n_invalid_proposals: 7
       total_invalid_question_formulations_accepted: 5
       total_invalid_final_decisions_accepted: 5
@@ -33,7 +31,7 @@ experiment:
           repetition_penalty: null
         backend: ${_models.0}
 
-      council_size: ${_council_size}
+      council_size: 2
       council_agent:
         llm:
           max_new_tokens: 4096
