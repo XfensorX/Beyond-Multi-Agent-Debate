@@ -57,9 +57,22 @@ defs = dg.Definitions(
             ins={"thinking_frame": dg.AssetIn("thinking_mad")},
         ),
         create_notebook_asset(
-            "diversity_params.ipynb",
+            "diversity_params_analysis.ipynb",
             deps=["diversity_params_mad"],
             ins={"diversity_frame": dg.AssetIn("diversity_params_mad")},
+        ),
+        create_notebook_asset(
+            "changed_order_mad_analysis.ipynb",
+            deps=["changed_order_mad"],
+            ins={"frame": dg.AssetIn("changed_order_mad")},
+        ),
+        create_notebook_asset(
+            "changed_prompt_mad_analysis.ipynb",
+            deps=["changed_prompt_mad"],
+            ins={
+                "changed_prompt": dg.AssetIn("changed_prompt_mad"),
+                "original_prompt": dg.AssetIn("hetero_mad"),
+            },
         ),
     ]
 )
