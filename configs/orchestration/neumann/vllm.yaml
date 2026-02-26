@@ -13,8 +13,8 @@ llm_models:
   #    max_input_tokens: 7168
 
   Qwen/Qwen3-0.6B:
-    port: 8006
+    port: 40006
   Qwen/Qwen3-4B:
-    port: 8004
+    port: 40004
   Qwen/Qwen3-14B:
-    port: 8014
+    port: 40014
