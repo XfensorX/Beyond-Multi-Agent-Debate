@@ -55,5 +55,6 @@ class VLLMConfiguration(BaseInferenceService):
                 else ""
             )
             + (f"--data-parallel-size={number_gpus} " if number_gpus != 1 else "")
+            + (f"--api-server-count={number_gpus} " if number_gpus != 1 else "")
             # f"--quantization=" # For the future
         )
