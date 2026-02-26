@@ -7,7 +7,6 @@ from typing import Annotated, Optional
 
 import questionary
 import typer
-from pydantic import BaseModel
 from questionary import Choice
 from rich import print
 from rich.text import Text
@@ -27,17 +26,17 @@ from social_groups.orchestrator.services import (
     ExperimentStartingInformation,
     PhoenixConfiguration,
     SlurmServiceName,
-    TgiConfiguration,
-    VLLMConfiguration,
     load_config,
 )
 from social_groups.orchestrator.utils.general import run_async
+from social_groups.orchestrator.utils.running_backends import (
+    parse_backend_endpoint_from_slurm_job,
+)
 from social_groups.orchestrator.utils.slurm import (
     SlurmJobInfo,
     get_slurm_job_info,
     wait_for_job_to_start,
 )
-from social_groups.trialrunner.config import Backend, BackendInfoWithEndpoint
 
 app = typer.Typer(no_args_is_help=True)
 logging.basicConfig(level=logging.DEBUG)
@@ -149,20 +148,14 @@ async def run_service_on_slurm(
             SlurmServiceName["phoenix"], where
         )
 
-        available_model_backends = parse_running_inference_backends(where, current_jobs)
-
         service_config.add_starting_info(
             ExperimentStartingInformation(
                 experiment_name=experiment,
                 phoenix_server_endpoint=f"http://{phoenix_job.node}:{phoenix_config.port}",
                 phoenix_graphql_endpoint=f"http://{phoenix_job.node}:4317",  # TODO: make this configurable
                 model_backends=[
-                    BackendInfoWithEndpoint(
-                        backend=b.backend,
-                        endpoint=f"http://{b.job.node}:{b.port}",
-                        model_name=b.model_id,
-                    )
-                    for b in available_model_backends
+                    parse_backend_endpoint_from_slurm_job(info, where)
+                    for info in current_jobs
                 ],
                 use_hydra_multirun=multirun,
             )
@@ -192,57 +185,6 @@ async def run_service_on_slurm(
         job_info = await wait_for_job_to_start(exec_config.ssh_login, job_id)
 
         print(job_info.model_dump_json(indent=4))
-
-
-class RunningBackend(BaseModel):
-    backend: Backend
-    port: int
-    job: SlurmJobInfo
-    model_id: str
-
-
-def parse_running_inference_backends(
-    where: ExecutionLocation, jobs: list[SlurmJobInfo]
-) -> list[RunningBackend]:
-    # TODO: refactor this method
-
-    tgi_jobs: list[SlurmJobInfo] = list(
-        filter(
-            lambda j: TgiConfiguration.job_name_is_matching_this_service(j.job_name),
-            jobs,
-        )
-    )
-
-    vllm_jobs: list[SlurmJobInfo] = list(
-        filter(
-            lambda j: VLLMConfiguration.job_name_is_matching_this_service(j.job_name),
-            jobs,
-        )
-    )
-    # TODO: should make this typesafe
-    # noinspection PyTypeChecker
-    tgi_config: TgiConfiguration = load_config(SlurmServiceName["tgi"], where)
-    # noinspection PyTypeChecker
-    vllm_config: TgiConfiguration = load_config(SlurmServiceName["vllm"], where)
-
-    available_model_backends: list[RunningBackend] = []
-
-    # TODO: refactor this, use the Enum to find BaseInferenceClass models
-    backend_specs = [
-        (tgi_config.llm_models, tgi_jobs, Backend.L3S_TGI),
-        (vllm_config.llm_models, vllm_jobs, Backend.vLLMExternal),
-    ]
-
-    for llm_models, jobs, backend in backend_specs:
-        for model_id, info in llm_models.items():
-            for job in jobs:
-                if random_string_to_job_name_appendix(model_id) in job.job_name:
-                    available_model_backends.append(
-                        RunningBackend(
-                            backend=backend, port=info.port, job=job, model_id=model_id
-                        )
-                    )
-    return available_model_backends
 
 
 @app.command("show", help="[blue]{location}          [/blue] Show all slurm jobs.")
@@ -291,14 +233,14 @@ def show_logs(
 
     if not infos:
         print("No jobs found running")
+
     if len(infos) > 1:
-        selected = questionary.select(
+        used_info: SlurmJobInfo = questionary.select(
             "Multiple jobs found running, please select the log to use: ",
             choices=[Choice(title=str(it), value=it) for it in infos],
             qmark=">",
             pointer="➤",
         ).ask()
-        used_info: SlurmJobInfo = selected
     else:
         used_info = infos[0]
 
@@ -334,8 +276,6 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
         if service_config.job_name_is_matching_this_service(info.job_name)
     ]
 
-    available_model_backends = parse_running_inference_backends(where, infos)
-
     if len(infos) > 1:
         print("Multiple jobs found running, selecting first.")
 
@@ -355,12 +295,15 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
         port = service_config.port
     elif isinstance(service_config, BaseInferenceService):
         port = None
-        for backend in available_model_backends:
+        for backend in set(
+            [parse_backend_endpoint_from_slurm_job(info, where) for info in infos]
+        ):
             if (
                 random_string_to_job_name_appendix(backend.model_id)
                 in used_info.job_name
             ):
-                port = backend.port
+                port = backend.endpoint.split(":")[-1]
+                break
 
         if port is None:
             raise RuntimeError(

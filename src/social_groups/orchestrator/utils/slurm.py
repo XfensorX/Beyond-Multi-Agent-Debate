@@ -138,33 +138,25 @@ class SlurmJobInfo(BaseModel):
             base = job_id_s.split(".", 1)[0]
             job_id = int(base)
 
-        # CPUs
-        cpus: Optional[int] = None
-        cpus_s = norm(cpus_s) or ""
-        if cpus_s:
+        if cpus_s := norm(cpus_s) or "":
             try:
                 cpus = int(cpus_s)
             except ValueError:
                 cpus = None
-
-        gres_raw_n = norm(gres_raw)
-        mem_raw_n = norm(mem_raw)
+        else:
+            cpus = None
 
         # GPU count derived from GRES string
-        gpus = cls.parse_gpu_count_from_gres(gres_raw_n)
-
         # Node sometimes comes as "node[01-02]" or empty
-        node_n = norm(node)
-
         return cls(
             job_id=job_id,
             job_name=job_name,
             state=state,
-            node=node_n,
+            node=norm(node),
             cpus=cpus,
-            gpus=gpus,
-            gres_raw=gres_raw_n,
-            mem_raw=mem_raw_n,
+            gpus=cls.parse_gpu_count_from_gres(norm(gres_raw)),
+            gres_raw=norm(gres_raw),
+            mem_raw=norm(mem_raw),
         )
 
 
