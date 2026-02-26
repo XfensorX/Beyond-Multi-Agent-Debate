@@ -48,7 +48,7 @@ dependencies = [
     "textual-dev>=1.8.0",
     "typer>=0.21.0",
     "uv>=0.9.18",
-    "vllm>=0.13.0; sys_platform == 'linux'",
+    "vllm>=0.15.0; sys_platform == 'linux'",
     "zstandard>=0.25.0",
     "pyfonts>=1.2.0",
     "highlight-text>=0.2",
