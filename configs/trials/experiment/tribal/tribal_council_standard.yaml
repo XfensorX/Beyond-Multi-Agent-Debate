@@ -43,4 +43,7 @@ experiment:
         backend: ${_models.1}
 
   additional_info:
-    description: Standard Tribal Council (size ${_council_size}) with {_num_different_proposals} different proposals. Proposer = ${_models.0} and Council ${_models.1}
+    description: >-
+      Standard Tribal Council(size ${experiment.strategy.configuration.council_size})
+      with {experiment.strategy.configuration.num_different_proposals} different proposals.
+      Proposer = ${_models.0} and Council ${_models.1}
