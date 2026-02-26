@@ -6,10 +6,10 @@ import yaml
 from pydantic import BaseModel
 
 from social_groups.directories import ORCHESTRATION_CONFIGS_DIR
+from social_groups.general.run_commands import run_ssh
 from social_groups.orchestrator.config import (
     EXECUTION_ENVIRONMENT_CONFIG_NAME,
 )
-from social_groups.orchestrator.utils.run_commands import run_ssh
 from social_groups.orchestrator.utils.types import JobId
 
 logger = logging.getLogger(__name__)

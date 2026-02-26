@@ -4,6 +4,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from typing import Any, Dict, Iterator
 
 import zstandard as zstd
 from pydantic import BaseModel
@@ -66,3 +67,25 @@ class ExperimentTracker:
         compress_zstd(self.out_path, self.out_path_compressed, remove_src=True)
 
         return False
+
+
+def iter_jsonl_zst(path: Path) -> Iterator[Dict[str, Any]]:
+    """
+    Streams a .jsonl.zst file and yields dict per line.
+    """
+    with path.open("rb") as f:
+        dctx = zstd.ZstdDecompressor()
+        with dctx.stream_reader(f) as reader:
+            buf = b""
+            while True:
+                chunk = reader.read(1 << 20)
+                if not chunk:
+                    break
+                buf += chunk
+                while b"\n" in buf:
+                    line, buf = buf.split(b"\n", 1)
+                    if not line.strip():
+                        continue
+                    yield json.loads(line)
+            if buf.strip():
+                yield json.loads(buf)

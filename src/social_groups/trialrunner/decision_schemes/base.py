@@ -6,7 +6,7 @@ from typing import Any, Generic, TypeVar, get_args, get_origin
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel
 
-from social_groups.trialrunner.utils.general import BaseModelWithExtraFields
+from social_groups.general.utils.standard_library import BaseModelWithExtraFields
 
 
 class HistoryMessage(BaseModel):

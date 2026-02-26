@@ -7,7 +7,7 @@ from dagster import AssetCheckSpec
 import social_groups.polars_columns as plc
 from social_groups.analysis.asset_checks import check_unique_data_connector
 from social_groups.analysis.polars_transformations import make_group_constellation
-from social_groups.trialrunner.utils.general import unique_item
+from social_groups.general.utils.standard_library import unique_item
 from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
 
 

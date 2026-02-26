@@ -5,13 +5,13 @@ import json
 from typing import Any
 
 from social_groups.analyzer.models.base import PolarsBaseModel
+from social_groups.general.tracking import TrackEntry
 from social_groups.trialrunner.data_connectors.mmlu_pro import (
     MMLUProExample,
 )
 from social_groups.trialrunner.experiment.main_registry import DataConnectorName
 from social_groups.trialrunner.utils.hydra_config import MainConfig
 from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
-from social_groups.trialrunner.utils.tracking import TrackEntry
 
 
 class Question(PolarsBaseModel):

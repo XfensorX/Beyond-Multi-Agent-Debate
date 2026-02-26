@@ -9,7 +9,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from social_groups.orchestrator.utils.run_commands import run_ssh
+from social_groups.general.run_commands import run_ssh
 from social_groups.orchestrator.utils.types import JobId
 
 logger = logging.getLogger(__name__)

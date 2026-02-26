@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Dict, Generic, Iterable, Optional, TypeVar
 
-from social_groups.trialrunner.utils.general import contains_whitespace
+from social_groups.general.utils.standard_library import contains_whitespace
 
 T = TypeVar("T", bound=type)
 

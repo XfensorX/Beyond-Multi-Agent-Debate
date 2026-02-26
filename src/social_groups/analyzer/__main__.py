@@ -20,7 +20,6 @@ from social_groups.analyzer.models.base import append_parquet_row
 from social_groups.analyzer.utils import (
     create_parquet_writer,
     get_span_attributes,
-    iter_jsonl_zst,
     read_hydra_config,
     read_meta_config,
 )
@@ -30,10 +29,10 @@ from social_groups.directories import (
     RUNS_FINAL_RESULTS_DIR,
     TRACK_FILE_NAME_COMPRESSED,
 )
+from social_groups.general.tracking import TrackEntry, iter_jsonl_zst
 from social_groups.orchestrator.utils.general import run_async
 from social_groups.trialrunner.utils.hydra_config import MainConfig
 from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
-from social_groups.trialrunner.utils.tracking import TrackEntry
 
 app = Typer(no_args_is_help=True)
 

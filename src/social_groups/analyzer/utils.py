@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Iterator, Optional
+from typing import Any, Optional
 
 import httpx
 import polars as pl
 import pyarrow
 import pyarrow.parquet as pq
 import yaml
-import zstandard as zstd
 from omegaconf import OmegaConf
 from pyarrow.parquet import ParquetWriter
 
@@ -119,25 +118,3 @@ def read_log_text(run_dir: Path, log_filename: str = "main.log") -> Optional[str
     if not p.exists():
         return None
     return p.read_text(encoding="utf-8", errors="replace")
-
-
-def iter_jsonl_zst(path: Path) -> Iterator[Dict[str, Any]]:
-    """
-    Streams a .jsonl.zst file and yields dict per line.
-    """
-    with path.open("rb") as f:
-        dctx = zstd.ZstdDecompressor()
-        with dctx.stream_reader(f) as reader:
-            buf = b""
-            while True:
-                chunk = reader.read(1 << 20)
-                if not chunk:
-                    break
-                buf += chunk
-                while b"\n" in buf:
-                    line, buf = buf.split(b"\n", 1)
-                    if not line.strip():
-                        continue
-                    yield json.loads(line)
-            if buf.strip():
-                yield json.loads(buf)

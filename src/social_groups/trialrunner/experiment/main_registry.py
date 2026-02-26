@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from enum import Enum
 
+from social_groups.general.utils.registry import Registry
+from social_groups.general.utils.standard_library import (
+    import_all_submodules,
+    make_enum,
+)
 from social_groups.trialrunner import data_connectors, decision_schemes
 from social_groups.trialrunner.data_connectors.base import DataConnector
 from social_groups.trialrunner.decision_schemes.base import DecisionScheme
-from social_groups.trialrunner.utils.general import import_all_submodules, make_enum
-from social_groups.trialrunner.utils.registry import Registry
 
 
 def _validate_decision_scheme(cls: type[DecisionScheme]):

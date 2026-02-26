@@ -4,9 +4,9 @@ from typing import Any, List, Optional
 
 from social_groups.analyzer.models.base import PolarsBaseModel
 from social_groups.analyzer.utils import ATTRIBUTE_KEY_SPAN_URL
+from social_groups.general.tracking import TrackEntry
 from social_groups.trialrunner.utils.hydra_config import MainConfig
 from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
-from social_groups.trialrunner.utils.tracking import TrackEntry
 
 MessageId = int
 

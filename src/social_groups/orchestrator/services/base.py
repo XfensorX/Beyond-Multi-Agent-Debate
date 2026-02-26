@@ -7,6 +7,11 @@ import yaml
 from pydantic import BaseModel, computed_field
 
 from social_groups.directories import ORCHESTRATION_CONFIGS_DIR
+from social_groups.general.utils.registry import Registry
+from social_groups.general.utils.standard_library import (
+    import_all_submodules,
+    make_enum,
+)
 from social_groups.orchestrator import services
 from social_groups.orchestrator.config import YAML_ENDING
 from social_groups.orchestrator.models.execution_environment import (
@@ -15,8 +20,6 @@ from social_groups.orchestrator.models.execution_environment import (
 )
 from social_groups.orchestrator.models.slurm_config import SlurmConfiguration
 from social_groups.orchestrator.utils.general import make_exported_variables_block
-from social_groups.trialrunner.utils.general import import_all_submodules, make_enum
-from social_groups.trialrunner.utils.registry import Registry
 
 
 class SlurmService(BaseModel, ABC):

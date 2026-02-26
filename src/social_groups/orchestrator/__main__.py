@@ -12,6 +12,7 @@ from questionary import Choice
 from rich import print
 from rich.text import Text
 
+from social_groups.general.run_commands import run_local, run_ssh
 from social_groups.orchestrator.config import (
     get_slurm_log_filename,
     random_string_to_job_name_appendix,
@@ -31,7 +32,6 @@ from social_groups.orchestrator.services import (
     load_config,
 )
 from social_groups.orchestrator.utils.general import run_async
-from social_groups.orchestrator.utils.run_commands import run_local, run_ssh
 from social_groups.orchestrator.utils.slurm import (
     SlurmJobInfo,
     get_slurm_job_info,

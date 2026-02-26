@@ -16,7 +16,7 @@ from opentelemetry.trace import Span
 from opentelemetry.trace.span import format_span_id, format_trace_id
 from pydantic import BaseModel
 
-from social_groups.trialrunner.utils.general import flatten_dict
+from social_groups.general.utils.standard_library import flatten_dict
 
 log = logging.getLogger(__name__)
 
