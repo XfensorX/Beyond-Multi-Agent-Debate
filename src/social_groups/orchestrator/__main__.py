@@ -154,8 +154,9 @@ async def run_service_on_slurm(
                 phoenix_server_endpoint=f"http://{phoenix_job.node}:{phoenix_config.port}",
                 phoenix_graphql_endpoint=f"http://{phoenix_job.node}:4317",  # TODO: make this configurable
                 model_backends=[
-                    parse_backend_endpoint_from_slurm_job(info, where)
+                    endpoint
                     for info in current_jobs
+                    if (endpoint := parse_backend_endpoint_from_slurm_job(info, where))
                 ],
                 use_hydra_multirun=multirun,
             )
@@ -296,7 +297,9 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
     elif isinstance(service_config, BaseInferenceService):
         port = None
         for backend in set(
-            [parse_backend_endpoint_from_slurm_job(info, where) for info in infos]
+            endpoint
+            for info in infos
+            if (endpoint := parse_backend_endpoint_from_slurm_job(info, where))
         ):
             if (
                 random_string_to_job_name_appendix(backend.model_id)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from social_groups.orchestrator.config import random_string_to_job_name_appendix
 from social_groups.orchestrator.models.execution_environment import ExecutionLocation
 from social_groups.orchestrator.services import (
@@ -11,10 +13,12 @@ from social_groups.orchestrator.services import (
 from social_groups.orchestrator.utils.slurm import SlurmJobInfo
 from social_groups.trialrunner.config import Backend, BackendInfoWithEndpoint
 
+logger = logging.getLogger(__name__)
+
 
 def parse_backend_endpoint_from_slurm_job(
     job: SlurmJobInfo, where: ExecutionLocation
-) -> BackendInfoWithEndpoint:
+) -> BackendInfoWithEndpoint | None:
     if TgiConfiguration.job_name_is_matching_this_service(job.job_name):
         config: TgiConfiguration = load_config(SlurmServiceName["tgi"], where)
         backend = Backend.L3S_TGI
@@ -22,9 +26,8 @@ def parse_backend_endpoint_from_slurm_job(
         config: VLLMConfiguration = load_config(SlurmServiceName["vllm"], where)
         backend = Backend.vLLMExternal
     else:
-        raise ValueError(
-            "The given jobname does not match any registered InferenceBackend Configurations."
-        )
+        logger.info(f"Did not Parse Backend endpoint from slurm job: {job.job_name}")
+        return None
 
     found = None
     for model_id, info in config.llm_models.items():
