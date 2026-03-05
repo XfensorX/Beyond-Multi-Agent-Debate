@@ -10,7 +10,7 @@ hydra:
 
 
 experiment:
-  name: baseline_with_tool_usage
+  name: heterogeneous_group_baseline_with_tool_usage
   data: mmlu-pro-subset
 
   strategy:
