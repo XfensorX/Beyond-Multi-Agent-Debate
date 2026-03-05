@@ -54,7 +54,7 @@ class SingleAgentToolBaseline(DecisionScheme[SingleAgentToolConfiguration]):
         for _ in range(self.config.retries_on_invalid_tool_call):
             ai_msg = (
                 get_llm(self.config.llm, self.config.backend)
-                .bind_tools([submit_answer], tool_choice=submit_answer.__name__)
+                .bind_tools([submit_answer], tool_choice=submit_answer.name)
                 .invoke(messages)
             )
             total_input_tokens += ai_msg.usage_metadata["input_tokens"]

@@ -14,6 +14,7 @@ from social_groups.trialrunner.experiment.main_registry import (
     DATA_CONNECTORS,
     DECISION_SCHEMES,
 )
+from social_groups.trialrunner.utils.exception_handling import ExceptionEncoder
 from social_groups.trialrunner.utils.hydra_config import (
     ExecutionConfig,
     MainConfig,
@@ -78,7 +79,10 @@ def execute_experiment(
                 )
             except Exception as e:
                 span.set_attributes(
-                    flatten_dict({"exception": json.dumps(e)}, map_to_basic_types=True)
+                    flatten_dict(
+                        {"exception": json.dumps(e, cls=ExceptionEncoder)},
+                        map_to_basic_types=True,
+                    )
                 )
                 example_out = None
 
