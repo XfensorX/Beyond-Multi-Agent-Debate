@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
@@ -76,7 +77,10 @@ def execute_experiment(
                     )
                 )
             except Exception as e:
-                example_out = e
+                span.set_attributes(
+                    flatten_dict({"exception": json.dumps(e)}, map_to_basic_types=True)
+                )
+                example_out = None
 
             return example_in, example_out, span_info
 
