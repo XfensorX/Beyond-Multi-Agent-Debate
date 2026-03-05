@@ -1,9 +1,6 @@
-import json
 import re
-from json import JSONDecodeError
-from typing import Any, Literal
+from typing import Literal
 
-import bs4
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import (
     AIMessage,
@@ -24,6 +21,11 @@ from social_groups.trialrunner.decision_schemes.thinking_mad import (
 )
 from social_groups.trialrunner.experiment.main_registry import register_decision_scheme
 from social_groups.trialrunner.utils.phoenix import phoenix_log_span
+from social_groups.trialrunner.utils.tool_calls import (
+    InvalidToolCallException,
+    NoToolCallsException,
+    parse_tool_call_arguments,
+)
 
 
 class Agent(BaseModel):
@@ -79,62 +81,6 @@ QUESTIONER_SYSTEM_PROMPT = (
 )
 
 
-class InvalidToolCallException(Exception):
-    pass
-
-
-class NoToolCallsException(Exception):
-    pass
-
-
-TOOL_CALL_TAGS = {"tool_call"}  # TODO: make config
-
-
-def retrieve_tool_call(response: str) -> list[dict[str, Any]]:
-    """
-    Very fast version using regex.
-    """
-
-    def fix_latex_backslashes(text: str) -> str:
-        def replacer(match):
-            esc_char = match.group(1)
-            # Valid JSON escapes — keep them as-is
-            if esc_char in r'"\\/bfnrtu':
-                return match.group(0)
-            # Invalid ones (most LaTeX cases) → make them literal \\
-            return "\\" + match.group(0)  # turns \c → \\c
-
-        # Replace \ followed by anything that's not a valid escape starter
-        return re.sub(r'\\([^"\\/bfnrtu])', replacer, text)
-
-    def fix_wired_whitespace(text: str) -> str:
-        return text.translate(
-            str.maketrans(
-                {
-                    "\u00a0": " ",  # non-breaking space
-                    "\u200b": "",  # zero-width space → remove
-                    "\u200c": "",  # zero-width non-joiner
-                    "\u200d": "",  # zero-width joiner
-                    "\ufeff": "",  # BOM / zero-width no-break space
-                    "\u202f": " ",  # narrow no-break space
-                    "\u205f": " ",  # medium mathematical space
-                }
-            )
-        )
-
-    response = fix_latex_backslashes(response)
-    response = fix_wired_whitespace(response)
-    bs = bs4.BeautifulSoup(response, "html.parser")
-    try:
-        return [
-            (json.loads(x.text.strip()))
-            for pattern in TOOL_CALL_TAGS
-            for x in bs.find_all(pattern)
-        ]
-    except JSONDecodeError as e:
-        raise InvalidToolCallException() from e
-
-
 def make_proposal(llm: BaseChatModel, question: str) -> None | Proposal:
     @tool(return_direct=True)
     def propose_solution(correct_answer: str, reasoning: str):
@@ -159,28 +105,15 @@ def make_proposal(llm: BaseChatModel, question: str) -> None | Proposal:
         ]
     )
 
-    if not ai_msg.tool_calls:
-        try:
-            tool_calls = retrieve_tool_call(ai_msg.content)
-
-            if not tool_calls:
-                raise NoToolCallsException()
-
-            return Proposal(
-                answer=tool_calls[0]["arguments"]["correct_answer"],
-                reasoning=tool_calls[0]["arguments"]["reasoning"],
-            )
-
-        except (KeyError, ValidationError):
-            raise InvalidToolCallException()
+    args = parse_tool_call_arguments(ai_msg)
 
     try:
         return Proposal(
-            answer=ai_msg.tool_calls[0]["args"]["correct_answer"],
-            reasoning=ai_msg.tool_calls[0]["args"]["reasoning"],
+            answer=args["correct_answer"],
+            reasoning=args["reasoning"],
         )
-    except (KeyError, ValidationError):
-        raise InvalidToolCallException()
+    except (ValidationError, KeyError) as e:
+        raise InvalidToolCallException() from e
 
 
 def trim_answers(q: str):
@@ -243,21 +176,8 @@ def form_question_about_proposal(
             )
         ]
     )
-
-    if not ai_msg.tool_calls:
-        try:
-            tool_calls = retrieve_tool_call(ai_msg.content)
-
-            if not tool_calls:
-                raise NoToolCallsException()
-
-            return tool_calls[0]["arguments"]["question"]
-
-        except (KeyError, ValidationError):
-            raise InvalidToolCallException()
-
     try:
-        return ai_msg.tool_calls[0]["args"]["question"]
+        return parse_tool_call_arguments(ai_msg)["question"]
     except KeyError as e:
         raise InvalidToolCallException() from e
 
@@ -390,20 +310,8 @@ def get_final_decision(
 
     ai_msg = committee_llm.bind_tools([submit_solution_opinion]).invoke(messages)
 
-    if not ai_msg.tool_calls:
-        try:
-            tool_calls = retrieve_tool_call(ai_msg.content)
-
-            if not tool_calls:
-                raise NoToolCallsException()
-
-            return tool_calls[0]["arguments"]["correct_answer"]
-
-        except (KeyError, ValidationError):
-            raise InvalidToolCallException()
-
     try:
-        return ai_msg.tool_calls[0]["args"]["correct_answer"]
+        return parse_tool_call_arguments(ai_msg)["correct_answer"]
     except KeyError as e:
         raise InvalidToolCallException() from e
 

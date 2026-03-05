@@ -37,7 +37,7 @@ def compress_zstd(
 
 class TrackEntry(BaseModel):
     input: ExampleInput
-    output: ExampleOutput
+    output: ExampleOutput | Exception
     phoenix_span_info: PhoenixExampleHandle
 
 

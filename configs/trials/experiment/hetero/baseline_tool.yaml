@@ -1,0 +1,36 @@
+# @package _global_
+defaults:
+  - _self_
+  - hetero/backend@experiment.strategy.configuration.backend: qwen-4b
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/backend@experiment.strategy.configuration.backend: qwen-0_6b,qwen-4b,qwen-14b
+
+
+experiment:
+  name: baseline_with_tool_usage
+  data: mmlu-pro-subset
+
+  strategy:
+    name: single-agent-tool
+    configuration:
+      retries_on_invalid_tool_call: 3
+
+      llm:
+        max_new_tokens: 4096
+        temperature: 0.0
+        top_p: 0.1
+        top_k: null
+        typical_p: null
+        repetition_penalty: null
+
+
+
+  additional_info:
+    description: Baseline with Tool evaluation — ${experiment.strategy.configuration.backend.model_name}
+
+
+
+

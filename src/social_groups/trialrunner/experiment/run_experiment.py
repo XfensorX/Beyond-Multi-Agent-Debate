@@ -67,13 +67,17 @@ def execute_experiment(
             span_info,
         ):
             example_in = data_connector.prepare_example(example)
-            example_out = decision_scheme.run_example(example_in)
-            span.set_attributes(
-                flatten_dict(
-                    {"output": example_out.model_dump_json(exclude={"history"})},
-                    map_to_basic_types=True,
+            try:
+                example_out = decision_scheme.run_example(example_in)
+                span.set_attributes(
+                    flatten_dict(
+                        {"output": example_out.model_dump_json(exclude={"history"})},
+                        map_to_basic_types=True,
+                    )
                 )
-            )
+            except Exception as e:
+                example_out = e
+
             return example_in, example_out, span_info
 
     in_flight_cap = 2 * execution_config.num_workers
