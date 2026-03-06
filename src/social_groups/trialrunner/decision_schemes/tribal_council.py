@@ -1,5 +1,5 @@
 import re
-from typing import Literal
+from typing import Annotated, Literal
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import (
@@ -8,7 +8,7 @@ from langchain_core.messages import (
     SystemMessage,
 )
 from langchain_core.tools import tool
-from pydantic import BaseModel, ValidationError, field_validator
+from pydantic import BaseModel, BeforeValidator, ValidationError, field_validator
 
 from social_groups.trialrunner.config import BackendInfo, LLMConfig, get_llm
 from social_groups.trialrunner.decision_schemes.base import (
@@ -20,6 +20,7 @@ from social_groups.trialrunner.decision_schemes.thinking_mad import (
     strip_out_thinking_process,
 )
 from social_groups.trialrunner.experiment.main_registry import register_decision_scheme
+from social_groups.trialrunner.utils.llm_calls import retrieve_single_answer_info
 from social_groups.trialrunner.utils.phoenix import phoenix_log_span
 from social_groups.trialrunner.utils.tool_calls import (
     InvalidToolCallException,
@@ -43,20 +44,21 @@ class TribalCouncilConfiguration(BaseModel):
     total_invalid_final_decisions_accepted: int
 
 
+def extract_letter(v: str):
+    if isinstance(v, str):
+        # TODO: make this configurable for different question types:
+        match = re.search(r"(?i)[\(\[]?([A-J])[\)\]\.:]?\b", v.strip())
+        if match:
+            return match.group(1).upper()
+    raise ValidationError(f"Cannot extract A–J choice from: {v!r}")
+
+
 class Proposal(BaseModel):
     # TODO: make this configurable for different question types:
-    answer: Literal["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
-
-    @field_validator("answer", mode="before")
-    @classmethod
-    def extract_letter(cls, v):
-        if isinstance(v, str):
-            # TODO: make this configurable for different question types:
-            match = re.search(r"(?i)[\(\[]?([A-J])[\)\]\.:]?\b", v.strip())
-            if match:
-                return match.group(1).upper()
-        raise ValidationError(f"Cannot extract A–J choice from: {v!r}")
-
+    answer = Annotated[
+        Literal["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+        BeforeValidator(extract_letter),
+    ]
     reasoning: str
 
 
@@ -106,12 +108,9 @@ def make_proposal(llm: BaseChatModel, question: str) -> None | Proposal:
     )
 
     args = parse_tool_call_arguments(ai_msg)
-
     try:
-        return Proposal(
-            answer=args["correct_answer"],
-            reasoning=args["reasoning"],
-        )
+        return Proposal(answer=args["correct_answer"], reasoning=args["reasoning"])  # noqa: some wired behaviour with validator
+
     except (ValidationError, KeyError) as e:
         raise InvalidToolCallException() from e
 
@@ -247,7 +246,8 @@ def answer_question_about_proposal(
         # ai_msg = proposal_llm.bind_tools([answer_the_question]).invoke(messages)
         ai_msg = proposal_llm.invoke(messages)
 
-        new_reactions.append(strip_out_thinking_process(ai_msg.content))
+        answer_info = retrieve_single_answer_info(ai_msg)
+        new_reactions.append(strip_out_thinking_process(answer_info.response))
 
         # if not ai_msg.tool_calls:
         #     print("No Tool Calls", ai_msg.content)
@@ -334,7 +334,7 @@ class TribalCouncilDebate(DecisionScheme[TribalCouncilConfiguration]):
                         used_output_tokens=0,
                         final_answer=None,
                         answers_at_end=[],
-                        answers_at_beginning=[p.answer for p in proposals],
+                        answers_at_beginning=[str(p.answer) for p in proposals],
                         history=[],  # TODO:
                     )
 
@@ -351,7 +351,7 @@ class TribalCouncilDebate(DecisionScheme[TribalCouncilConfiguration]):
             used_output_tokens=0,
             final_answer=None,
             answers_at_end=final_answers,
-            answers_at_beginning=[p.answer for p in proposals],
+            answers_at_beginning=[str(p.answer) for p in proposals],
             history=[],  # TODO:
         )
 

@@ -22,16 +22,18 @@ class NoToolCallsException(Exception):
 
 def parse_tool_call_arguments(ai_msg: AIMessage) -> dict[str, str]:
     if not ai_msg.tool_calls:
+        if not isinstance(ai_msg.content, str):
+            raise NoToolCallsException()
+
+        if not (tool_calls := retrieve_tool_call(ai_msg.content)):
+            raise NoToolCallsException()
+
         try:
-            tool_calls = retrieve_tool_call(ai_msg.content)
-
-            if not tool_calls:
-                raise NoToolCallsException()
-
             return tool_calls[0]["arguments"]
-
-        except (KeyError, ValidationError):
+        except KeyError:
             raise InvalidToolCallException()
+        except IndexError:
+            raise NoToolCallsException()
 
     try:
         return ai_msg.tool_calls[0]["args"]

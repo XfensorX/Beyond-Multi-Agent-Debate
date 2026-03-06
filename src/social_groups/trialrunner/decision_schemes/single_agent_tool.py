@@ -12,6 +12,7 @@ from social_groups.trialrunner.decision_schemes.single_agent import (
     SingleAgentConfiguration,
 )
 from social_groups.trialrunner.experiment.main_registry import register_decision_scheme
+from social_groups.trialrunner.utils.llm_calls import retrieve_single_answer_info
 from social_groups.trialrunner.utils.tool_calls import (
     InvalidToolCallException,
     NoToolCallsException,
@@ -57,13 +58,13 @@ class SingleAgentToolBaseline(DecisionScheme[SingleAgentToolConfiguration]):
                 .bind_tools([submit_answer], tool_choice=submit_answer.name)
                 .invoke(messages)
             )
-            total_input_tokens += ai_msg.usage_metadata["input_tokens"]
-            total_output_tokens += ai_msg.usage_metadata["output_tokens"]
+            answer_info = retrieve_single_answer_info(ai_msg)
+            total_input_tokens += answer_info.input_tokens
+            total_output_tokens += answer_info.output_tokens
+
             history.append(
                 HistoryMessage(
-                    input_context=messages,
-                    answer=ai_msg.content,
-                    agent_id=0,
+                    input_context=messages, answer=answer_info.response, agent_id=0
                 )
             )
             try:

@@ -55,6 +55,8 @@ class ChangedPromptMaDebate(DecisionScheme[ChangedPromptMaDebateConfiguration]):
             return ai_msg.content
 
         last_agent_answers = []
+        answers_at_beginning = []
+        answers_at_end = []
 
         for r in range(1, self.config.number_of_rounds + 1):
             if not last_agent_answers:

@@ -9,6 +9,7 @@ from social_groups.trialrunner.decision_schemes.base import (
     HistoryMessage,
 )
 from social_groups.trialrunner.experiment.main_registry import register_decision_scheme
+from social_groups.trialrunner.utils.llm_calls import retrieve_single_answer_info
 
 
 class SingleAgentConfiguration(BaseModel):
@@ -30,15 +31,14 @@ class SingleAgentBaseline(DecisionScheme[SingleAgentConfiguration]):
 
         ai_msg = get_llm(self.config.llm, self.config.backend).invoke(messages)
 
+        answer_info = retrieve_single_answer_info(ai_msg)
         return ExampleOutput(
-            used_input_tokens=ai_msg.usage_metadata["input_tokens"],
-            used_output_tokens=ai_msg.usage_metadata["output_tokens"],
-            final_answer=ai_msg.content,
+            used_input_tokens=answer_info.input_tokens,
+            used_output_tokens=answer_info.output_tokens,
+            final_answer=answer_info.response,
             history=[
                 HistoryMessage(
-                    input_context=messages,
-                    answer=ai_msg.content,
-                    agent_id=0,
+                    input_context=messages, answer=answer_info.response, agent_id=0
                 )
             ],
         )
