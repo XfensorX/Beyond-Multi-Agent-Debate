@@ -8,8 +8,9 @@ from langchain_core.messages import (
     SystemMessage,
 )
 from langchain_core.tools import tool
-from pydantic import BaseModel, BeforeValidator, ValidationError, field_validator
+from pydantic import BaseModel, BeforeValidator, ValidationError
 
+from social_groups.general.utils.standard_library import BaseModelWithExtraFields
 from social_groups.trialrunner.config import BackendInfo, LLMConfig, get_llm
 from social_groups.trialrunner.decision_schemes.base import (
     DecisionScheme,
@@ -34,7 +35,7 @@ class Agent(BaseModel):
     backend: BackendInfo
 
 
-class TribalCouncilConfiguration(BaseModel):
+class TribalCouncilConfiguration(BaseModelWithExtraFields):
     proposal_agent: Agent
     council_agent: Agent
     council_size: int
@@ -55,7 +56,7 @@ def extract_letter(v: str):
 
 class Proposal(BaseModel):
     # TODO: make this configurable for different question types:
-    answer = Annotated[
+    answer: Annotated[
         Literal["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
         BeforeValidator(extract_letter),
     ]

@@ -1,15 +1,13 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool
 
-from social_groups.trialrunner.config import get_llm
+from social_groups.general.utils.standard_library import BaseModelWithExtraFields
+from social_groups.trialrunner.config import BackendInfo, LLMConfig, get_llm
 from social_groups.trialrunner.decision_schemes.base import (
     DecisionScheme,
     ExampleInput,
     ExampleOutput,
     HistoryMessage,
-)
-from social_groups.trialrunner.decision_schemes.single_agent import (
-    SingleAgentConfiguration,
 )
 from social_groups.trialrunner.experiment.main_registry import register_decision_scheme
 from social_groups.trialrunner.utils.llm_calls import retrieve_single_answer_info
@@ -20,7 +18,11 @@ from social_groups.trialrunner.utils.tool_calls import (
 )
 
 
-class SingleAgentToolConfiguration(SingleAgentConfiguration):
+class SingleAgentToolConfiguration(BaseModelWithExtraFields):
+    llm: LLMConfig
+    backend: BackendInfo
+
+    use_few_shot_prompting: bool
     retries_on_invalid_tool_call: int
 
 
@@ -35,7 +37,9 @@ class SingleAgentToolBaseline(DecisionScheme[SingleAgentToolConfiguration]):
                 "You have to Submit your final answer using the provided tool."
             ),
             HumanMessage(
-                example_input.presolved_questions + "\n\n" + example_input.question
+                (example_input.presolved_questions + "\n\n" + example_input.question)
+                if self.config.use_few_shot_prompting
+                else example_input.question
             ),
         ]
 

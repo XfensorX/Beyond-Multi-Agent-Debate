@@ -7,6 +7,9 @@ hydra:
   sweeper:
     params:
       experiment/hetero/backend@experiment.strategy.configuration.backend: qwen-0_6b,qwen-4b,qwen-14b
+      experiment.strategy.configuration.use_thinking: false, true
+      experiment.strategy.configuration.use_few_shot_prompting: false, true
+
 
 
 experiment:
@@ -24,11 +27,12 @@ experiment:
         typical_p: null
         repetition_penalty: null
 
-
+      use_few_shot_prompting: true
+      use_thinking: true
 
   additional_info:
-    description: Baseline evaluation — ${experiment.strategy.configuration.backend.model_name}
-
-
-
+    description: >-
+      Baseline evaluation — ${experiment.strategy.configuration.backend.model_name}
+      few_shot_prompting=${experiment.strategy.configuration.use_few_shot_prompting}
+      use_thinking=${experiment.strategy.configuration.use_thinking}
 

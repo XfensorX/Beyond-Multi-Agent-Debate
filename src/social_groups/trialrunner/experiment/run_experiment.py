@@ -78,6 +78,9 @@ def execute_experiment(
                     )
                 )
             except Exception as e:
+                logger.error(
+                    f"Received '{str(e)}', skipping example with ID {example.question_id}."
+                )
                 span.set_attributes(
                     flatten_dict(
                         {"exception": json.dumps(e, cls=ExceptionEncoder)},

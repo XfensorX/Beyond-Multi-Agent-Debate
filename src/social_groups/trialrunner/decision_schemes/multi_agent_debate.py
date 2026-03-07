@@ -3,6 +3,7 @@ from copy import deepcopy
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel
 
+from social_groups.general.utils.standard_library import BaseModelWithExtraFields
 from social_groups.trialrunner.config import DebateAgent, get_llm
 from social_groups.trialrunner.decision_schemes.base import (
     DecisionScheme,
@@ -14,7 +15,7 @@ from social_groups.trialrunner.experiment.main_registry import register_decision
 from social_groups.trialrunner.utils.phoenix import phoenix_log_span
 
 
-class MultiAgentDebateConfiguration(BaseModel):
+class MultiAgentDebateConfiguration(BaseModelWithExtraFields):
     debate_agents: list[DebateAgent]
     number_of_rounds: int
 

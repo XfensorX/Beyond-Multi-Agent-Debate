@@ -182,9 +182,6 @@ def progress_iter(
         logger.info("%s: %d%% (%d/%d)", desc, pct, min(done, total), total)
         last_log_ts = now
 
-    if logger and total:
-        logger.info("%s: 0%% (0/%d)", desc, total)
-
     if is_tty:
         prog = progress or Progress(
             SpinnerColumn(),
@@ -217,6 +214,8 @@ def progress_iter(
                 logger.info("%s: done", desc)
     else:
         done = 0
+        maybe_log(done, force=True)
+
         for item in iterable:
             yield item
             done += 1

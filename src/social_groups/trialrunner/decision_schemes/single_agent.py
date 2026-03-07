@@ -1,6 +1,7 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel
 
+from social_groups.general.utils.standard_library import BaseModelWithExtraFields
 from social_groups.trialrunner.config import BackendInfo, LLMConfig, get_llm
 from social_groups.trialrunner.decision_schemes.base import (
     DecisionScheme,
@@ -12,9 +13,12 @@ from social_groups.trialrunner.experiment.main_registry import register_decision
 from social_groups.trialrunner.utils.llm_calls import retrieve_single_answer_info
 
 
-class SingleAgentConfiguration(BaseModel):
+class SingleAgentConfiguration(BaseModelWithExtraFields):
     llm: LLMConfig
     backend: BackendInfo
+
+    use_few_shot_prompting: bool
+    use_thinking: bool
 
 
 @register_decision_scheme("single-agent")
@@ -25,11 +29,20 @@ class SingleAgentBaseline(DecisionScheme[SingleAgentConfiguration]):
                 "You are an knowledge expert, you are supposed to answer the multi-choice question to derive your final answer as `The answer is ...`."
             ),
             HumanMessage(
-                example_input.presolved_questions + "\n\n" + example_input.question
+                (example_input.presolved_questions + "\n\n" + example_input.question)
+                if self.config.use_few_shot_prompting
+                else example_input.question
             ),
         ]
 
-        ai_msg = get_llm(self.config.llm, self.config.backend).invoke(messages)
+        ai_msg = get_llm(self.config.llm, self.config.backend).invoke(
+            messages,
+            extra_body=(
+                None
+                if self.config.use_thinking
+                else {"chat_template_kwargs": {"enable_thinking": False}}
+            ),
+        )
 
         answer_info = retrieve_single_answer_info(ai_msg)
         return ExampleOutput(

@@ -6,6 +6,8 @@ from typing import Any, Generic, TypeVar, get_args, get_origin
 from langchain_core.messages import BaseMessage
 from pydantic import BaseModel
 
+from social_groups.general.utils.standard_library import BaseModelWithExtraFields
+
 
 class HistoryMessage(BaseModel):
     input_context: list[BaseMessage]
@@ -27,7 +29,9 @@ class ExampleOutput(BaseModel):
     history: list[HistoryMessage]
 
 
-ConfigurationOptions = TypeVar("ConfigurationOptions", bound=BaseModel)
+# Used because the specific config is only loaded after the config was loaded
+# this way the info is still available for validation later.
+ConfigurationOptions = TypeVar("ConfigurationOptions", bound=BaseModelWithExtraFields)
 
 
 class DecisionScheme(ABC, Generic[ConfigurationOptions]):
