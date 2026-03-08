@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Self
 
 import patito as pt
 import polars as pl
@@ -15,14 +16,14 @@ class PolarsBaseModel(pt.Model, ABC):
 
     @classmethod
     @abstractmethod
-    def from_raw_data(cls, *args, **kwargs) -> PolarsBaseModel: ...
+    def from_raw_data(cls, *args, **kwargs) -> Self: ...
 
     @classmethod
     def get_polars_schema(cls) -> pl.Schema:
         return pl.Schema(cls.examples().schema)
 
     @classmethod
-    def create_parquet_table(cls, items: list[PolarsBaseModel]):
+    def create_parquet_table(cls, items: list[Self]):
         schema = cls.get_polars_schema()
 
         return (

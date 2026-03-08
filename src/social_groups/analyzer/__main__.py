@@ -4,7 +4,7 @@ import queue
 import threading
 from collections import defaultdict
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from itertools import count
 from pathlib import Path
 from typing import Any, List
@@ -13,6 +13,8 @@ import httpx
 import polars as pl
 import typer
 from rich import print
+from rich.live import Live
+from rich.table import Table
 from typer import Typer
 
 from social_groups.analyzer.models import Answer, Experiment, Question, Run
@@ -50,6 +52,7 @@ SENTINEL = "___SENTINEL___"
 EXCEPTION_SENTINEL = "___EXCEPTION_SENTINEL___"
 
 logger = logging.getLogger("PARQUET BUILDER")
+logger.setLevel(logging.DEBUG)
 
 
 @dataclass(slots=True)
@@ -58,8 +61,15 @@ class Package:
     entry: TrackEntry
     run_id: int
 
-    span_info: dict[str, Any] | None = None
-    span_url: str | None = None
+
+@dataclass(slots=True)
+class SendPackage(Package):
+    pass
+
+
+@dataclass(slots=True)
+class ReceivePackage(Package):
+    span_info: dict[str, Any]
 
 
 SpanAttributesFuture = Future[dict[str, dict[str, Any]]]
@@ -100,9 +110,9 @@ def main_process_loop(
 
     try:
         while True:
-            job = retrieve_from_queue()
-            if job is not None:
-                pending.append(job)
+            if len(pending) < MAX_IDS_PER_REQUEST * 5:
+                if (job := retrieve_from_queue()) is not None:
+                    pending.append(job)
 
             if immediate_shutdown.is_set():
                 raise RuntimeError(
@@ -134,9 +144,11 @@ def main_process_loop(
                     try:
                         span_infos = task.result()
                         for b in submitted_batches.pop(task):
-                            b.span_info = span_infos[b.span_id]
+                            new_b = ReceivePackage(
+                                **asdict(b), span_info=span_infos[b.span_id]
+                            )
                             try:
-                                out_q.put(b, timeout=QUEUE_TIMEOUT)
+                                out_q.put(new_b, timeout=QUEUE_TIMEOUT)
                             except queue.Full:
                                 raise RuntimeError(
                                     "The Main Process does not empty the Queue fast enough."
@@ -144,9 +156,10 @@ def main_process_loop(
 
                     except (httpx.ConnectTimeout, httpx.ReadTimeout):
                         if retries < MAX_RETRIES:
-                            logger.error(
-                                "Connection error, trying to resubmit. (Do you have connection to phoenix graphql endpoint?)"
-                            )
+                            if retries == 0:
+                                logger.error(
+                                    "Connection error, trying to resubmit. (Do you have connection to phoenix graphql endpoint?)"
+                                )
                             batch = submitted_batches.pop(task)
                             new_future = pool.submit(
                                 get_span_attributes,
@@ -155,6 +168,11 @@ def main_process_loop(
                             )
                             submitted_requests.add(new_future)
                             submitted_batches[new_future] = batch
+                            retries += 1
+                            if retries % 25 == 0 and retries > 0:
+                                logger.error(
+                                    f"Total of {retries} retries reached. (Will cancel at {MAX_RETRIES})>"
+                                )
 
                         else:
                             logger.error(
@@ -177,7 +195,7 @@ def main_process_loop(
         logger.info("Shut down Main Process Loop..")
 
 
-def drain_results_nonblocking(out_q: queue.Queue, buffer: List[Package]) -> None:
+def drain_results_nonblocking(out_q: queue.Queue, buffer: List[ReceivePackage]) -> None:
     for _ in range(MAX_IDS_PER_REQUEST):
         try:
             msg = out_q.get_nowait()
@@ -222,6 +240,9 @@ def read_experiment_paths() -> dict[ExperimentName, list[Path]]:
 
 
 async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: str):
+    total_put_in_queue = 0
+    total_flushed = 0
+
     models = [Question, Answer, Run, Experiment]
 
     id_generators = {model: count() for model in models}
@@ -234,7 +255,7 @@ async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: 
         bytes, int
     ] = {}  # tracks question_hashes and respective question_ids to track duplicate questions
 
-    buffer: list[Package] = []
+    buffer: list[ReceivePackage] = []
 
     writers = {
         model: create_parquet_writer(
@@ -243,11 +264,11 @@ async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: 
         for model in models
     }
 
-    def try_flush(buf: list[Package], force: bool = False) -> None:
+    def try_flush(buf: list[ReceivePackage], force: bool = False) -> None:
+        nonlocal total_flushed
+
         if not buf or (len(buffer) < CHUNK_SIZE and not force):
             return
-
-        logger.warning(f"flush buffer with {len(buf)} items")
 
         question_items = [
             Question.from_raw_data(
@@ -292,6 +313,7 @@ async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: 
 
         writers[Answer].write_table(Answer.create_parquet_table(answer_items))
 
+        total_flushed += len(buffer)
         buf.clear()
 
     in_q: queue.Queue = queue.Queue(maxsize=IN_QUEUE_MAXSIZE)
@@ -304,69 +326,91 @@ async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: 
     )
     thread.start()
 
-    try:
-        for experiment_name, project_paths in project_paths_per_experiment.items():
-            experiment_id = next(id_generators[Experiment])
+    def make_process_status_table() -> Table:
+        table = Table(show_header=False, border_style="dim")
+        table.add_row("[b]in_q[/b] size", f"[cyan]{in_q.qsize():>4}[/cyan]")
+        table.add_row("[b]out_q[/b] size", f"[cyan]{out_q.qsize():>4}[/cyan]")
+        table.add_row(
+            "[b]Total Submitted[/b]", f"[green]{total_put_in_queue:>6}[/green]"
+        )
+        table.add_row("[b]Total Written[/b]", f"[green]{total_flushed:>6}[/green]")
+        return table
 
-            append_parquet_row(
-                writers[Experiment],
-                Experiment.from_raw_data(
-                    assigned_id=experiment_id, experiment_name=experiment_name
-                ),
-            )
+    with Live(make_process_status_table()) as live:
+        try:
+            for experiment_name, project_paths in project_paths_per_experiment.items():
+                logger.info(f"Reading: {experiment_name}")
 
-            for project_path in project_paths:
-                print(f"Reading: {project_path}")
-
-                run_id = next(id_generators[Run])
-
-                run_configs[run_id] = read_hydra_config(project_path)
-                run_meta_infos[run_id] = read_meta_config(project_path)
+                experiment_id = next(id_generators[Experiment])
 
                 append_parquet_row(
-                    writers[Run],
-                    Run.from_raw_data(
-                        assigned_id=run_id,
-                        hydra_config=run_configs[run_id],
-                        experiment_id=experiment_id,
-                        meta_info=run_meta_infos[run_id],
+                    writers[Experiment],
+                    Experiment.from_raw_data(
+                        assigned_id=experiment_id, experiment_name=experiment_name
                     ),
                 )
 
-                for item in iter_jsonl_zst(project_path / TRACK_FILE_NAME_COMPRESSED):
-                    entry = TrackEntry.model_validate(item)
-                    in_q.put(
-                        Package(
-                            span_id=entry.phoenix_span_info.span_id_hex,
-                            run_id=run_id,
-                            entry=entry,
-                            span_info=None,
-                        )
+                for project_path in project_paths:
+                    run_id = next(id_generators[Run])
+
+                    run_configs[run_id] = read_hydra_config(project_path)
+                    run_meta_infos[run_id] = read_meta_config(project_path)
+
+                    append_parquet_row(
+                        writers[Run],
+                        Run.from_raw_data(
+                            assigned_id=run_id,
+                            hydra_config=run_configs[run_id],
+                            experiment_id=experiment_id,
+                            meta_info=run_meta_infos[run_id],
+                        ),
                     )
 
-                drain_results_nonblocking(out_q, buffer)
+                    for item in iter_jsonl_zst(
+                        project_path / TRACK_FILE_NAME_COMPRESSED
+                    ):
+                        entry = TrackEntry.model_validate(item)
+
+                        if entry.phoenix_span_info.span_id_hex is None:
+                            raise NotImplementedError(
+                                "The SpanID should be alywas set."
+                            )
+
+                        in_q.put(
+                            SendPackage(
+                                span_id=entry.phoenix_span_info.span_id_hex,
+                                run_id=run_id,
+                                entry=entry,
+                            )
+                        )
+                        total_put_in_queue += 1
+                        live.update(make_process_status_table())
+
+                    drain_results_nonblocking(out_q, buffer)
+                    try_flush(buffer)
+
+            in_q.put(SENTINEL)
+
+            while (msg := out_q.get()) != SENTINEL:
+                if isinstance(msg, Exception):
+                    raise msg
+
+                buffer.append(msg)
                 try_flush(buffer)
+                live.update(make_process_status_table())
 
-        in_q.put(SENTINEL)
+            try_flush(buffer, force=True)
 
-        while (msg := out_q.get()) != SENTINEL:
-            if isinstance(msg, Exception):
-                raise msg
+        except Exception:
+            in_q.put(EXCEPTION_SENTINEL)
+            raise
 
-            buffer.append(msg)
-            try_flush(buffer)
+        finally:
+            live.update(make_process_status_table())
+            thread.join()
 
-        try_flush(buffer, force=True)
-
-    except Exception:
-        in_q.put(EXCEPTION_SENTINEL)
-        raise
-
-    finally:
-        thread.join()
-
-        for writer in writers.values():
-            writer.close()
+            for writer in writers.values():
+                writer.close()
 
     if (
         pl.read_parquet(writers[Question].where)
