@@ -7,4 +7,3 @@ __all__ = [
     "apply_comparer_to_list_column",
     "apply_parsing_and_group_decision",
 ]
-# TODO: refactor usages of make_group_constellation
