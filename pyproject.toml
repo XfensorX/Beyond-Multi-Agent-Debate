@@ -5,7 +5,7 @@ description = "Some Experiments on behaviour of Agents in Groups"
 readme = "README.md"
 requires-python = "==3.11.*"
 dependencies = [
-    "altair>=6.0.0",
+    "altair[all]>=6.0.0",
     "arize-phoenix>=12.27.0",
     "arize-phoenix-client>=1.27.1",
     "beautifulsoup4>=4.14.2",
@@ -60,6 +60,10 @@ dependencies = [
     "dagster-dg-cli>=1.12.14",
     "dagster-polars>=0.27.9",
     "dagstermill>=0.28.14",
+    "vega>=4.1.0",
+    "ty>=0.0.20",
+    "pyrefly>=0.55.0",
+    "seaborn>=0.13.2",
 ]
 
 
@@ -86,9 +90,10 @@ slorch = "social_groups.slorch.__main__:main"
 ana = "social_groups.analyzer.__main__:main"
 analyzer = "social_groups.analyzer.__main__:main"
 
+
 [tool.taskipy.tasks]
 pull_tgi_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/tgi.sif docker://ghcr.io/huggingface/text-generation-inference:2.3.0", help = "Pull the docker Image of TGI from huggingface and save it as apptainer sif." }
-
+tools = { cwd = ".", cmd = "uv run streamlit run src/social_groups/tools/app.py", help = "Run the tools App." }
 
 [tool.dg]
 directory_type = "project"
