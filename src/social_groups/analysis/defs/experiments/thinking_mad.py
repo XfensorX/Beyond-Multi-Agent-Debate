@@ -16,7 +16,7 @@ from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
 
 @dg.asset(
     io_manager_key="polars_parquet_io_manager",
-    group_name="experiments",
+    group_name="creative_experiments",
     deps=["combined_data"],
     check_specs=[
         AssetCheckSpec(

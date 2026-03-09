@@ -9,7 +9,7 @@ from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
 
 @dg.asset(
     io_manager_key="polars_parquet_io_manager",
-    group_name="experiments",
+    group_name="baseline_experiments",
     deps=["combined_data"],
     check_specs=[
         AssetCheckSpec(name="has_correct_dataset", asset="baseline", blocking=True),
@@ -19,8 +19,7 @@ from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
 )
 def baseline(combined_data: pl.DataFrame):
     frame = combined_data.filter(
-        pl.col("run_identifier").str.contains("heterogeneous_group")
-        & pl.col("run_identifier").str.contains("baseline")
+        pl.col("name").is_in({"heterogeneous_group_baseline"})
     ).with_columns(
         model_name=pl.col("experiment_configuration_json").map_elements(
             lambda x: ExperimentConfig.model_validate(
