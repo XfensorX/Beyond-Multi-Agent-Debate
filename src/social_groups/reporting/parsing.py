@@ -33,6 +33,8 @@ _ANSWER_PATTERNS: dict[AnswerOptions, set[str]] = {
         r"^\s*\(?\s*([A-J])\s*\)?\s*$",  # single letter in braces: (C)
         r"^\s*([A-J])\s*$",  # single letter: C
         r"answer\s*:\s*\(?\s*([A-J])\s*\)?\s*[\.\!\?]*\s*",  # ... Answer: (C) | ... Answer: C  | # Somewhere in the string
+        r"^\s*\(\s*([A-J])\s*\)\s?\:?\s*",
+        r"^([A-J])\:",
     }
 }
 
@@ -91,6 +93,8 @@ class AnswerComparer:
 
     triple_underscore_handling: Literal["null", "wrong", "random"]
 
+    fill_nulls_with: bool | None = None
+
     @staticmethod
     def __post_init__():
         random.seed(0)
@@ -100,20 +104,21 @@ class AnswerComparer:
             case AnswerOptions.letters_A_to_J:
                 match self.triple_underscore_handling:
                     case "null":
-                        return (
+                        t = (
                             pl.when(given.str.starts_with("___"))
                             .then(None)
                             .otherwise(given == target)
                         )
                     case "wrong":
-                        return (
+                        t = (
                             pl.when(given.str.starts_with("___"))
                             .then(False)
                             .otherwise(given == target)
+                            .fill_null(False)
                         )
                     case "random":
                         p_correct = 1 / len(_ANSWER_OPTIONS[self.option])
-                        return (
+                        t = (
                             pl.when(given.str.starts_with("___"))
                             .then(
                                 given.map_elements(
@@ -128,3 +133,8 @@ class AnswerComparer:
 
             case _:
                 raise NotImplementedError()
+
+        if self.fill_nulls_with is not None:
+            return t.fill_null(self.fill_nulls_with)
+        else:
+            return t
