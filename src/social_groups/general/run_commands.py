@@ -9,9 +9,15 @@ from social_groups.orchestrator.utils.types import PathLike
 logger = logging.getLogger(__name__)
 
 
-def run_local(args: list[str]) -> subprocess.CompletedProcess:
-    logger.debug(f"Running {args}")
-    return subprocess.run(args)
+def run_local(
+    args: list[str], check: bool = False, cwd: PathLike | None = None
+) -> subprocess.CompletedProcess:
+    try:
+        logger.debug(f"Running {' '.join(args)}")
+        return subprocess.run(args, cwd=cwd, check=check)
+    except subprocess.CalledProcessError as e:
+        logger.error(e.stderr or "")
+        raise RuntimeError(f"Command failed: {' '.join(args)}") from e
 
 
 def run_ssh(
