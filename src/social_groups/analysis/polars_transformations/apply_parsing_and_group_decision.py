@@ -15,12 +15,12 @@ def apply_parsing_and_group_decision(
     return (
         df.with_columns(
             (
-                pl.col("answers_at_beginning")
+                pl.col(plc.answers_at_beginning)
                 .list.eval(parser(pl.element()))
                 .alias(AnalysisColumn.parsed_individual_answers_before.value)
             ),
             (
-                pl.col("answers_at_end")
+                pl.col(plc.answers_at_end)
                 .list.eval(parser(pl.element()))
                 .alias(AnalysisColumn.parsed_individual_answers_after.value)
             ),
