@@ -8,6 +8,8 @@ from social_groups.reporting.analysis_columns import AnalysisColumn
 # The constellation of the group, e.g. LLM, LHM, etc.
 group_constellation = "group_constellation"
 
+final_answer = "final_answer"
+
 # the model names of the models involved as a list
 model_names = "model_names"
 
