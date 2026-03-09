@@ -23,7 +23,7 @@ class ExecutionLocation(Enum):
 
 class ExecutionLocationConfig(BaseModel):
     where: ExecutionLocation
-    ssh_login: str | None
+    ssh_login: str
     project_dir: Path
     slurm_log_dir_inside_project: Path
 

@@ -2,16 +2,26 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shlex
+import subprocess
 from asyncio import as_completed
+from operator import itemgetter
+from pathlib import Path
 from typing import Annotated, Optional
 
 import questionary
+import rich
 import typer
 from questionary import Choice
 from rich import print
 from rich.text import Text
 
+from social_groups.directories import RESULTS_DIR
 from social_groups.general.run_commands import run_local, run_ssh
+from social_groups.orchestrator.commands.sync import (
+    get_remote_run_dirs,
+    warn_about_existing_conflict,
+)
 from social_groups.orchestrator.config import (
     get_slurm_log_filename,
     random_string_to_job_name_appendix,
@@ -39,6 +49,7 @@ from social_groups.orchestrator.utils.slurm import (
 )
 
 app = typer.Typer(no_args_is_help=True)
+console = rich.console.Console()
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -158,7 +169,7 @@ async def run_service_on_slurm(
                     for info in current_jobs
                     if (endpoint := parse_backend_endpoint_from_slurm_job(info, where))
                 ],
-                use_hydra_multirun=multirun,
+                use_hydra_multirun=multirun if multirun else False,
             )
         )
         print(service_config._starting_info)
@@ -279,7 +290,6 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
 
     if len(infos) > 1:
         print("Multiple jobs found running, selecting first.")
-
         selected: SlurmJobInfo = questionary.select(
             "Multiple jobs found running, please select the one to pipe to: ",
             choices=[Choice(title=str(it), value=it) for it in infos if it.job_name],
@@ -302,7 +312,7 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
             if (endpoint := parse_backend_endpoint_from_slurm_job(info, where))
         ):
             if (
-                random_string_to_job_name_appendix(backend.model_id)
+                random_string_to_job_name_appendix(backend.model_name)
                 in used_info.job_name
             ):
                 port = backend.endpoint.split(":")[-1]
@@ -325,6 +335,108 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
             node,
         ]
     )
+
+
+@app.command(
+    "sync",
+    help="[blue]{location}          [/blue] Sync selected experiment runs from host",
+)
+def sync_results(
+    where: ExecutionLocation,
+    experiment_filter: Optional[str] = typer.Option(
+        None, "--filter", "-f", help="A filter used on the experiment name."
+    ),
+):
+    exec_config = load_execution_config(where)
+
+    HOST_LOGIN = exec_config.ssh_login
+    HOST_BASE = str(Path(exec_config.project_dir) / "results" / "multirun")
+    LOCAL_BASE = RESULTS_DIR / "multirun" / "final"
+
+    console.rule("Remote experiment sync")
+
+    with console.status("[cyan]Listing remote runs…"):
+        remote_run_relpaths = get_remote_run_dirs(HOST_LOGIN, HOST_BASE)
+
+    if not remote_run_relpaths:
+        console.print("[yellow]No run directories found in[/yellow]", HOST_BASE)
+        return
+
+    choices = []
+    for rel_path in remote_run_relpaths:
+        node, exp, run = rel_path.parts
+        if experiment_filter and experiment_filter not in exp:
+            continue
+        choices.append({"name": f"{exp:50}  •  {run:24}  ({node})", "value": rel_path})
+    choices.sort(key=itemgetter("name"))
+
+    selected: list[Path] = questionary.checkbox(
+        "Select run directories to sync:",
+        choices=choices,
+        qmark="↳",
+        pointer="→",
+        validate=lambda x: len(x) > 0 or "Select at least one run",
+    ).ask()
+
+    if not selected:
+        console.print("[grey]Nothing selected → exiting.[/]")
+        return
+
+    # ── Conflict check ──────────────────────────────────────────────
+    should_not_use = set()
+    for rel_path in selected:
+        if (LOCAL_BASE / Path(*rel_path.parts[1:-1])).exists():
+            warn_about_existing_conflict(rel_path.parent, console)
+            if not questionary.confirm(
+                f"Continue syncing anyway to [yellow]{rel_path}[/] ?",
+                default=False,
+            ).ask():
+                console.print(f"→ Skipping {rel_path}", style="yellow")
+                should_not_use.add(rel_path)
+
+    to_sync = [
+        (Path(HOST_BASE) / rel_path, LOCAL_BASE / Path(*rel_path.parts[1:]))
+        for rel_path in selected
+        if rel_path not in should_not_use
+    ]
+
+    console.print(f"\n[bold cyan]Will sync {len(selected)} run(s):[/]")
+    for from_path, to_path in to_sync:
+        console.print(
+            f"  • {str(Path(*from_path.parts[-4:])):75} → {str(Path(*to_path.parts[-4:]))}",
+            style="dim",
+        )
+
+    if not questionary.confirm("Proceed with rsync?", default=True).ask():
+        return
+
+    for from_path, to_path in to_sync:
+        rsync_cmd = [
+            "rsync",
+            "-ah",
+            "--info=progress2",
+            "--info=name0",
+            "--no-inc-recursive",
+            "--human-readable",
+            f"{HOST_LOGIN}:{from_path}/",
+            f"{to_path}/",
+        ]
+
+        console.rule(f"Syncing  {from_path}")
+        console.print(" ".join(shlex.quote(x) for x in rsync_cmd[:5]) + " ...")
+
+        try:
+            to_path.mkdir(parents=True, exist_ok=True)
+            run_local(rsync_cmd)
+            console.print(f"[green]✓ Done[/] {rel_path}", style="green")
+        except subprocess.CalledProcessError as e:
+            console.print(f"[bold red]rsync failed[/] for {rel_path}", style="red")
+            console.print(e)
+            if not questionary.confirm("Continue with next runs?", default=True).ask():
+                break
+
+    console.rule("Finished")
+    console.print(f"[green]Sync completed.[/] Target folder:\n{LOCAL_BASE}")
 
 
 def main():
