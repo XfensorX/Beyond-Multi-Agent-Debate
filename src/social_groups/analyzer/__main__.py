@@ -19,6 +19,10 @@ from typer import Typer
 
 from social_groups.analyzer.models import Answer, Experiment, Question, Run
 from social_groups.analyzer.models.base import append_parquet_row
+from social_groups.analyzer.sync_tex import (
+    git_commit_and_push,
+    sync_exact_with_confirmation,
+)
 from social_groups.analyzer.utils import (
     create_parquet_writer,
     get_span_attributes,
@@ -26,9 +30,11 @@ from social_groups.analyzer.utils import (
     read_meta_config,
 )
 from social_groups.directories import (
+    DAGSTER_REPORT_DIR,
     MULTIRUN_FINAL_RESULTS_DIR,
     PARQUET_ANALYSIS_DIR,
     RUNS_FINAL_RESULTS_DIR,
+    TEX_PROJECT_REPORT_DIR,
     TRACK_FILE_NAME_COMPRESSED,
 )
 from social_groups.general.tracking import TrackEntry, iter_jsonl_zst
@@ -435,9 +441,20 @@ async def produce_parquet(
     await build_parquet_files(PARQUET_ANALYSIS_DIR, phoenix_graphql_endpoint)
 
 
-@app.command("show", help="Show nothing.")
-def show_results():
-    print("There is nothing to show.")
+@app.command(name="sync-tex", help="Sync DAGster reports → university LaTeX project")
+def sync_tex(
+    from_dir: Path = typer.Argument(
+        DAGSTER_REPORT_DIR, help="Source directory (DAGSTER_REPORT_DIR)"
+    ),
+    to_dir: Path = typer.Argument(
+        TEX_PROJECT_REPORT_DIR, help="Target directory (tex.cloud project folder)"
+    ),
+):
+    typer.secho(f"Syncing {from_dir} → {to_dir}", bold=True)
+    sync_exact_with_confirmation(from_dir, to_dir)
+
+    typer.secho("\nGit operations in target directory:", bold=True)
+    git_commit_and_push(to_dir)
 
 
 def main():
