@@ -57,7 +57,7 @@ def load_csv(path: Path):
 def load_mad_dataframe():
     from social_groups.analysis.definitions import defs
 
-    return defs.load_fn().load_asset_value("hetero_mad")
+    return defs().load_asset_value("hetero_mad")
 
 
 tabs = st.tabs(["Broad Overview", "Decision Schemes"])
