@@ -1,8 +1,7 @@
-from typing import Any, Optional, TypedDict
+from typing import Any, TypedDict
 
 import dagster as dg
 import dagstermill
-import ipynbname
 
 from social_groups.analysis.notebook_assets import (
     SUPPORTED_EXTENSION,

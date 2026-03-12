@@ -24,8 +24,8 @@ _ANSWER_OPTIONS: dict[AnswerOptions, set[str]] = {
 }
 
 
-_ANSWER_PATTERNS: dict[AnswerOptions, set[str]] = {
-    AnswerOptions.letters_A_to_J: {
+_ANSWER_PATTERNS: dict[AnswerOptions, list[str]] = {
+    AnswerOptions.letters_A_to_J: [
         r"answer\s+is\s*:?\s*\(?([A-J])\)?",  # ...answer is (C)... | ...answer is C ...
         r"answer\s*:\s*\(?\s*([A-J])\s*\)?\s*[\.\!\?]*\s*$",
         # ... Answer: (C) | ... Answer: C  |# at the end of the string with optional punctuation
@@ -35,12 +35,12 @@ _ANSWER_PATTERNS: dict[AnswerOptions, set[str]] = {
         r"answer\s*:\s*\(?\s*([A-J])\s*\)?\s*[\.\!\?]*\s*",  # ... Answer: (C) | ... Answer: C  | # Somewhere in the string
         r"^\s*\(\s*([A-J])\s*\)\s?\:?\s*",
         r"^([A-J])\:",
-    }
+    ]
 }
 
 
 def get_string_parser(
-    patterns_to_check: set[str], possible_answers: set[str]
+    patterns_to_check: list[str], possible_answers: set[str]
 ) -> Callable[[str | None], str | ParsingResultError]:
     @lru_cache
     def parse(answer: str | None):
@@ -49,7 +49,7 @@ def get_string_parser(
 
         answer = answer.replace("*", "")
         for pat in patterns_to_check:
-            last_match = None
+            last_match: re.Match[str] | None = None
             for m in re.finditer(pat, answer, flags=re.IGNORECASE):
                 if not last_match or m.start() > last_match.start():
                     last_match = m
@@ -95,10 +95,6 @@ class AnswerComparer:
 
     fill_nulls_with: bool | None = None
 
-    @staticmethod
-    def __post_init__():
-        random.seed(0)
-
     def __call__(self, given: pl.Expr, target: pl.Expr) -> pl.Expr:
         match self.option:
             case AnswerOptions.letters_A_to_J:
@@ -117,6 +113,7 @@ class AnswerComparer:
                             .fill_null(False)
                         )
                     case "random":
+                        random.seed(0)
                         p_correct = 1 / len(_ANSWER_OPTIONS[self.option])
                         t = (
                             pl.when(given.str.starts_with("___"))

@@ -4,7 +4,7 @@ import dagster as dg
 import polars as pl
 from dagster import AssetCheckSpec
 
-import src.social_groups.polars_columns as plc
+import social_groups.polars_columns as plc
 from social_groups.analysis.asset_checks import (
     check_standard_group_constellations,
     check_unique_data_connector,
