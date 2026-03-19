@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - baseline_structured_output
+  - final/baseline_structured_output
   - _self_
   - /experiment/hetero/backend@experiment.strategy.configuration.backend: qwen35-4b
 
