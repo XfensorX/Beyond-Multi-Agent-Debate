@@ -1,12 +1,12 @@
 # @package _global_
 defaults:
   - _self_
-  - /experiment/hetero/groups@_models: LLL
+  - /experiment/hetero/groups/Qwen3@_models: LLL
 
 hydra:
   sweeper:
     params:
-      experiment/hetero/groups@_models: LLL, LLM, LLH, LML, LMM, LMH, LHL, LHM, LHH, MLL, MLM, MLH, MML, MMM, MMH, MHL, MHM, MHH, HLL, HLM, HLH, HML, HMM, HMH, HHL, HHM, HHH
+      experiment/hetero/groups/Qwen3@_models: LLL, LLM, LLH, LML, LMM, LMH, LHL, LHM, LHH, MLL, MLM, MLH, MML, MMM, MMH, MHL, MHM, MHH, HLL, HLM, HLH, HML, HMM, HMH, HHL, HHM, HHH
 
 
 experiment:

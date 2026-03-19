@@ -1,3 +1,0 @@
-# @package _global_
-defaults:
-  - /experiment/hetero/backend@0: qwen-4b

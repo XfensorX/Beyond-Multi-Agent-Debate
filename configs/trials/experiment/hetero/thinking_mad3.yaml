@@ -1,14 +1,14 @@
 # @package _global_
 defaults:
   - _self_
-  - /experiment/hetero/groups@_models: LLL
-  - /experiment/hetero/thinking@_openly_thinking_models: only_L
+  - /experiment/hetero/groups/Qwen3@_models: LLL
+  - /experiment/hetero/thinking/Qwen3@_openly_thinking_models: only_L
 
 hydra:
   sweeper:
     params:
-      experiment/hetero/groups@_models: LLL, LLM, HLL, LMM, HLM, HHL, MMM, HMM, HHM, HHH
-      experiment/hetero/thinking@_openly_thinking_models: only_L, only_H, nobody
+      experiment/hetero/groups/Qwen3@_models: LLL, LLM, HLL, LMM, HLM, HHL, MMM, HMM, HHM, HHH
+      experiment/hetero/thinking/Qwen3@_openly_thinking_models: only_L, only_H, nobody
 
 
 experiment:

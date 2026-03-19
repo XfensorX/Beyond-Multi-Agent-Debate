@@ -18,3 +18,10 @@ llm_models:
     port: 40004
   Qwen/Qwen3-14B:
     port: 40014
+
+  Qwen/Qwen3.5-0.8B:
+    port: 40508
+  Qwen/Qwen3.5-4B:
+    port: 40504
+  Qwen/Qwen3.5-9B:
+    port: 40509
