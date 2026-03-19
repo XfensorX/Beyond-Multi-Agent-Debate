@@ -9,6 +9,7 @@ TEX_PROJECT_REPORT_DIR = PROJECT_DIR.parent / "TexProject" / "data" / "report"
 
 
 RESULTS_DIR = PROJECT_DIR / "results"
+PHOENIX_CACHE_DIR = RESULTS_DIR / "phoenix" / "CACHE"
 MULTIRUN_FINAL_RESULTS_DIR = RESULTS_DIR / "multirun" / "final"
 RUNS_FINAL_RESULTS_DIR = RESULTS_DIR / "runs" / "final"
 

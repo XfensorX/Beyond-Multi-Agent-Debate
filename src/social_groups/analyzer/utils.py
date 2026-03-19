@@ -12,7 +12,9 @@ import yaml
 from omegaconf import OmegaConf
 from pyarrow.parquet import ParquetWriter
 
-from social_groups.directories import META_FILE_NAME
+from social_groups.analyzer.phoenix_span_attribute_cache import with_per_span_cache
+from social_groups.directories import META_FILE_NAME, PHOENIX_CACHE_DIR
+from social_groups.general.types import SpanId
 from social_groups.trialrunner.utils.hydra_config import MainConfig
 from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
 from social_groups.trialrunner.utils.phoenix import build_span_url
@@ -33,12 +35,14 @@ def create_parquet_writer(location: Path, schema: pl.Schema) -> ParquetWriter:
 
 
 ATTRIBUTE_KEY_SPAN_URL = "custom_phoenix_span_url_attribute"
-SpanId = str
+
+TIMEOUT = 20  # seconds
 
 
+@with_per_span_cache(PHOENIX_CACHE_DIR)
 def get_span_attributes(
     *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
-) -> dict[SpanId, dict[str, Any]]:
+) -> dict[SpanId, dict[str, Any] | None]:
     fields = "\n".join(
         f's_{oid}: getSpanByOtelId(spanId: "{oid}") {{ attributes id project {{ id }} context {{ traceId }} }}'
         for oid in span_ids
@@ -52,6 +56,7 @@ def get_span_attributes(
                 "query": query,
             },
             headers={"Content-Type": "application/json"},
+            timeout=TIMEOUT,
         )
 
     response.raise_for_status()
@@ -60,10 +65,10 @@ def get_span_attributes(
     if "errors" in data:
         raise RuntimeError(data["errors"])
 
-    out = {}
+    out: dict[SpanId, dict[str, Any]] = {}
     for alias, node in data["data"].items():
         original_oid = alias[2:]
-        if node is None:
+        if node is None:  # TODO: this should not happen
             out[original_oid] = None
             continue
 
