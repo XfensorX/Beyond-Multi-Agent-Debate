@@ -2,7 +2,7 @@
 defaults:
   - final/baseline
   - _self_
-  - /experiment/hetero/backend@experiment.strategy.configuration.backend: qwen35-4b
+  - override /experiment/hetero/backend@experiment.strategy.configuration.backend: qwen35-4b
 
 hydra:
   sweeper:
