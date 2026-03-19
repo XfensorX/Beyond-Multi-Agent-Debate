@@ -45,10 +45,10 @@ def phoenix_server_is_up(
         return False
 
 
-def setup_phoenix(endpoint: str, project_name: str) -> None:
-    phoenix.otel.register(
+def setup_phoenix(endpoint: str, project_name: str):
+    return phoenix.otel.register(
         project_name=project_name,
-        batch=True,
+        batch=False,
         endpoint=endpoint,
         auto_instrument=True,
         verbose=False,

@@ -27,9 +27,10 @@ def _main(cfg: DictConfig):
         print_title()
         print_config_overview(config)
 
-        initialize_phoenix(config, meta_info)
+        tracer_provider = initialize_phoenix(config, meta_info)
 
         run_experiment(config, meta_info.output_directory)
+        tracer_provider.force_flush()
 
     except Exception as e:
         handle_failure_exception(e)

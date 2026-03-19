@@ -37,13 +37,10 @@ def initialize_phoenix(conf: MainConfig, meta_info: ExperimentMetaInfo):
 
     if phoenix_server_is_up(url=f"{conf.execution.phoenix_server_url}/healthz"):
         log.info("Writing LLM Interactions into Phoenix. It is up and running.")
-        setup_phoenix(
+        return setup_phoenix(
             endpoint=f"{conf.execution.phoenix_server_url}/v1/traces",
             project_name=meta_info.phoenix_project_name,
         )
-
-        return
-
     log.warning(
         Panel(
             Group(
