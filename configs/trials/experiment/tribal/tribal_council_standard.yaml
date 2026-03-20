@@ -34,6 +34,7 @@ experiment:
           top_k: null
           typical_p: null
           repetition_penalty: null
+          seed: 42
         backend: ${_models.0}
 
       council_size: ${council_size}
@@ -45,6 +46,7 @@ experiment:
           top_k: null
           typical_p: null
           repetition_penalty: null
+          seed: 42
         backend: ${_models.1}
 
   additional_info:
