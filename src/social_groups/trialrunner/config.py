@@ -24,6 +24,7 @@ class LLMConfig(BaseModel):
     typical_p: float | None
     temperature: float | None
     repetition_penalty: float | None
+    seed: int | None = None
 
 
 class BackendInfo(BaseModel):
@@ -52,6 +53,11 @@ def get_llm(config: LLMConfig, backend: BackendInfo) -> ChatHuggingFace | ChatOp
     )
     base_url = global_config_holder.global_hydra_config.execution.get_endpoint(backend)
 
+    if config.seed is None:
+        raise NotImplementedError(
+            "There should always be a seed set on the LLM Config."
+        )
+
     if backend.backend == Backend.L3S_TGI:
         model = HuggingFaceEndpoint(
             # model="ignored",  # this is ignored by TGI
@@ -64,6 +70,7 @@ def get_llm(config: LLMConfig, backend: BackendInfo) -> ChatHuggingFace | ChatOp
             typical_p=config.typical_p,
             endpoint_url=base_url,
             huggingfacehub_api_token=api_key,
+            seed=config.seed,
         )
 
         return ChatHuggingFace(llm=model)
@@ -84,6 +91,7 @@ def get_llm(config: LLMConfig, backend: BackendInfo) -> ChatHuggingFace | ChatOp
             temperature=config.temperature,
             max_tokens=config.max_new_tokens,
             top_p=config.top_p,
+            seed=config.seed,
             # timeout=global_config_holder.global_hydra_config.execution.llm_request_timeout,
             # max_retries=global_config_holder.global_hydra_config.execution.llm_request_max_retries,
         )

@@ -48,7 +48,7 @@ def phoenix_server_is_up(
 def setup_phoenix(endpoint: str, project_name: str):
     return phoenix.otel.register(
         project_name=project_name,
-        batch=False,
+        batch=True,
         endpoint=endpoint,
         auto_instrument=True,
         verbose=False,
