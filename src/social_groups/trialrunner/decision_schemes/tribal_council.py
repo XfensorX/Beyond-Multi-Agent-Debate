@@ -84,7 +84,9 @@ QUESTIONER_SYSTEM_PROMPT = (
 )
 
 
-def make_proposal(llm: BaseChatModel, question: str) -> None | Proposal:
+def make_proposal(
+    llm: BaseChatModel, question: str, cannot_choose: set[str]
+) -> None | Proposal:
     @tool(return_direct=True)
     def propose_solution(correct_answer: str, reasoning: str):
         """
@@ -97,6 +99,9 @@ def make_proposal(llm: BaseChatModel, question: str) -> None | Proposal:
         :arg reasoning: Fully specified reasoning path to retrieve this answer.
         """
         pass
+
+    for c in cannot_choose:
+        question = remove_answer(question, c)
 
     ai_msg = llm.bind_tools([propose_solution]).invoke(
         [
@@ -130,6 +135,17 @@ def get_answer(original_question: str, answer: str):
         answers[letter] = word
 
     return answers[answer].strip()
+
+
+def remove_answer(original_question: str, answer: str) -> str:
+    """Trims out the given answer and returns the new question."""
+
+    parts = original_question.split("Options are:")
+    parts[-1] = re.sub(
+        rf"^\(\s*{answer}\s*\):\s*.+\n?", "", parts[-1], flags=re.MULTILINE
+    )
+
+    return "Options are:".join(parts)
 
 
 def form_question_about_proposal(
@@ -364,9 +380,13 @@ class TribalCouncilDebate(DecisionScheme[TribalCouncilConfiguration]):
 
         n_same_proposals = 0
 
+        answers_given: set[str] = set()
+
         while len(proposals) < num_different_proposals:
             try:
-                if (new_prop := make_proposal(proposal_llm, question)) is None:
+                if (
+                    new_prop := make_proposal(proposal_llm, question, answers_given)
+                ) is None:
                     continue
             except (NoToolCallsException, InvalidToolCallException):
                 n_same_proposals += 1
@@ -380,6 +400,7 @@ class TribalCouncilDebate(DecisionScheme[TribalCouncilConfiguration]):
             ):
                 n_same_proposals = 0
                 proposals.append(new_prop)
+                answers_given.add(new_prop.answer)
             else:
                 n_same_proposals += 1
 
