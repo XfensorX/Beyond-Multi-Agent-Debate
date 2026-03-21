@@ -57,7 +57,7 @@ class PhoenixWithPostgresConfiguration(SlurmService):
         pg_sif = exec_config.project_dir / self.postgres.sif_location_inside_project
 
         prepare_pg_data = (
-            'mkdir -p "$PGDATA" && mkdir -p "PGRUN" && chmod 700 "$PGDATA"'
+            'mkdir -p "$PGDATA" && mkdir -p "$PGRUN" && chmod 700 "$PGDATA"'
         )
         start_postgres = f"""
         apptainer instance start \
