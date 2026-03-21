@@ -50,7 +50,7 @@ class PhoenixWithPostgresConfiguration(SlurmService):
             "PHOENIX_ALLOW_EXTERNAL_RESOURCES": "false",
             "PHOENIX_WORKING_DIR": str(working_dir),
             "PHOENIX_TELEMETRY_ENABLED": "false",
-            "PHOENIX_SQL_DATABASE_URL": "postgresql://postgres:${POSTGRES_PASSWORD}@localhost:${PGPORT}/postgres?sslmode=disable",
+            "PHOENIX_SQL_DATABASE_URL": "postgresql://postgres:$POSTGRES_PASSWORD@localhost:$PGPORT/postgres?sslmode=disable",
         }
 
     def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
