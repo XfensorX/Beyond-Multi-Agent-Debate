@@ -53,12 +53,6 @@ class PhoenixWithPostgresConfiguration(SlurmService):
     def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
         pg_sif = exec_config.project_dir / self.postgres.sif_location_inside_project
 
-        if not pg_sif.exists():
-            raise FileNotFoundError(
-                f"Could not find postgres-apptainer-sif at location {pg_sif}"
-            )
-
-        load_apptainer = "module load apptainer"
         prepare_pg_data = 'mkdir -p "$PGDATA" && chmod 700 "$PGDATA"'
         start_postgres = f"""
         apptainer instance start \
@@ -76,11 +70,5 @@ class PhoenixWithPostgresConfiguration(SlurmService):
         start_phoenix = f"source {exec_config.project_dir / '.venv' / 'bin' / 'activate'} && uv run phoenix serve"
 
         return "\n".join(
-            [
-                load_apptainer,
-                prepare_pg_data,
-                start_postgres,
-                wait_for_postgres,
-                start_phoenix,
-            ]
+            [prepare_pg_data, start_postgres, wait_for_postgres, start_phoenix]
         )
