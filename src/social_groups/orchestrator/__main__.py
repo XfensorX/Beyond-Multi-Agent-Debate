@@ -38,6 +38,9 @@ from social_groups.orchestrator.services import (
     SlurmServiceName,
     load_config,
 )
+from social_groups.orchestrator.services.phoenix_pg import (
+    PhoenixWithPostgresConfiguration,
+)
 from social_groups.orchestrator.utils.general import run_async
 from social_groups.orchestrator.utils.running_backends import (
     parse_backend_endpoint_from_slurm_job,
@@ -139,8 +142,13 @@ async def run_service_on_slurm(
 
         phoenix_jobs: list[SlurmJobInfo] = list(
             filter(
-                lambda j: PhoenixConfiguration.job_name_is_matching_this_service(
-                    j.job_name
+                (
+                    lambda j: PhoenixConfiguration.job_name_is_matching_this_service(
+                        j.job_name
+                    )
+                    or PhoenixWithPostgresConfiguration.job_name_is_matching_this_service(
+                        j.job_name
+                    )
                 ),
                 current_jobs,
             )
@@ -155,8 +163,8 @@ async def run_service_on_slurm(
 
         # TODO: make typesafe
         # noinspection PyTypeChecker
-        phoenix_config: PhoenixConfiguration = load_config(
-            SlurmServiceName["phoenix"], where
+        phoenix_config: PhoenixConfiguration | PhoenixWithPostgresConfiguration = (
+            load_config(SlurmServiceName["phoenix"], where)
         )
 
         service_config.add_starting_info(
@@ -279,6 +287,7 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
     if not (
         isinstance(service_config, PhoenixConfiguration)
         or isinstance(service_config, BaseInferenceService)
+        or isinstance(service_config, PhoenixWithPostgresConfiguration)
     ):
         raise NotImplementedError()
 
@@ -322,7 +331,8 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
             raise RuntimeError(
                 "Selected Job Not Found in configs. You must have deleted the config after start."
             )
-
+    elif isinstance(service_config, PhoenixWithPostgresConfiguration):
+        port = service_config.port
     else:
         raise NotImplementedError()
 

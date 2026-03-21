@@ -1,0 +1,12 @@
+slurm_config:
+  time: 72:00:00
+  cpus_per_task: 16
+  memory_GB: 32
+
+postgres:
+  shared_buffers: 4GB
+  work_mem: 128MB
+  port: 15432
+  sif_location_inside_project: assets/orchestration/postgres.sif
+
+port: 6006
