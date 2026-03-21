@@ -36,10 +36,13 @@ class PhoenixWithPostgresConfiguration(SlurmService):
         working_dir = (  # This cannot use the global variable, because it is used in orchestrator
             exec_config.project_dir / "results" / exec_config.where.value / "postgres"
         )
+
         postgres_dir = working_dir / "pgdata"
+        postgres_run_dir = working_dir / "pgrun"
 
         return {
-            "PGDATA": postgres_dir,
+            "PGDATA": str(postgres_dir),
+            "PGRUN": str(postgres_run_dir),
             "PGPORT": self.postgres.port,
             "POSTGRES_PASSWORD": "this-must-not-be-secure",
             ##
@@ -53,11 +56,13 @@ class PhoenixWithPostgresConfiguration(SlurmService):
     def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
         pg_sif = exec_config.project_dir / self.postgres.sif_location_inside_project
 
-        prepare_pg_data = 'mkdir -p "$PGDATA" && chmod 700 "$PGDATA"'
+        prepare_pg_data = (
+            'mkdir -p "$PGDATA" && mkdir -p "PGRUN" && chmod 700 "$PGDATA"'
+        )
         start_postgres = f"""
         apptainer instance start \
         --bind "$PGDATA:/var/lib/postgresql/data" \
-        --bind /scratch/$USER/pg-run:/var/run/postgresql \
+        --bind "$PGRUN:/var/run/postgresql" \
         {pg_sif} pg-server \
         -c port="$PGPORT" \
         -c listen_addresses='*' \
