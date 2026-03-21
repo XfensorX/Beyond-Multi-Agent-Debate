@@ -46,6 +46,8 @@ class PhoenixWithPostgresConfiguration(SlurmService):
             "PGDATA": str(postgres_dir),
             "PGRUN": str(postgres_run_dir),
             "PGPORT": self.postgres.port,
+            "POSTGRES_PORT": self.postgres.port,
+            "POSTGRES_PASSWORD": pw,
             ##
             "PHOENIX_PORT": str(self.port),
             "PHOENIX_ALLOW_EXTERNAL_RESOURCES": "false",
@@ -60,16 +62,16 @@ class PhoenixWithPostgresConfiguration(SlurmService):
         prepare_pg_data = (
             'mkdir -p "$PGDATA" && mkdir -p "$PGRUN" && chmod 700 "$PGDATA"'
         )
-        start_postgres = f"""
-        apptainer instance start \
-        --bind "$PGDATA:/var/lib/postgresql/data" \
-        --bind "$PGRUN:/var/run/postgresql" \
-        {pg_sif} pg-server \
-        -c port="$PGPORT" \
-        -c listen_addresses='*' \
-        -c shared_buffers={self.postgres.shared_buffers} \
-        -c work_mem={self.postgres.work_mem}
-        """
+        start_postgres = (
+            "apptainer instance start "
+            '--bind "$PGDATA:/var/lib/postgresql/data" '
+            '--bind "$PGRUN:/var/run/postgresql" '
+            f"{pg_sif} pg-server"
+            '-c port="$PGPORT" '
+            "-c listen_addresses='*' "
+            f"-c shared_buffers={self.postgres.shared_buffers} "
+            f"-c work_mem={self.postgres.work_mem} "
+        )
 
         wait_for_postgres = "sleep 10"
 
