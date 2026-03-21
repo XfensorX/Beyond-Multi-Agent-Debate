@@ -42,7 +42,7 @@ TIMEOUT = 20  # seconds
 @with_per_span_cache(PHOENIX_CACHE_DIR)
 def get_span_attributes(
     *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
-) -> dict[SpanId, dict[str, Any] | None]:
+) -> dict[SpanId, dict[str, Any]]:
     fields = "\n".join(
         f's_{oid}: getSpanByOtelId(spanId: "{oid}") {{ attributes id project {{ id }} context {{ traceId }} }}'
         for oid in span_ids
@@ -68,9 +68,8 @@ def get_span_attributes(
     out: dict[SpanId, dict[str, Any]] = {}
     for alias, node in data["data"].items():
         original_oid = alias[2:]
-        if node is None:  # TODO: this should not happen
-            out[original_oid] = None
-            continue
+        if node is None:
+            raise RuntimeError(f"Span {original_oid} has no node")
 
         attrs = node["attributes"]
         span = json.loads(attrs) if isinstance(attrs, str) else attrs

@@ -45,7 +45,7 @@ from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
 app = Typer(no_args_is_help=True)
 
 
-MAX_PARALLEL_REQUESTS = 20
+MAX_PARALLEL_REQUESTS = 5
 MAX_IDS_PER_REQUEST = 20
 IN_QUEUE_MAXSIZE = 10000
 OUT_QUEUE_MAXSIZE = 10000
@@ -177,7 +177,7 @@ def main_process_loop(
                             retries += 1
                             if retries % 25 == 0 and retries > 0:
                                 logger.error(
-                                    f"Total of {retries} retries reached. (Will cancel at {MAX_RETRIES})>"
+                                    f"Total of {retries} retries reached. (Will cancel at {MAX_RETRIES})"
                                 )
 
                         else:
@@ -187,7 +187,7 @@ def main_process_loop(
                             raise
 
                     except Exception as e:
-                        logger.error("Unknown error, stopping procedure.")
+                        logger.error(f"Unknown error, stopping procedure. ({e})")
                         raise RuntimeError(
                             f"Did not correctly handle {e} in main process loop"
                         ) from e
@@ -202,7 +202,7 @@ def main_process_loop(
 
 
 def drain_results_nonblocking(out_q: queue.Queue, buffer: List[ReceivePackage]) -> None:
-    for _ in range(MAX_IDS_PER_REQUEST):
+    for _ in range(CHUNK_SIZE):
         try:
             msg = out_q.get_nowait()
         except queue.Empty:
@@ -342,7 +342,7 @@ async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: 
         table.add_row("[b]Total Written[/b]", f"[green]{total_flushed:>6}[/green]")
         return table
 
-    with Live(make_process_status_table()) as live:
+    with Live(get_renderable=make_process_status_table) as live:
         try:
             for experiment_name, project_paths in project_paths_per_experiment.items():
                 logger.info(f"Reading: {experiment_name}")
@@ -379,7 +379,7 @@ async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: 
 
                         if entry.phoenix_span_info.span_id_hex is None:
                             raise NotImplementedError(
-                                "The SpanID should be alywas set."
+                                "The SpanID should be always set."
                             )
 
                         in_q.put(
@@ -390,7 +390,6 @@ async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: 
                             )
                         )
                         total_put_in_queue += 1
-                        live.update(make_process_status_table())
 
                     drain_results_nonblocking(out_q, buffer)
                     try_flush(buffer)

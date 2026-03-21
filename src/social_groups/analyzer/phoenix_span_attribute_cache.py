@@ -21,7 +21,9 @@ def with_per_span_cache(path: Path):
     """
 
     os.makedirs(path, exist_ok=True)
-    cache = Cache(str(path.absolute()))  # persistent on-disk cache (SQLite + files)
+    disk_cache = Cache(
+        str(path.absolute())
+    )  # persistent on-disk cache (SQLite + files)
     logger.warning("Using Phoenix Cache located at %s.", path)
 
     def decorator(func):
@@ -29,20 +31,16 @@ def with_per_span_cache(path: Path):
         def wrapper(
             *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
         ) -> dict[SpanId, dict[str, Any]]:
-            result: dict[SpanId, dict[str, Any]] = {}
+            with disk_cache as cache:
+                result: dict[SpanId, dict[str, Any]] = {
+                    sid: disk_cache.get((sid, phoenix_graphql_endpoint))
+                    for sid in span_ids
+                }
+                missing: list[SpanId] = list(set(span_ids) - set(result.keys()))
 
-            # 1. Check cache for each span_id (fast)
-            missing: list[SpanId] = []
-            for sid in span_ids:
-                key = (
-                    sid,
-                    phoenix_graphql_endpoint,
-                )  # make key unique per endpoint too
-                cached = cache.get(key)
-                if cached is None:
+            for sid, data in result.items():
+                if data is None:
                     missing.append(sid)
-                else:
-                    result[sid] = cached
 
             # 2. Only call the expensive API for missing spans
             if missing:
