@@ -10,3 +10,4 @@ postgres:
   sif_location_inside_project: assets/orchestration/postgres.sif
 
 port: 6006
+database_user: philipp.link

@@ -162,7 +162,7 @@ async def run_service_on_slurm(
         phoenix_job = phoenix_jobs[0]
 
         # TODO: make typesafe
-        # noinspection PyTypeChecker
+
         phoenix_config: PhoenixConfiguration | PhoenixWithPostgresConfiguration = (
             load_config(SlurmServiceName["phoenix"], where)
         )
@@ -198,9 +198,13 @@ async def run_service_on_slurm(
     else:
         print(f"Starting {service} on {where}")
 
-        job_id = exec_config.submit_sbatch(
-            service_config.create_job_file_content(exec_config=exec_config)
-        )
+        job_file = service_config.create_job_file_content(exec_config=exec_config)
+
+        print("---Submitted Job File: ---------------------")
+        print(job_file)
+        print("--------------------------------------------")
+
+        job_id = exec_config.submit_sbatch(job_file)
 
         job_info = await wait_for_job_to_start(exec_config.ssh_login, job_id)
 
@@ -261,8 +265,12 @@ def show_logs(
             qmark=">",
             pointer="➤",
         ).ask()
-    else:
+    elif len(infos) == 1:
         used_info = infos[0]
+    else:
+        typer.echo(f"No jobs found running using <{service}>")
+        typer.Exit(-1)
+        exit()
 
     # TODO: maybe make interactive with "less" or so
     file_path = exec_config.get_logdir() / get_slurm_log_filename(
@@ -310,6 +318,9 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
         used_info = infos[0]
 
     node = used_info.node
+
+    if node is None:
+        raise RuntimeError(f"Node name is not found on job info. {used_info}")
 
     if isinstance(service_config, PhoenixConfiguration):
         port = service_config.port
