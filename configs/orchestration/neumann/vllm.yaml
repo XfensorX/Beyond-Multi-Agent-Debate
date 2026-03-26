@@ -25,3 +25,10 @@ llm_models:
     port: 40504
   Qwen/Qwen3.5-9B:
     port: 40509
+
+  mistralai/Ministral-3-3B-Instruct-2512:
+    port: 40253
+  mistralai/Ministral-3-8B-Instruct-2512:
+    port: 40258
+  mistralai/Ministral-3-14B-Instruct-2512:
+    port: 40251

@@ -1,0 +1,6 @@
+# @package _global_
+defaults:
+  - /experiment/hetero/backend@0: ministral3-8b
+  - /experiment/hetero/backend@1: ministral3-3b
+  - /experiment/hetero/backend@2: ministral3-8b
+  - /experiment/hetero/backend@3: ministral3-14b

@@ -1,0 +1,2 @@
+backend: vLLMExternal
+model_name: mistralai/Ministral-3-14B-Instruct-2512
