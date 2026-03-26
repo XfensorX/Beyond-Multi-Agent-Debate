@@ -9,5 +9,6 @@ postgres:
   port: 15432
   sif_location_inside_project: assets/orchestration/postgres.sif
 
-port: 6006
+port: 46000
+graphql_port: 46317
 database_user: philipp.link

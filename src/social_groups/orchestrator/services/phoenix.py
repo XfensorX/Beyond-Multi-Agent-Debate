@@ -10,6 +10,7 @@ from social_groups.orchestrator.services.base import (
 @register_slurm_service("phoenix")
 class PhoenixConfiguration(SlurmService):
     port: int
+    graphql_port: int
 
     @property
     def used_job_name(self) -> str:
@@ -25,6 +26,7 @@ class PhoenixConfiguration(SlurmService):
         )
         return {
             "PHOENIX_PORT": str(self.port),
+            "PHOENIX_GRPC_PORT": str(self.graphql_port),
             "PHOENIX_ALLOW_EXTERNAL_RESOURCES": "false",
             "PHOENIX_WORKING_DIR": str(working_dir),
             "PHOENIX_SQL_DATABASE_URL": f"sqlite:///{str(working_dir)}/phoenix.db",

@@ -50,6 +50,7 @@ from social_groups.orchestrator.utils.slurm import (
     get_slurm_job_info,
     wait_for_job_to_start,
 )
+from social_groups.orchestrator.utils.slurm_jobs import extract_phoenix
 
 app = typer.Typer(no_args_is_help=True)
 console = rich.console.Console()
@@ -140,38 +141,13 @@ async def run_service_on_slurm(
 
         current_jobs = get_slurm_job_info(exec_config.ssh_login)
 
-        phoenix_jobs: list[SlurmJobInfo] = list(
-            filter(
-                (
-                    lambda j: PhoenixConfiguration.job_name_is_matching_this_service(
-                        j.job_name
-                    )
-                    or PhoenixWithPostgresConfiguration.job_name_is_matching_this_service(
-                        j.job_name
-                    )
-                ),
-                current_jobs,
-            )
-        )
-
-        if len(phoenix_jobs) != 1:
-            raise typer.BadParameter(
-                f"Needs 1 phoenix job. Detected {len(phoenix_jobs)}"
-            )
-
-        phoenix_job = phoenix_jobs[0]
-
-        # TODO: make typesafe
-
-        phoenix_config: PhoenixConfiguration | PhoenixWithPostgresConfiguration = (
-            load_config(SlurmServiceName["phoenix"], where)
-        )
+        phoenix_config, phoenix_job = await extract_phoenix(current_jobs, where)
 
         service_config.add_starting_info(
             ExperimentStartingInformation(
                 experiment_name=experiment,
                 phoenix_server_endpoint=f"http://{phoenix_job.node}:{phoenix_config.port}",
-                phoenix_graphql_endpoint=f"http://{phoenix_job.node}:4317",  # TODO: make this configurable
+                phoenix_graphql_endpoint=f"http://{phoenix_job.node}:{phoenix_config.graphql_port}",
                 model_backends=[
                     endpoint
                     for info in current_jobs

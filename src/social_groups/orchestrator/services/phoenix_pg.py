@@ -25,6 +25,7 @@ DEFAULT_DATABASE_NAME = "postgres"
 @register_slurm_service("phoenix-pg")
 class PhoenixWithPostgresConfiguration(SlurmService):
     port: int
+    graphql_port: int
     postgres: PostgresConfig
     database_user: str
 
@@ -57,14 +58,13 @@ class PhoenixWithPostgresConfiguration(SlurmService):
             "PGRUN": str(postgres_run_dir),
             "PGPORT": str(self.postgres.port),
             "POSTGRES_PORT": str(self.postgres.port),
-            # "POSTGRES_PASSWORD": pw,
-            ##
+            #
             "PHOENIX_PORT": str(self.port),
+            "PHOENIX_GRPC_PORT": str(self.graphql_port),
             "PHOENIX_ALLOW_EXTERNAL_RESOURCES": "false",
             "PHOENIX_WORKING_DIR": str(phoenix_dir),
             "PHOENIX_TELEMETRY_ENABLED": "false",
             "PHOENIX_SQL_DATABASE_URL": f"postgresql://{self.database_user}@/{DEFAULT_DATABASE_NAME}?host={str(postgres_run_dir)}&port={self.postgres.port}",
-            # "PHOENIX_SQL_DATABASE_URL": f"postgresql://{self.database_user}@localhost:{self.postgres.port}/postgres?sslmode=disable",
         }
 
     def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
@@ -75,7 +75,7 @@ class PhoenixWithPostgresConfiguration(SlurmService):
         prepare_pg_backup_wal = "mkdir -p $PG_WAL_BACKUP && chmod 700 $PG_WAL_BACKUP"
         prepare_pg_run = "mkdir -p $PGRUN && chmod 700 $PGRUN"
         prepare_wal_dir = "mkdir -p $PGWAL && chmod 700 $PGWAL"
-        symlink_pg_wal = "ln -s $PGWAL $PGDATA/pg_wal"
+        symlink_pg_wal = "rm -rf $PGDATA/pg_wal && ln -s $PGWAL $PGDATA/pg_wal"
         wal_backup = (
             "rm -rf $PG_WAL_BACKUP && cp -R $PGWAL $PG_WAL_BACKUP && echo WAL-BACKUP"
         )
