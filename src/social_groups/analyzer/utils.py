@@ -38,26 +38,41 @@ ATTRIBUTE_KEY_SPAN_URL = "custom_phoenix_span_url_attribute"
 
 TIMEOUT = 20  # seconds
 
+CLIENT: None | httpx.Client = None
+
+
+def worker_initializer():
+    """Runs once per worker thread"""
+    return httpx.Client(
+        transport=httpx.HTTPTransport(retries=3),
+        timeout=httpx.Timeout(60.0, connect=15.0),  # adjust to your connection
+        limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+    )
+
 
 @with_per_span_cache(PHOENIX_CACHE_DIR)
 def get_span_attributes(
     *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
 ) -> dict[SpanId, dict[str, Any]]:
+    global CLIENT
+
+    if CLIENT is None:
+        CLIENT = worker_initializer()
+
     fields = "\n".join(
         f's_{oid}: getSpanByOtelId(spanId: "{oid}") {{ attributes id project {{ id }} context {{ traceId }} }}'
         for oid in span_ids
     )
     query = f"query GetSpans {{\n{fields}\n}}"
 
-    with httpx.Client() as client:
-        response = client.post(
-            phoenix_graphql_endpoint,
-            json={
-                "query": query,
-            },
-            headers={"Content-Type": "application/json"},
-            timeout=TIMEOUT,
-        )
+    response = CLIENT.post(
+        phoenix_graphql_endpoint,
+        json={
+            "query": query,
+        },
+        headers={"Content-Type": "application/json"},
+        timeout=TIMEOUT,
+    )
 
     response.raise_for_status()
     data = response.json()

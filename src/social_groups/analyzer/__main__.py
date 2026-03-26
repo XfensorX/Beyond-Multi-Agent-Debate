@@ -4,7 +4,7 @@ import queue
 import threading
 from collections import defaultdict
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from itertools import count
 from pathlib import Path
 from typing import Any, List
@@ -19,6 +19,11 @@ from typer import Typer
 
 from social_groups.analyzer.models import Answer, Experiment, Question, Run
 from social_groups.analyzer.models.base import append_parquet_row
+from social_groups.analyzer.package_handling import (
+    PendingCollection,
+    ReceivePackage,
+    SendPackage,
+)
 from social_groups.analyzer.sync_tex import (
     git_commit_and_push,
     sync_exact_with_confirmation,
@@ -28,6 +33,7 @@ from social_groups.analyzer.utils import (
     get_span_attributes,
     read_hydra_config,
     read_meta_config,
+    worker_initializer,
 )
 from social_groups.directories import (
     DAGSTER_REPORT_DIR,
@@ -38,6 +44,7 @@ from social_groups.directories import (
     TRACK_FILE_NAME_COMPRESSED,
 )
 from social_groups.general.tracking import TrackEntry, iter_jsonl_zst
+from social_groups.general.utils.urls import replace_host_with_localhost
 from social_groups.orchestrator.utils.general import run_async
 from social_groups.trialrunner.utils.hydra_config import MainConfig
 from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
@@ -45,7 +52,7 @@ from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
 app = Typer(no_args_is_help=True)
 
 
-MAX_PARALLEL_REQUESTS = 5
+MAX_PARALLEL_REQUESTS = 50
 MAX_IDS_PER_REQUEST = 20
 IN_QUEUE_MAXSIZE = 10000
 OUT_QUEUE_MAXSIZE = 10000
@@ -60,50 +67,42 @@ EXCEPTION_SENTINEL = "___EXCEPTION_SENTINEL___"
 logger = logging.getLogger("PARQUET BUILDER")
 logger.setLevel(logging.DEBUG)
 
-
-@dataclass(slots=True)
-class Package:
-    span_id: str
-    entry: TrackEntry
-    run_id: int
-
-
-@dataclass(slots=True)
-class SendPackage(Package):
-    pass
-
-
-@dataclass(slots=True)
-class ReceivePackage(Package):
-    span_info: dict[str, Any]
-
+TRANSIENT_ERRORS = (
+    httpx.ConnectError,
+    httpx.ConnectTimeout,
+    httpx.ReadError,
+    httpx.ReadTimeout,
+    httpx.TimeoutException,
+    httpx.RemoteProtocolError,
+    httpx.PoolTimeout,
+)
 
 SpanAttributesFuture = Future[dict[str, dict[str, Any]]]
 
 
-def main_process_loop(
-    in_q: queue.Queue,
-    out_q: queue.Queue,
-    phoenix_graphql_endpoint: str,
-):
+def main_process_loop(in_q: queue.Queue, out_q: queue.Queue):
     retries = 0
-    pool = ThreadPoolExecutor(max_workers=MAX_PARALLEL_REQUESTS)
+    pool = ThreadPoolExecutor(
+        max_workers=MAX_PARALLEL_REQUESTS, initializer=worker_initializer
+    )
+
+    currently_pooled_requests = 0
 
     submitted_requests: set[SpanAttributesFuture] = set()
-    submitted_batches: dict[SpanAttributesFuture, list[Package]] = {}
+    submitted_batches: dict[SpanAttributesFuture, list[SendPackage]] = {}
 
-    pending: list[Package] = []
+    pending = PendingCollection()
 
     finishing = threading.Event()
     immediate_shutdown = threading.Event()
 
-    def retrieve_from_queue():
+    def retrieve_from_queue() -> None | SendPackage:
         try:
-            item = in_q.get(timeout=QUEUE_TIMEOUT)
+            item = in_q.get_nowait()
         except queue.Empty:
             return None
-        except TimeoutError:
-            return None
+        # except TimeoutError:
+        #     return None
 
         if item == SENTINEL:
             finishing.set()
@@ -116,81 +115,98 @@ def main_process_loop(
 
     try:
         while True:
-            if len(pending) < MAX_IDS_PER_REQUEST * 5:
-                if (job := retrieve_from_queue()) is not None:
-                    pending.append(job)
+            while pending.total_pending < MAX_PARALLEL_REQUESTS * MAX_IDS_PER_REQUEST:
+                if (job := retrieve_from_queue()) is None:
+                    break
+                pending.add(job)
 
             if immediate_shutdown.is_set():
                 raise RuntimeError(
                     "Retrieved Immediate Shutdown notice. Cancelling all requests."
                 )
 
-            if finishing.is_set() and not pending and not submitted_requests:
+            if finishing.is_set() and pending.is_empty() and not submitted_requests:
                 out_q.put(SENTINEL)
                 break
 
-            if (len(pending) >= MAX_IDS_PER_REQUEST) or (
-                finishing.is_set() and pending
-            ):
-                batch = pending[:MAX_IDS_PER_REQUEST]
-                pending = pending[MAX_IDS_PER_REQUEST:]
-                future = pool.submit(
-                    get_span_attributes,
-                    span_ids=[b.span_id for b in batch],
-                    phoenix_graphql_endpoint=phoenix_graphql_endpoint,
-                )
-                submitted_requests.add(future)
-                submitted_batches[future] = batch
+            done_tasks, submitted_requests = wait(
+                submitted_requests,
+                timeout=None if (finishing.is_set() and pending.is_empty()) else 0.0,
+                return_when=FIRST_COMPLETED,
+            )
 
-            if any(task.done() for task in submitted_requests):
-                done_tasks, submitted_requests = wait(
-                    submitted_requests, timeout=0.1, return_when=FIRST_COMPLETED
-                )
-                for task in done_tasks:
-                    try:
-                        span_infos = task.result()
-                        for b in submitted_batches.pop(task):
-                            new_b = ReceivePackage(
-                                **asdict(b), span_info=span_infos[b.span_id]
+            for task in done_tasks:
+                currently_pooled_requests -= 1
+                try:
+                    span_infos = task.result()
+                    for b in submitted_batches.pop(task):
+                        new_b = ReceivePackage(
+                            **{
+                                k: v
+                                for k, v in asdict(b).items()
+                                if k not in {"phoenix_graphql_endpoint"}
+                            },
+                            span_info=span_infos[b.span_id],
+                        )
+                        try:
+                            out_q.put(new_b, timeout=QUEUE_TIMEOUT)
+                        except queue.Full:
+                            raise RuntimeError(
+                                "The Main Process does not empty the Queue fast enough."
                             )
-                            try:
-                                out_q.put(new_b, timeout=QUEUE_TIMEOUT)
-                            except queue.Full:
-                                raise RuntimeError(
-                                    "The Main Process does not empty the Queue fast enough."
-                                )
 
-                    except (httpx.ConnectTimeout, httpx.ReadTimeout):
-                        if retries < MAX_RETRIES:
-                            if retries == 0:
-                                logger.error(
-                                    "Connection error, trying to resubmit. (Do you have connection to phoenix graphql endpoint?)"
-                                )
-                            batch = submitted_batches.pop(task)
-                            new_future = pool.submit(
-                                get_span_attributes,
-                                span_ids=[b.span_id for b in batch],
-                                phoenix_graphql_endpoint=phoenix_graphql_endpoint,
-                            )
-                            submitted_requests.add(new_future)
-                            submitted_batches[new_future] = batch
-                            retries += 1
-                            if retries % 25 == 0 and retries > 0:
-                                logger.error(
-                                    f"Total of {retries} retries reached. (Will cancel at {MAX_RETRIES})"
-                                )
+                except TRANSIENT_ERRORS as e:
+                    if retries < MAX_RETRIES:
+                        logger.error(
+                            f"{e}, trying to resubmit. (Do you have connection to phoenix graphql endpoint?)"
+                        )
+                        batch = submitted_batches.pop(task)
+                        new_future = pool.submit(
+                            get_span_attributes,
+                            span_ids=[b.span_id for b in batch],
+                            phoenix_graphql_endpoint=(
+                                batch[0].phoenix_graphql_endpoint
+                            ),
+                        )
+                        currently_pooled_requests += 1
 
-                        else:
+                        submitted_requests.add(new_future)
+                        submitted_batches[new_future] = batch
+                        retries += 1
+                        if retries % 100 == 0 and retries > 0:
                             logger.error(
-                                f"Batch failed after {MAX_RETRIES} retries; giving up.",
+                                f"Total of {retries} retries reached. (Will cancel at {MAX_RETRIES})"
                             )
-                            raise
 
-                    except Exception as e:
-                        logger.error(f"Unknown error, stopping procedure. ({e})")
-                        raise RuntimeError(
-                            f"Did not correctly handle {e} in main process loop"
-                        ) from e
+                    else:
+                        logger.error(
+                            f"Batch failed after {MAX_RETRIES} retries; giving up.",
+                        )
+                        raise
+
+                except Exception as e:
+                    logger.error(f"Unknown error, stopping procedure. ({e})")
+                    raise RuntimeError(
+                        f"Did not correctly handle {e} in main process loop"
+                    ) from e
+
+            if (pending.current_largest_batch_size() >= MAX_IDS_PER_REQUEST) or (
+                finishing.is_set() and not pending.is_empty()
+            ):
+                while currently_pooled_requests < 3 * MAX_PARALLEL_REQUESTS:
+                    batch = pending.get_batch(MAX_IDS_PER_REQUEST)
+                    if not batch:
+                        break
+
+                    future = pool.submit(
+                        get_span_attributes,
+                        span_ids=[b.span_id for b in batch],
+                        phoenix_graphql_endpoint=batch[0].phoenix_graphql_endpoint,
+                    )
+                    currently_pooled_requests += 1
+
+                    submitted_requests.add(future)
+                    submitted_batches[future] = batch
 
     except Exception as e:
         out_q.put(e)
@@ -202,7 +218,7 @@ def main_process_loop(
 
 
 def drain_results_nonblocking(out_q: queue.Queue, buffer: List[ReceivePackage]) -> None:
-    for _ in range(CHUNK_SIZE):
+    while True:
         try:
             msg = out_q.get_nowait()
         except queue.Empty:
@@ -245,7 +261,7 @@ def read_experiment_paths() -> dict[ExperimentName, list[Path]]:
     return project_paths_per_experiment
 
 
-async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: str):
+async def build_parquet_files(output_directory: Path):
     total_put_in_queue = 0
     total_flushed = 0
 
@@ -270,66 +286,68 @@ async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: 
         for model in models
     }
 
-    def try_flush(buf: list[ReceivePackage], force: bool = False) -> None:
+    def try_flush(
+        buf: list[ReceivePackage], force: bool = False
+    ) -> list[ReceivePackage]:
         nonlocal total_flushed
 
-        if not buf or (len(buffer) < CHUNK_SIZE and not force):
-            return
+        while len(buf) >= CHUNK_SIZE or (len(buf) > 0 and force):
+            size = min(len(buf), CHUNK_SIZE)
+            chunk = buf[:size]
+            buf = buf[size:]
 
-        question_items = [
-            Question.from_raw_data(
-                assigned_id=next(id_generators[Question]),
-                entry=b.entry,
-                hydra_config=run_configs[b.run_id],
-                span_attributes=b.span_info,
-                meta_info=run_meta_infos[b.run_id],
-            )
-            for b in buf
-        ]
+            question_items = [
+                Question.from_raw_data(
+                    assigned_id=next(id_generators[Question]),
+                    entry=b.entry,
+                    hydra_config=run_configs[b.run_id],
+                    span_attributes=b.span_info,
+                    meta_info=run_meta_infos[b.run_id],
+                )
+                for b in chunk
+            ]
 
-        question_ids = []
-        new_questions = []
+            question_ids = []
+            new_questions = []
 
-        for q in question_items:
-            q_hash = q.get_id_independent_hash()
+            for q in question_items:
+                q_hash = q.get_id_independent_hash()
 
-            if q_hash in seen_questions:
-                _id = seen_questions[q_hash]
-            else:
-                _id = q.question_id
-                seen_questions[q_hash] = _id
-                new_questions.append(q)
+                if q_hash in seen_questions:
+                    _id = seen_questions[q_hash]
+                else:
+                    _id = q.question_id
+                    seen_questions[q_hash] = _id
+                    new_questions.append(q)
 
-            question_ids.append(_id)
+                question_ids.append(_id)
 
-        writers[Question].write_table(Question.create_parquet_table(new_questions))
+            writers[Question].write_table(Question.create_parquet_table(new_questions))
 
-        answer_items = [
-            Answer.from_raw_data(
-                assigned_id=next(id_generators[Answer]),
-                run_id=b.run_id,
-                entry=b.entry,
-                hydra_config=run_configs[b.run_id],
-                question_id=q_id,
-                meta_info=run_meta_infos[b.run_id],
-                span_attributes=b.span_info,
-            )
-            for b, q_id in zip(buf, question_ids)
-        ]
+            answer_items = [
+                Answer.from_raw_data(
+                    assigned_id=next(id_generators[Answer]),
+                    run_id=b.run_id,
+                    entry=b.entry,
+                    hydra_config=run_configs[b.run_id],
+                    question_id=q_id,
+                    meta_info=run_meta_infos[b.run_id],
+                    span_attributes=b.span_info,
+                )
+                for b, q_id in zip(chunk, question_ids)
+            ]
+            writers[Answer].write_table(Answer.create_parquet_table(answer_items))
 
-        writers[Answer].write_table(Answer.create_parquet_table(answer_items))
+            total_flushed += len(chunk)
 
-        total_flushed += len(buffer)
-        buf.clear()
+        return buf
 
     in_q: queue.Queue = queue.Queue(maxsize=IN_QUEUE_MAXSIZE)
     out_q: queue.Queue = queue.Queue(maxsize=OUT_QUEUE_MAXSIZE)
 
     project_paths_per_experiment = read_experiment_paths()
 
-    thread = threading.Thread(
-        target=main_process_loop, args=(in_q, out_q, phoenix_graphql_endpoint)
-    )
+    thread = threading.Thread(target=main_process_loop, args=(in_q, out_q))
     thread.start()
 
     def make_process_status_table() -> Table:
@@ -387,12 +405,15 @@ async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: 
                                 span_id=entry.phoenix_span_info.span_id_hex,
                                 run_id=run_id,
                                 entry=entry,
+                                phoenix_graphql_endpoint=replace_host_with_localhost(
+                                    run_configs[run_id].execution.phoenix_server_url
+                                    + "/graphql"
+                                ),
                             )
                         )
                         total_put_in_queue += 1
-
                     drain_results_nonblocking(out_q, buffer)
-                    try_flush(buffer)
+                    buffer = try_flush(buffer)
 
             in_q.put(SENTINEL)
 
@@ -401,10 +422,9 @@ async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: 
                     raise msg
 
                 buffer.append(msg)
-                try_flush(buffer)
-                live.update(make_process_status_table())
+                buffer = try_flush(buffer)
 
-            try_flush(buffer, force=True)
+            buffer = try_flush(buffer, force=True)
 
         except Exception:
             in_q.put(EXCEPTION_SENTINEL)
@@ -417,6 +437,9 @@ async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: 
             for writer in writers.values():
                 writer.close()
 
+    if buffer:
+        raise RuntimeError(f"Buffer was not completely emptied. ({len(buffer)})")
+
     if (
         pl.read_parquet(writers[Question].where)
         .drop("question_id")
@@ -424,20 +447,19 @@ async def build_parquet_files(output_directory: Path, phoenix_graphql_endpoint: 
         .any()
     ):
         logger.error(
-            "There was a hash collision in the Questions. You have to save the individual ones and handle collisions properly."
+            "There was a hash collision in the Questions. You have to save the individual ones, "
+            "not just hashes and handle collisions properly."
         )
         raise NotImplementedError()
 
 
 @app.command("parse", help="Parse results to produce parquet files.")
 @run_async
-async def produce_parquet(
-    phoenix_graphql_endpoint: str = typer.Argument("http://localhost:6006/graphql"),
-):
+async def produce_parquet():
     print("Producing Parquet files ...")
 
     os.makedirs(PARQUET_ANALYSIS_DIR, exist_ok=True)
-    await build_parquet_files(PARQUET_ANALYSIS_DIR, phoenix_graphql_endpoint)
+    await build_parquet_files(PARQUET_ANALYSIS_DIR)
 
 
 @app.command(name="sync-tex", help="Sync DAGster reports → university LaTeX project")

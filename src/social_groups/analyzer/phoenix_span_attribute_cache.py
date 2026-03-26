@@ -11,6 +11,10 @@ from social_groups.general.types import SpanId
 logger = logging.getLogger(__name__)
 
 
+def make_cache_key(sid: str, endpoint: str):
+    return f"{endpoint}:{sid}"
+
+
 def with_per_span_cache(path: Path):
     """Decorator that caches *individual* SpanId results on disk.
 
@@ -21,41 +25,38 @@ def with_per_span_cache(path: Path):
     """
 
     os.makedirs(path, exist_ok=True)
-    disk_cache = Cache(
-        str(path.absolute())
-    )  # persistent on-disk cache (SQLite + files)
     logger.warning("Using Phoenix Cache located at %s.", path)
 
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(
-            *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
-        ) -> dict[SpanId, dict[str, Any]]:
-            with disk_cache as cache:
+    with Cache(str(path.absolute())) as cache:
+
+        def decorator(func):
+            @functools.wraps(func)
+            def wrapper(
+                *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
+            ) -> dict[SpanId, dict[str, Any]]:
                 result: dict[SpanId, dict[str, Any]] = {
-                    sid: disk_cache.get((sid, phoenix_graphql_endpoint))
+                    sid: cache.get(make_cache_key(sid, phoenix_graphql_endpoint))
                     for sid in span_ids
                 }
-                missing: list[SpanId] = list(set(span_ids) - set(result.keys()))
 
-            for sid, data in result.items():
-                if data is None:
-                    missing.append(sid)
+                missing: list[SpanId] = [
+                    sid for sid, data in result.items() if data is None
+                ]
 
-            # 2. Only call the expensive API for missing spans
-            if missing:
-                batch_result = func(
-                    span_ids=missing, phoenix_graphql_endpoint=phoenix_graphql_endpoint
-                )
+                # 2. Only call the expensive API for missing spans
+                if missing:
+                    batch_result = func(
+                        span_ids=missing,
+                        phoenix_graphql_endpoint=phoenix_graphql_endpoint,
+                    )
 
-                # 3. Store new results in cache + add to final result
-                for sid, data in batch_result.items():
-                    key = (sid, phoenix_graphql_endpoint)
-                    cache.set(key, data)
-                    result[sid] = data
+                    # 3. Store new results in cache + add to final result
+                    for sid, data in batch_result.items():
+                        cache.set(make_cache_key(sid, phoenix_graphql_endpoint), data)
+                        result[sid] = data
 
-            return result
+                return result
 
-        return wrapper
+            return wrapper
 
     return decorator
