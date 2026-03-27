@@ -94,6 +94,8 @@ slorch = "social_groups.slorch.__main__:main"
 ana = "social_groups.analyzer.__main__:main"
 analyzer = "social_groups.analyzer.__main__:main"
 
+phoenix_proxy = "social_groups.orchestrator.proxy:main"
+
 
 [tool.taskipy.tasks]
 pull_tgi_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/tgi.sif docker://ghcr.io/huggingface/text-generation-inference:2.3.0", help = "Pull the docker Image of TGI from huggingface and save it as apptainer sif." }

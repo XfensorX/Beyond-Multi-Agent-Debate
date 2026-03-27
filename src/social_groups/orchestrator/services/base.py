@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, computed_field
@@ -37,7 +38,7 @@ class SlurmService(BaseModel, ABC):
     @abstractmethod
     def create_env_dict(
         self, exec_config: ExecutionLocationConfig
-    ) -> dict[str, str]: ...
+    ) -> dict[str, Any]: ...
 
     @abstractmethod
     def create_run_command(self, exec_config: ExecutionLocationConfig) -> str: ...
