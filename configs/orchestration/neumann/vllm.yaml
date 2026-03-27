@@ -30,5 +30,7 @@ llm_models:
     port: 40253
   mistralai/Ministral-3-8B-Instruct-2512:
     port: 40258
+    max_total_tokens: 150000 # to fit in VRAM
   mistralai/Ministral-3-14B-Instruct-2512:
     port: 40251
+    max_total_tokens: 100000 # to fit in VRAM

@@ -42,6 +42,9 @@ class VLLMConfiguration(BaseInferenceService):
             re.fullmatch(r"gpu:(\d+)", self.slurm_config.gres).groups()[0]
         )
 
+        if used_model.max_batch_prefill_tokens or used_model.max_input_tokens:
+            raise NotImplementedError()
+
         return (
             f"source {exec_config.project_dir / '.venv' / 'bin' / 'activate'} && "
             f"uv run vllm serve {self._chosen_model_id} "
@@ -51,7 +54,7 @@ class VLLMConfiguration(BaseInferenceService):
             f"--port={used_model.port} "
             + (
                 f"--max-model-len={used_model.max_total_tokens}"
-                if used_model.max_input_tokens
+                if used_model.max_total_tokens
                 else ""
             )
             + (f"--data-parallel-size={number_gpus} " if number_gpus != 1 else "")
