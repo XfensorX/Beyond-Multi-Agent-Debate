@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -46,7 +47,7 @@ class PhoenixWithPostgresConfiguration(SlurmService):
     def job_name_is_matching_this_service(given_job_name: str) -> bool:
         return given_job_name == "phoenix-pg"
 
-    def create_env_dict(self, exec_config: ExecutionLocationConfig) -> dict[str, str]:
+    def create_env_dict(self, exec_config: ExecutionLocationConfig) -> dict[str, Any]:
         working_dir = (  # This cannot use the global variable, because it is used in orchestrator
             exec_config.project_dir / "results" / exec_config.where.value / "postgres"
         )
@@ -59,27 +60,25 @@ class PhoenixWithPostgresConfiguration(SlurmService):
         wal_dir = f"/dev/shm/pgwal_{self.database_user.replace('.', '_')}"
 
         return {
-            "PHOENIX_PORTS": f"({' '.join(map(str, self.phoenix_internal_ports))})",
-            "PHOENIX_GRPC_PORTS": f"({' '.join(map(str, self.phoenix_internal_graphql_ports))})",
+            "PHOENIX_PORTS": self.phoenix_internal_ports,
+            "PHOENIX_GRPC_PORTS": self.phoenix_internal_graphql_ports,
             # Postgres
-            "PGDATA": str(postgres_dir),
-            "PGWAL": str(wal_dir),
-            "PG_WAL_BACKUP": str(backup_wal_directory),
-            "PGRUN": str(postgres_run_dir),
-            "PGPORT": str(self.postgres.port),
-            "POSTGRES_PORT": str(self.postgres.port),
+            "PGDATA": postgres_dir,
+            "PGWAL": wal_dir,
+            "PG_WAL_BACKUP": backup_wal_directory,
+            "PGRUN": postgres_run_dir,
+            "PGPORT": self.postgres.port,
+            "POSTGRES_PORT": self.postgres.port,
             #
             # Phoenix
             "PHOENIX_ALLOW_EXTERNAL_RESOURCES": "false",
-            "PHOENIX_WORKING_DIR": str(phoenix_dir),
+            "PHOENIX_WORKING_DIR": phoenix_dir,
             "PHOENIX_TELEMETRY_ENABLED": "false",
             "PHOENIX_SQL_DATABASE_URL": f"postgresql://{self.database_user}@/{DEFAULT_DATABASE_NAME}?host={str(postgres_run_dir)}&port={self.postgres.port}",
             #
             # Phoenix Performance
-            "PHOENIX_SQLALCHEMY_POOL_SIZE": str(self.phoenix_sql_alchemy_pool_size),
-            "PHOENIX_SQLALCHEMY_MAX_OVERFLOW": str(
-                self.phoenix_sql_alchemy_max_overflow
-            ),
+            "PHOENIX_SQLALCHEMY_POOL_SIZE": self.phoenix_sql_alchemy_pool_size,
+            "PHOENIX_SQLALCHEMY_MAX_OVERFLOW": self.phoenix_sql_alchemy_max_overflow,
         }
 
     def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
@@ -123,16 +122,18 @@ cleanup() {
     CLEANUP_DONE=1
     
     echo "Cleanup running at $(date)"
+    
+    # first stop all phoenix related stuff to flush the buffers
     for PID in "${PHOENIX_PIDS[@]}"; do
         kill -TERM "$PID" || true
     done
     kill -TERM "$NGINX_PID" || true
-    kill -TERM $PG_PID || true
-    
     for PID in "${PHOENIX_PIDS[@]}"; do
         wait "$PID" || true
     done
     wait "$NGINX_PID" || true
+    
+    kill -TERM $PG_PID || true
     wait "$PG_PID" || true
     echo "        finished at $(date)"
 }
@@ -200,10 +201,18 @@ done
 
 echo "Starting NGINX (Apptainer)..."
 
-apptainer exec \\
-  --bind "{str(nginx_conf)}:/etc/nginx/nginx.conf" \\
-  {nginx_sif} \\
-  nginx -g "daemon off;" &
+# apptainer exec \\
+#   --bind "{str(nginx_conf)}:/etc/nginx/nginx.conf" \\
+#   {nginx_sif} \\
+#   --no-mount bind-paths \\
+#   nginx -g "daemon off;" &
+
+uv run phoenix_proxy \
+  --http-ports "${{PHOENIX_PORTS[@]}}" \
+  --http-listen {self.port} \
+  --grpc-ports "${{PHOENIX_GRPC_PORTS[@]}}" \
+  --grpc-listen {self.graphql_port} &
+  
 NGINX_PID=$!
 
 
