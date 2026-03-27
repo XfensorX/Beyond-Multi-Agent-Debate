@@ -29,6 +29,15 @@ class PhoenixWithPostgresConfiguration(SlurmService):
     postgres: PostgresConfig
     database_user: str
 
+    phoenix_sql_alchemy_pool_size: int
+    phoenix_sql_alchemy_max_overflow: int
+
+    phoenix_internal_ports: list[int]
+    phoenix_internal_graphql_ports: list[int]
+
+    ngingx_conf_location_inside_project: Path
+    ngingx_sif_location_inside_project: Path
+
     @property
     def used_job_name(self) -> str:
         return "phoenix-pg"
@@ -49,9 +58,10 @@ class PhoenixWithPostgresConfiguration(SlurmService):
 
         wal_dir = f"/dev/shm/pgwal_{self.database_user.replace('.', '_')}"
 
-        pw = "thismustnotbesecure"
-
         return {
+            "PHOENIX_PORTS": f"({' '.join(map(str, self.phoenix_internal_ports))})",
+            "PHOENIX_GRPC_PORTS": f"({' '.join(map(str, self.phoenix_internal_graphql_ports))})",
+            # Postgres
             "PGDATA": str(postgres_dir),
             "PGWAL": str(wal_dir),
             "PG_WAL_BACKUP": str(backup_wal_directory),
@@ -59,16 +69,24 @@ class PhoenixWithPostgresConfiguration(SlurmService):
             "PGPORT": str(self.postgres.port),
             "POSTGRES_PORT": str(self.postgres.port),
             #
-            "PHOENIX_PORT": str(self.port),
-            "PHOENIX_GRPC_PORT": str(self.graphql_port),
+            # Phoenix
             "PHOENIX_ALLOW_EXTERNAL_RESOURCES": "false",
             "PHOENIX_WORKING_DIR": str(phoenix_dir),
             "PHOENIX_TELEMETRY_ENABLED": "false",
             "PHOENIX_SQL_DATABASE_URL": f"postgresql://{self.database_user}@/{DEFAULT_DATABASE_NAME}?host={str(postgres_run_dir)}&port={self.postgres.port}",
+            #
+            # Phoenix Performance
+            "PHOENIX_SQLALCHEMY_POOL_SIZE": str(self.phoenix_sql_alchemy_pool_size),
+            "PHOENIX_SQLALCHEMY_MAX_OVERFLOW": str(
+                self.phoenix_sql_alchemy_max_overflow
+            ),
         }
 
     def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
         pg_sif = exec_config.project_dir / self.postgres.sif_location_inside_project
+        nginx_sif = exec_config.project_dir / self.ngingx_sif_location_inside_project
+        nginx_conf = exec_config.project_dir / self.ngingx_conf_location_inside_project
+
         apptainer_options = "--no-mount bind-paths --bind $PGDATA:/var/lib/postgresql/data --bind $PGRUN:/var/run/postgresql --writable-tmpfs"
 
         prepare_pg_data = "mkdir -p $PGDATA && chmod 700 $PGDATA"
@@ -105,9 +123,16 @@ cleanup() {
     CLEANUP_DONE=1
     
     echo "Cleanup running at $(date)"
-    kill -TERM $PHOENIX_PID || true
+    for PID in "${PHOENIX_PIDS[@]}"; do
+        kill -TERM "$PID" || true
+    done
+    kill -TERM "$NGINX_PID" || true
     kill -TERM $PG_PID || true
-    wait "$PHOENIX_PID" || true
+    
+    for PID in "${PHOENIX_PIDS[@]}"; do
+        wait "$PID" || true
+    done
+    wait "$NGINX_PID" || true
     wait "$PG_PID" || true
     echo "        finished at $(date)"
 }
@@ -163,10 +188,31 @@ trap 'cleanup' EXIT SIGTERM SIGINT
         activate_env = (
             f"source {exec_config.project_dir / '.venv' / 'bin' / 'activate'}"
         )
-        start_phoenix = "uv run phoenix serve &"
-        capture_phoenix_pid = "PHOENIX_PID=$!"
+        start_phoenix = f"""
+PHOENIX_PIDS=()
+NGINX_PID=""
+for i in "${{!PHOENIX_PORTS[@]}}"; do
+    PHOENIX_GRPC_PORT=${{PHOENIX_GRPC_PORTS[$i]}} \\
+    PHOENIX_PORT=${{PHOENIX_PORTS[$i]}} \\
+    uv run phoenix serve &
+    PHOENIX_PIDS+=($!)
+done
 
-        wait_until_everything_stopped = "wait $PHOENIX_PID && wait $PG_PID"
+echo "Starting NGINX (Apptainer)..."
+
+apptainer exec \\
+  --bind "{str(nginx_conf)}:/etc/nginx/nginx.conf" \\
+  {nginx_sif} \\
+  nginx -g "daemon off;" &
+NGINX_PID=$!
+
+
+# Wait for everything
+wait "${{PHOENIX_PIDS[@]}}"
+wait "$NGINX_PID"
+        """
+
+        wait_postgres_stopped = "wait $PG_PID"
 
         return "\n".join(
             [
@@ -182,7 +228,6 @@ trap 'cleanup' EXIT SIGTERM SIGINT
                 wait_for_postgres,
                 activate_env,
                 start_phoenix,
-                capture_phoenix_pid,
-                wait_until_everything_stopped,
+                wait_postgres_stopped,
             ]
         )

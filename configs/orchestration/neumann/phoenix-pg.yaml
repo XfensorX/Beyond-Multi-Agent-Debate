@@ -9,6 +9,27 @@ postgres:
   port: 15432
   sif_location_inside_project: assets/orchestration/postgres.sif
 
+database_user: philipp.link
+
+phoenix_sql_alchemy_pool_size: 30
+phoenix_sql_alchemy_max_overflow: 40
+
+ngingx_conf_location_inside_project: assets/orchestration/phoenix_nginx.conf
+ngingx_sif_location_inside_project: assets/orchestration/nginx.sif
+
+
+#changes need changes in assets/orchestration/phoenix_nginx.conf
 port: 46000
 graphql_port: 46317
-database_user: philipp.link
+phoenix_internal_graphql_ports:
+  - 46318
+  - 46319
+  - 46320
+  - 46321
+
+phoenix_internal_ports:
+  - 46001
+  - 46002
+  - 46003
+  - 46004
+

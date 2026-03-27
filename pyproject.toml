@@ -98,7 +98,7 @@ analyzer = "social_groups.analyzer.__main__:main"
 [tool.taskipy.tasks]
 pull_tgi_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/tgi.sif docker://ghcr.io/huggingface/text-generation-inference:2.3.0", help = "Pull the docker Image of TGI from huggingface and save it as apptainer sif." }
 pull_pg_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/postgres.sif docker://postgres:16", help = "Pull the docker Image of Postgres from docker and save it as apptainer sif." }
-
+pull_nginx_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/nginx.sif docker://nginx:latest", help = "Pull the docker Image of Nginx from docker and save it as apptainer sif." }
 tools = { cwd = ".", cmd = "uv run streamlit run src/social_groups/tools/app.py", help = "Run the tools App." }
 
 [tool.dg]
