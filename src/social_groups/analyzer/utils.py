@@ -43,14 +43,16 @@ CLIENT: None | httpx.Client = None
 
 def worker_initializer():
     """Runs once per worker thread"""
-    return httpx.Client(
+    global CLIENT
+    CLIENT = httpx.Client(
         transport=httpx.HTTPTransport(retries=3),
-        timeout=httpx.Timeout(60.0, connect=15.0),  # adjust to your connection
+        timeout=httpx.Timeout(120.0, connect=30.0),  # adjust to your connection
         limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
     )
+    return CLIENT
 
 
-@with_per_span_cache(PHOENIX_CACHE_DIR)
+@with_per_span_cache()
 def get_span_attributes(
     *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
 ) -> dict[SpanId, dict[str, Any]]:

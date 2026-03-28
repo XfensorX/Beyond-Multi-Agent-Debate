@@ -76,16 +76,30 @@ def iter_jsonl_zst(path: Path) -> Iterator[Dict[str, Any]]:
     with path.open("rb") as f:
         dctx = zstd.ZstdDecompressor()
         with dctx.stream_reader(f) as reader:
-            buf = b""
+            buf = bytearray()
+
             while True:
-                chunk = reader.read(1 << 20)
+                chunk = reader.read(1 << 20)  # 1MB chunks
                 if not chunk:
                     break
-                buf += chunk
-                while b"\n" in buf:
-                    line, buf = buf.split(b"\n", 1)
-                    if not line.strip():
-                        continue
-                    yield json.loads(line)
+
+                buf.extend(chunk)
+
+                start = 0
+                while True:
+                    nl = buf.find(b"\n", start)
+                    if nl == -1:
+                        break
+
+                    line = buf[start:nl]
+                    if line.strip():
+                        yield json.loads(line)
+
+                    start = nl + 1
+
+                # keep only leftover
+                if start:
+                    del buf[:start]
+
             if buf.strip():
                 yield json.loads(buf)

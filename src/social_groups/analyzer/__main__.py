@@ -4,7 +4,6 @@ import queue
 import threading
 from collections import defaultdict
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
-from dataclasses import asdict
 from itertools import count
 from pathlib import Path
 from typing import Any, List
@@ -17,8 +16,8 @@ from rich.live import Live
 from rich.table import Table
 from typer import Typer
 
+from social_groups.analyzer.answer_info_cache import AnswerInfoCache
 from social_groups.analyzer.models import Answer, Experiment, Question, Run
-from social_groups.analyzer.models.base import append_parquet_row
 from social_groups.analyzer.package_handling import (
     PendingCollection,
     ReceivePackage,
@@ -52,12 +51,12 @@ from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
 app = Typer(no_args_is_help=True)
 
 
-MAX_PARALLEL_REQUESTS = 50
+MAX_PARALLEL_REQUESTS = 10
 MAX_IDS_PER_REQUEST = 20
 IN_QUEUE_MAXSIZE = 10000
 OUT_QUEUE_MAXSIZE = 10000
-CHUNK_SIZE = 100
-MAX_RETRIES = 1000
+CHUNK_SIZE = 1000
+MAX_RETRIES = 2**30
 
 QUEUE_TIMEOUT = 10  # seconds
 
@@ -140,14 +139,7 @@ def main_process_loop(in_q: queue.Queue, out_q: queue.Queue):
                 try:
                     span_infos = task.result()
                     for b in submitted_batches.pop(task):
-                        new_b = ReceivePackage(
-                            **{
-                                k: v
-                                for k, v in asdict(b).items()
-                                if k not in {"phoenix_graphql_endpoint"}
-                            },
-                            span_info=span_infos[b.span_id],
-                        )
+                        new_b = ReceivePackage(id=b.id, span_info=span_infos[b.span_id])
                         try:
                             out_q.put(new_b, timeout=QUEUE_TIMEOUT)
                         except queue.Full:
@@ -182,7 +174,7 @@ def main_process_loop(in_q: queue.Queue, out_q: queue.Queue):
                         logger.error(
                             f"Batch failed after {MAX_RETRIES} retries; giving up.",
                         )
-                        raise
+                        raise e
 
                 except Exception as e:
                     logger.error(f"Unknown error, stopping procedure. ({e})")
@@ -273,6 +265,8 @@ async def build_parquet_files(output_directory: Path):
     run_configs: dict[int, MainConfig] = {}
     run_meta_infos: dict[int, ExperimentMetaInfo] = {}
 
+    answer_infos_cache = AnswerInfoCache()
+
     seen_questions: dict[
         bytes, int
     ] = {}  # tracks question_hashes and respective question_ids to track duplicate questions
@@ -296,46 +290,54 @@ async def build_parquet_files(output_directory: Path):
             chunk = buf[:size]
             buf = buf[size:]
 
-            question_items = [
-                Question.from_raw_data(
-                    assigned_id=next(id_generators[Question]),
-                    entry=b.entry,
-                    hydra_config=run_configs[b.run_id],
-                    span_attributes=b.span_info,
-                    meta_info=run_meta_infos[b.run_id],
-                )
-                for b in chunk
-            ]
-
-            question_ids = []
             new_questions = []
 
-            for q in question_items:
+            question_ids = []
+            entries = []
+            run_ids = []
+
+            for b in chunk:
+                b_entry, b_run_id = answer_infos_cache.retrieve_answer_info(b.id)
+
+                q = Question.from_raw_data(
+                    assigned_id=next(id_generators[Question]),
+                    entry=b_entry,
+                    hydra_config=run_configs[b_run_id],
+                    span_attributes=b.span_info,
+                    meta_info=run_meta_infos[b_run_id],
+                )
+
                 q_hash = q.get_id_independent_hash()
 
                 if q_hash in seen_questions:
-                    _id = seen_questions[q_hash]
+                    q_id = seen_questions[q_hash]
                 else:
-                    _id = q.question_id
-                    seen_questions[q_hash] = _id
+                    q_id = q.question_id
+                    seen_questions[q_hash] = q_id
                     new_questions.append(q)
 
-                question_ids.append(_id)
+                entries.append(b_entry)
+                run_ids.append(b_run_id)
+                question_ids.append(q_id)
 
-            writers[Question].write_table(Question.create_parquet_table(new_questions))
+            if new_questions:
+                writers[Question].write_table(
+                    Question.create_parquet_table(new_questions)
+                )
 
             answer_items = [
                 Answer.from_raw_data(
                     assigned_id=next(id_generators[Answer]),
-                    run_id=b.run_id,
-                    entry=b.entry,
-                    hydra_config=run_configs[b.run_id],
+                    run_id=r,
+                    entry=e,
+                    hydra_config=run_configs[r],
                     question_id=q_id,
-                    meta_info=run_meta_infos[b.run_id],
+                    meta_info=run_meta_infos[r],
                     span_attributes=b.span_info,
                 )
-                for b, q_id in zip(chunk, question_ids)
+                for b, e, r, q_id in zip(chunk, entries, run_ids, question_ids)
             ]
+
             writers[Answer].write_table(Answer.create_parquet_table(answer_items))
 
             total_flushed += len(chunk)
@@ -360,6 +362,9 @@ async def build_parquet_files(output_directory: Path):
         table.add_row("[b]Total Written[/b]", f"[green]{total_flushed:>6}[/green]")
         return table
 
+    runs = []
+    experiments = []
+
     with Live(get_renderable=make_process_status_table) as live:
         try:
             for experiment_name, project_paths in project_paths_per_experiment.items():
@@ -367,11 +372,10 @@ async def build_parquet_files(output_directory: Path):
 
                 experiment_id = next(id_generators[Experiment])
 
-                append_parquet_row(
-                    writers[Experiment],
+                experiments.append(
                     Experiment.from_raw_data(
                         assigned_id=experiment_id, experiment_name=experiment_name
-                    ),
+                    )
                 )
 
                 for project_path in project_paths:
@@ -380,14 +384,13 @@ async def build_parquet_files(output_directory: Path):
                     run_configs[run_id] = read_hydra_config(project_path)
                     run_meta_infos[run_id] = read_meta_config(project_path)
 
-                    append_parquet_row(
-                        writers[Run],
+                    runs.append(
                         Run.from_raw_data(
                             assigned_id=run_id,
                             hydra_config=run_configs[run_id],
                             experiment_id=experiment_id,
                             meta_info=run_meta_infos[run_id],
-                        ),
+                        )
                     )
 
                     for item in iter_jsonl_zst(
@@ -402,9 +405,10 @@ async def build_parquet_files(output_directory: Path):
 
                         in_q.put(
                             SendPackage(
+                                id=answer_infos_cache.register_answer_info(
+                                    entry, run_id
+                                ),
                                 span_id=entry.phoenix_span_info.span_id_hex,
-                                run_id=run_id,
-                                entry=entry,
                                 phoenix_graphql_endpoint=replace_host_with_localhost(
                                     run_configs[run_id].execution.phoenix_server_url
                                     + "/graphql"
@@ -412,8 +416,9 @@ async def build_parquet_files(output_directory: Path):
                             )
                         )
                         total_put_in_queue += 1
-                    drain_results_nonblocking(out_q, buffer)
-                    buffer = try_flush(buffer)
+                    if in_q.qsize() / in_q.maxsize > 0.1:
+                        drain_results_nonblocking(out_q, buffer)
+                        buffer = try_flush(buffer)
 
             in_q.put(SENTINEL)
 
@@ -423,6 +428,13 @@ async def build_parquet_files(output_directory: Path):
 
                 buffer.append(msg)
                 buffer = try_flush(buffer)
+
+            if runs:
+                writers[Run].write_table(Run.create_parquet_table(runs))
+            if experiments:
+                writers[Experiment].write_table(
+                    Experiment.create_parquet_table(experiments)
+                )
 
             buffer = try_flush(buffer, force=True)
 

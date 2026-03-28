@@ -9,15 +9,13 @@ from social_groups.general.tracking import TrackEntry
 
 @dataclass(slots=True)
 class Package:
-    span_id: str
-    entry: TrackEntry
-    run_id: int
+    id: int
 
 
 @dataclass(slots=True)
 class SendPackage(Package):
+    span_id: str
     phoenix_graphql_endpoint: str
-    pass
 
 
 @dataclass(slots=True)
