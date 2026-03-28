@@ -1,4 +1,5 @@
 import concurrent.futures
+import logging
 import queue
 import threading
 from collections import defaultdict
@@ -44,9 +45,11 @@ from social_groups.directories import (
 from social_groups.general.tracking import TrackEntry, iter_jsonl_zst
 from social_groups.general.utils.urls import replace_host_with_localhost
 
+logger.setLevel(logging.DEBUG)
+
 
 def drain_results_nonblocking(out_q: queue.Queue, buffer: List[ReceivePackage]) -> None:
-    while True:
+    for _ in range(OUT_QUEUE_MAXSIZE):
         try:
             msg = out_q.get_nowait()
         except queue.Empty:
@@ -89,30 +92,41 @@ def read_experiment_paths() -> dict[ExperimentName, list[Path]]:
 def handle_jsonl_file(
     project_path: Path,
     run_id: int,
-    answer_infos_cache: AnswerInfoCache,
     in_q: queue.Queue,
     graphql_endpoint: str,
-) -> int:
+    global_answer_infos_cache: AnswerInfoCache,
+) -> tuple[int, AnswerInfoCache]:
+    """Returns (number_put_in_q, answer_infos)"""
+    answer_infos_cache = AnswerInfoCache()
     put_in_queue = 0
+    packages = []
     for item in iter_jsonl_zst(project_path / TRACK_FILE_NAME_COMPRESSED):
         entry = TrackEntry.model_validate(item)
 
         if entry.phoenix_span_info.span_id_hex is None:
             raise NotImplementedError("The SpanID should be always set.")
 
-        in_q.put(
+        packages.append(
             SendPackage(
                 id=answer_infos_cache.register_answer_info(entry, run_id),
+                run_id=run_id,
                 span_id=entry.phoenix_span_info.span_id_hex,
                 phoenix_graphql_endpoint=graphql_endpoint,
             )
         )
+
+    global_answer_infos_cache.update(answer_infos_cache)
+
+    for p in packages:
+        in_q.put(p)
         put_in_queue += 1
 
-    return put_in_queue
+    return put_in_queue, answer_infos_cache
 
 
 async def build_parquet_files(output_directory: Path):
+    logger.info("Building parquet files")
+
     total_put_in_queue = 0
     total_flushed = 0
 
@@ -138,12 +152,17 @@ async def build_parquet_files(output_directory: Path):
         for model in models
     }
 
+    in_q: queue.Queue = queue.Queue(maxsize=IN_QUEUE_MAXSIZE)
+    out_q: queue.Queue = queue.Queue(maxsize=OUT_QUEUE_MAXSIZE)
+
     def try_flush(
         buf: list[ReceivePackage], force: bool = False
     ) -> list[ReceivePackage]:
         nonlocal total_flushed
 
         while len(buf) >= CHUNK_SIZE or (len(buf) > 0 and force):
+            flushed = 0
+
             size = min(len(buf), CHUNK_SIZE)
             chunk = buf[:size]
             buf = buf[size:]
@@ -155,14 +174,19 @@ async def build_parquet_files(output_directory: Path):
             run_ids = []
 
             for b in chunk:
-                b_entry, b_run_id = answer_infos_cache.retrieve_answer_info(b.id)
+                try:
+                    b_entry = answer_infos_cache.retrieve_answer_info(b.id, b.run_id)
+                except KeyError:
+                    # Answer Info of that thread is not yet joined
+                    buf.append(b)
+                    continue
 
                 q = Question.from_raw_data(
                     assigned_id=next(id_generators[Question]),
                     entry=b_entry,
-                    hydra_config=run_configs[b_run_id],
+                    hydra_config=run_configs[b.run_id],
                     span_attributes=b.span_info,
-                    meta_info=run_meta_infos[b_run_id],
+                    meta_info=run_meta_infos[b.run_id],
                 )
 
                 q_hash = q.get_id_independent_hash()
@@ -175,8 +199,9 @@ async def build_parquet_files(output_directory: Path):
                     new_questions.append(q)
 
                 entries.append(b_entry)
-                run_ids.append(b_run_id)
+                run_ids.append(b.run_id)
                 question_ids.append(q_id)
+                flushed += 1
 
             if new_questions:
                 writers[Question].write_table(
@@ -198,12 +223,13 @@ async def build_parquet_files(output_directory: Path):
 
             writers[Answer].write_table(Answer.create_parquet_table(answer_items))
 
-            total_flushed += len(chunk)
+            total_flushed += flushed
 
+            if flushed == 0:
+                raise RuntimeError(
+                    "Could not flush any of the buffer contents. The answer infos are not aligned."
+                )
         return buf
-
-    in_q: queue.Queue = queue.Queue(maxsize=IN_QUEUE_MAXSIZE)
-    out_q: queue.Queue = queue.Queue(maxsize=OUT_QUEUE_MAXSIZE)
 
     project_paths_per_experiment = read_experiment_paths()
 
@@ -238,8 +264,9 @@ async def build_parquet_files(output_directory: Path):
             )
 
         for future in done_file:
-            put_in_q = future.result()
+            put_in_q, single_answer_infos_cache = future.result()
             total_put_in_queue += put_in_q
+            answer_infos_cache.update(single_answer_infos_cache)
 
         return executing_files
 
@@ -250,7 +277,7 @@ async def build_parquet_files(output_directory: Path):
                     experiment_name,
                     project_paths,
                 ) in project_paths_per_experiment.items():
-                    logger.info(f"Reading: {experiment_name}")
+                    print(f"Reading: {experiment_name}")
 
                     experiment_id = next(id_generators[Experiment])
 
@@ -280,22 +307,19 @@ async def build_parquet_files(output_directory: Path):
                                 handle_jsonl_file,
                                 project_path,
                                 run_id,
-                                answer_infos_cache,
                                 in_q,
                                 replace_host_with_localhost(
                                     run_configs[run_id].execution.phoenix_server_url
                                     + "/graphql",
                                 ),
+                                answer_infos_cache,
                             )
                         )
 
-                        if in_q.qsize() / in_q.maxsize > 0.1:
-                            drain_results_nonblocking(out_q, buffer)
-                            buffer = try_flush(buffer)
-
                         executing_files = handle_done_files(executing_files)
+                        drain_results_nonblocking(out_q, buffer)
+                        buffer = try_flush(buffer)
 
-                in_q.put(SENTINEL)
                 if runs:
                     writers[Run].write_table(Run.create_parquet_table(runs))
 
@@ -304,15 +328,28 @@ async def build_parquet_files(output_directory: Path):
                         Experiment.create_parquet_table(experiments)
                     )
 
-                while (msg := out_q.get()) != SENTINEL:
-                    if isinstance(msg, Exception):
-                        raise msg
-
-                    buffer.append(msg)
-                    buffer = try_flush(buffer)
-
+                sentinel_sent = False
+                print("Reached the End")
+                while True:
                     if executing_files:
                         executing_files = handle_done_files(executing_files)
+                    elif not sentinel_sent:
+                        in_q.put(SENTINEL)
+                        sentinel_sent = True
+
+                    drain_results_nonblocking(out_q, buffer)
+
+                    if len(buffer) > CHUNK_SIZE:
+                        buffer = try_flush(buffer)
+                    else:
+                        msg = out_q.get()
+
+                        if msg == SENTINEL:
+                            break
+                        if isinstance(msg, Exception):  # This has to be removed
+                            raise msg
+
+                        buffer.append(msg)
 
                 buffer = try_flush(buffer, force=True)
 
@@ -336,7 +373,7 @@ async def build_parquet_files(output_directory: Path):
         .is_duplicated()
         .any()
     ):
-        logger.error(
+        print(
             "There was a hash collision in the Questions. You have to save the individual ones, "
             "not just hashes and handle collisions properly."
         )

@@ -7,7 +7,6 @@ import httpx
 SENTINEL = "___SENTINEL___"
 EXCEPTION_SENTINEL = "___EXCEPTION_SENTINEL___"
 logger = logging.getLogger("PARQUET BUILDER")
-logger.setLevel(logging.DEBUG)
 
 TRANSIENT_ERRORS = (
     httpx.ConnectError,

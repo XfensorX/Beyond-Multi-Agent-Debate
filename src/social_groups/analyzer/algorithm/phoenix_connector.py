@@ -59,6 +59,19 @@ def main_process_loop(in_q: queue.Queue, out_q: queue.Queue):
         else:
             return item
 
+    def submit(batch: list[SendPackage]):
+        nonlocal currently_pooled_requests
+
+        future = pool.submit(
+            get_span_attributes,
+            span_ids=[b.span_id for b in batch],
+            phoenix_graphql_endpoint=batch[0].phoenix_graphql_endpoint,
+        )
+        currently_pooled_requests += 1
+
+        submitted_requests.add(future)
+        submitted_batches[future] = batch
+
     try:
         while True:
             while pending.total_pending < MAX_PARALLEL_REQUESTS * MAX_IDS_PER_REQUEST:
@@ -86,7 +99,9 @@ def main_process_loop(in_q: queue.Queue, out_q: queue.Queue):
                 try:
                     span_infos = task.result()
                     for b in submitted_batches.pop(task):
-                        new_b = ReceivePackage(id=b.id, span_info=span_infos[b.span_id])
+                        new_b = ReceivePackage(
+                            id=b.id, span_info=span_infos[b.span_id], run_id=b.run_id
+                        )
                         try:
                             out_q.put(new_b, timeout=QUEUE_TIMEOUT)
                         except queue.Full:
@@ -100,17 +115,7 @@ def main_process_loop(in_q: queue.Queue, out_q: queue.Queue):
                             f"{e}, trying to resubmit. (Do you have connection to phoenix graphql endpoint?)"
                         )
                         batch = submitted_batches.pop(task)
-                        new_future = pool.submit(
-                            get_span_attributes,
-                            span_ids=[b.span_id for b in batch],
-                            phoenix_graphql_endpoint=(
-                                batch[0].phoenix_graphql_endpoint
-                            ),
-                        )
-                        currently_pooled_requests += 1
-
-                        submitted_requests.add(new_future)
-                        submitted_batches[new_future] = batch
+                        submit(batch)
                         retries += 1
                         if retries % 100 == 0 and retries > 0:
                             logger.error(
@@ -136,16 +141,7 @@ def main_process_loop(in_q: queue.Queue, out_q: queue.Queue):
                     batch = pending.get_batch(MAX_IDS_PER_REQUEST)
                     if not batch:
                         break
-
-                    future = pool.submit(
-                        get_span_attributes,
-                        span_ids=[b.span_id for b in batch],
-                        phoenix_graphql_endpoint=batch[0].phoenix_graphql_endpoint,
-                    )
-                    currently_pooled_requests += 1
-
-                    submitted_requests.add(future)
-                    submitted_batches[future] = batch
+                    submit(batch)
 
     except Exception as e:
         out_q.put(e)

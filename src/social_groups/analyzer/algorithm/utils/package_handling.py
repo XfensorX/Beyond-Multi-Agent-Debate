@@ -8,6 +8,7 @@ from typing import Any
 @dataclass(slots=True)
 class Package:
     id: int
+    run_id: int
 
 
 @dataclass(slots=True)
