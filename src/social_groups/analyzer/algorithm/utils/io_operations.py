@@ -12,8 +12,10 @@ import yaml
 from omegaconf import OmegaConf
 from pyarrow.parquet import ParquetWriter
 
-from social_groups.analyzer.phoenix_span_attribute_cache import with_per_span_cache
-from social_groups.directories import META_FILE_NAME, PHOENIX_CACHE_DIR
+from social_groups.analyzer.algorithm.utils.phoenix_span_attribute_cache import (
+    with_per_span_cache,
+)
+from social_groups.directories import META_FILE_NAME
 from social_groups.general.types import SpanId
 from social_groups.trialrunner.utils.hydra_config import MainConfig
 from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
@@ -35,8 +37,6 @@ def create_parquet_writer(location: Path, schema: pl.Schema) -> ParquetWriter:
 
 
 ATTRIBUTE_KEY_SPAN_URL = "custom_phoenix_span_url_attribute"
-
-TIMEOUT = 20  # seconds
 
 CLIENT: None | httpx.Client = None
 
@@ -73,7 +73,6 @@ def get_span_attributes(
             "query": query,
         },
         headers={"Content-Type": "application/json"},
-        timeout=TIMEOUT,
     )
 
     response.raise_for_status()

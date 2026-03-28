@@ -8,7 +8,7 @@ import polars as pl
 from pyarrow.parquet import ParquetWriter
 from pydantic import ConfigDict
 
-from social_groups.analyzer.utils import polars_schema_to_arrow_schema
+from social_groups.analyzer.io_operations import polars_schema_to_arrow_schema
 
 
 class PolarsBaseModel(pt.Model, ABC):

@@ -4,8 +4,6 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
 
-from social_groups.general.tracking import TrackEntry
-
 
 @dataclass(slots=True)
 class Package:
