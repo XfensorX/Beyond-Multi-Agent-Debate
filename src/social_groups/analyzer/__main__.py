@@ -1,6 +1,8 @@
-import logging
+import functools
 import os
+import time
 from pathlib import Path
+from typing import Any, Callable, Coroutine, TypeVar
 
 import typer
 from rich import print
@@ -18,14 +20,39 @@ from social_groups.directories import (
 )
 from social_groups.orchestrator.utils.general import run_async
 
+R = TypeVar("R")
+
+
+# TODO: refactor this
+def timer(name: str | None = None):
+    """Decorator that prints execution time for sync or async functions."""
+
+    def decorator(func: Callable[..., Coroutine[Any, Any, R] | R]):
+        @functools.wraps(func)
+        async def async_wrapper(*args: Any, **kwargs: Any) -> R:
+            start = time.perf_counter()
+            display_name = name or func.__name__
+
+            try:
+                print(f"  Executing {display_name}")
+                result = await func(*args, **kwargs)
+                return result
+            finally:
+                elapsed = time.perf_counter() - start
+                print(f"✅ {display_name} completed in {elapsed:.2f} seconds")
+
+        return async_wrapper
+
+    return decorator
+
+
 app = Typer(no_args_is_help=True)
 
 
 @app.command("parse", help="Parse results to produce parquet files.")
 @run_async
+@timer("Producing Parquet files ...")
 async def produce_parquet():
-    print("Producing Parquet files ...")
-
     os.makedirs(PARQUET_ANALYSIS_DIR, exist_ok=True)
     await build_parquet_files(PARQUET_ANALYSIS_DIR)
 

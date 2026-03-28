@@ -39,7 +39,7 @@ def with_per_span_cache():
 
     def decorator(func):
         @functools.wraps(func)
-        def wrapper(
+        async def wrapper(
             *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
         ) -> dict[SpanId, dict[str, Any]]:
             result: dict[SpanId, dict[str, Any]] = {}

@@ -38,14 +38,14 @@ def create_parquet_writer(location: Path, schema: pl.Schema) -> ParquetWriter:
 
 ATTRIBUTE_KEY_SPAN_URL = "custom_phoenix_span_url_attribute"
 
-CLIENT: None | httpx.Client = None
+CLIENT: None | httpx.AsyncClient = None
 
 
 def worker_initializer():
     """Runs once per worker thread"""
     global CLIENT
-    CLIENT = httpx.Client(
-        transport=httpx.HTTPTransport(retries=3),
+    CLIENT = httpx.AsyncClient(
+        transport=httpx.AsyncHTTPTransport(retries=3),
         timeout=httpx.Timeout(120.0, connect=30.0),  # adjust to your connection
         limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
     )
@@ -53,7 +53,7 @@ def worker_initializer():
 
 
 @with_per_span_cache()
-def get_span_attributes(
+async def get_span_attributes(
     *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
 ) -> dict[SpanId, dict[str, Any]]:
     global CLIENT
@@ -67,7 +67,7 @@ def get_span_attributes(
     )
     query = f"query GetSpans {{\n{fields}\n}}"
 
-    response = CLIENT.post(
+    response = await CLIENT.post(
         phoenix_graphql_endpoint,
         json={
             "query": query,

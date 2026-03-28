@@ -1,17 +1,16 @@
+import asyncio
 import queue
 import threading
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from typing import Any
 
 from social_groups.analyzer.algorithm.utils.common import (
     EXCEPTION_SENTINEL,
     SENTINEL,
     TRANSIENT_ERRORS,
-    SpanAttributesFuture,
     logger,
 )
 from social_groups.analyzer.algorithm.utils.io_operations import (
     get_span_attributes,
-    worker_initializer,
 )
 from social_groups.analyzer.algorithm.utils.package_handling import (
     PendingCollection,
@@ -24,18 +23,21 @@ from social_groups.analyzer.config import (
     MAX_RETRIES,
     QUEUE_TIMEOUT,
 )
+from social_groups.orchestrator.utils.general import run_async
+
+SpanAttributesAsync = asyncio.Task[dict[str, dict[str, Any]]]
 
 
-def main_process_loop(in_q: queue.Queue, out_q: queue.Queue):
+@run_async
+async def main_process_loop(in_q: queue.Queue, out_q: queue.Queue):
     retries = 0
-    pool = ThreadPoolExecutor(
-        max_workers=MAX_PARALLEL_REQUESTS, initializer=worker_initializer
-    )
+
+    get_span_semaphore = asyncio.Semaphore(MAX_PARALLEL_REQUESTS)
 
     currently_pooled_requests = 0
 
-    submitted_requests: set[SpanAttributesFuture] = set()
-    submitted_batches: dict[SpanAttributesFuture, list[SendPackage]] = {}
+    submitted_requests: set[SpanAttributesAsync] = set()
+    submitted_batches: dict[SpanAttributesAsync, list[SendPackage]] = {}
 
     pending = PendingCollection()
 
@@ -62,13 +64,15 @@ def main_process_loop(in_q: queue.Queue, out_q: queue.Queue):
     def submit(batch: list[SendPackage]):
         nonlocal currently_pooled_requests
 
-        future = pool.submit(
-            get_span_attributes,
-            span_ids=[b.span_id for b in batch],
-            phoenix_graphql_endpoint=batch[0].phoenix_graphql_endpoint,
-        )
-        currently_pooled_requests += 1
+        async def _wrapped_get_span_attributes(batch: list[SendPackage]):
+            async with get_span_semaphore:
+                return await get_span_attributes(
+                    span_ids=[b.span_id for b in batch],
+                    phoenix_graphql_endpoint=batch[0].phoenix_graphql_endpoint,
+                )
 
+        future = asyncio.create_task(_wrapped_get_span_attributes(batch))
+        currently_pooled_requests += 1
         submitted_requests.add(future)
         submitted_batches[future] = batch
 
@@ -88,51 +92,56 @@ def main_process_loop(in_q: queue.Queue, out_q: queue.Queue):
                 out_q.put(SENTINEL)
                 break
 
-            done_tasks, submitted_requests = wait(
-                submitted_requests,
-                timeout=None if (finishing.is_set() and pending.is_empty()) else 0.0,
-                return_when=FIRST_COMPLETED,
-            )
+            if submitted_requests:
+                done_tasks, submitted_requests = await asyncio.wait(
+                    submitted_requests,
+                    timeout=None
+                    if (finishing.is_set() and pending.is_empty())
+                    else 0.0,
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
 
-            for task in done_tasks:
-                currently_pooled_requests -= 1
-                try:
-                    span_infos = task.result()
-                    for b in submitted_batches.pop(task):
-                        new_b = ReceivePackage(
-                            id=b.id, span_info=span_infos[b.span_id], run_id=b.run_id
-                        )
-                        try:
-                            out_q.put(new_b, timeout=QUEUE_TIMEOUT)
-                        except queue.Full:
-                            raise RuntimeError(
-                                "The Main Process does not empty the Queue fast enough."
+                for task in done_tasks:
+                    currently_pooled_requests -= 1
+                    try:
+                        span_infos = task.result()
+                        for b in submitted_batches.pop(task):
+                            new_b = ReceivePackage(
+                                id=b.id,
+                                span_info=span_infos[b.span_id],
+                                run_id=b.run_id,
                             )
+                            try:
+                                out_q.put(new_b, timeout=QUEUE_TIMEOUT)
+                            except queue.Full:
+                                raise RuntimeError(
+                                    "The Main Process does not empty the Queue fast enough."
+                                )
 
-                except TRANSIENT_ERRORS as e:
-                    if retries < MAX_RETRIES:
-                        logger.error(
-                            f"{e}, trying to resubmit. (Do you have connection to phoenix graphql endpoint?)"
-                        )
-                        batch = submitted_batches.pop(task)
-                        submit(batch)
-                        retries += 1
-                        if retries % 100 == 0 and retries > 0:
+                    except TRANSIENT_ERRORS as e:
+                        if retries < MAX_RETRIES:
                             logger.error(
-                                f"Total of {retries} retries reached. (Will cancel at {MAX_RETRIES})"
+                                f"{e}, trying to resubmit. (Do you have connection to phoenix graphql endpoint?)"
                             )
+                            batch = submitted_batches.pop(task)
+                            submit(batch)
+                            retries += 1
+                            if retries % 100 == 0 and retries > 0:
+                                logger.error(
+                                    f"Total of {retries} retries reached. (Will cancel at {MAX_RETRIES})"
+                                )
 
-                    else:
-                        logger.error(
-                            f"Batch failed after {MAX_RETRIES} retries; giving up.",
-                        )
-                        raise e
+                        else:
+                            logger.error(
+                                f"Batch failed after {MAX_RETRIES} retries; giving up.",
+                            )
+                            raise e
 
-                except Exception as e:
-                    logger.error(f"Unknown error, stopping procedure. ({e})")
-                    raise RuntimeError(
-                        f"Did not correctly handle {e} in main process loop"
-                    ) from e
+                    except Exception as e:
+                        logger.error(f"Unknown error, stopping procedure. ({e})")
+                        raise RuntimeError(
+                            f"Did not correctly handle {e} in main process loop"
+                        ) from e
 
             if (pending.current_largest_batch_size() >= MAX_IDS_PER_REQUEST) or (
                 finishing.is_set() and not pending.is_empty()
@@ -148,5 +157,6 @@ def main_process_loop(in_q: queue.Queue, out_q: queue.Queue):
         raise
     finally:
         logger.info("Trying shutting down Main Process Loop..")
-        pool.shutdown(cancel_futures=True, wait=True)
+        # tODO: stop all asyncio tasks
+        # pool.shutdown(cancel_futures=True, wait=True)
         logger.info("Shut down Main Process Loop..")
