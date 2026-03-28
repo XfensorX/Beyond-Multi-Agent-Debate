@@ -201,17 +201,12 @@ done
 
 echo "Starting NGINX (Apptainer)..."
 
-# apptainer exec \\
-#   --bind "{str(nginx_conf)}:/etc/nginx/nginx.conf" \\
-#   {nginx_sif} \\
-#   --no-mount bind-paths \\
-#   nginx -g "daemon off;" &
-
-uv run phoenix_proxy \
-  --http-ports "${{PHOENIX_PORTS[@]}}" \
-  --http-listen {self.port} \
-  --grpc-ports "${{PHOENIX_GRPC_PORTS[@]}}" \
-  --grpc-listen {self.graphql_port} &
+apptainer exec \\
+  --bind "{str(nginx_conf)}:{str(nginx_conf)}" \\
+  --no-mount bind-paths \\
+  --writable-tmpfs \\
+  {nginx_sif} \\
+  nginx -g "daemon off;" -c '{str(nginx_conf)}' &
   
 NGINX_PID=$!
 
