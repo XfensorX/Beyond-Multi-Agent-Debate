@@ -1,6 +1,8 @@
+import concurrent.futures
 import queue
 import threading
 from collections import defaultdict
+from concurrent.futures.thread import ThreadPoolExecutor
 from itertools import count
 from pathlib import Path
 from typing import List
@@ -22,6 +24,7 @@ from social_groups.analyzer.algorithm.utils.io_operations import (
     read_hydra_config,
     read_meta_config,
 )
+from social_groups.analyzer.algorithm.utils.lazy_dictionary import LazyDict
 from social_groups.analyzer.algorithm.utils.package_handling import (
     ReceivePackage,
     SendPackage,
@@ -30,6 +33,7 @@ from social_groups.analyzer.config import (
     CHUNK_SIZE,
     IN_QUEUE_MAXSIZE,
     OUT_QUEUE_MAXSIZE,
+    PARALLEL_FILE_WRITES,
 )
 from social_groups.analyzer.models import Answer, Experiment, Question, Run
 from social_groups.directories import (
@@ -39,8 +43,6 @@ from social_groups.directories import (
 )
 from social_groups.general.tracking import TrackEntry, iter_jsonl_zst
 from social_groups.general.utils.urls import replace_host_with_localhost
-from social_groups.trialrunner.utils.hydra_config import MainConfig
-from social_groups.trialrunner.utils.meta_info import ExperimentMetaInfo
 
 
 def drain_results_nonblocking(out_q: queue.Queue, buffer: List[ReceivePackage]) -> None:
@@ -84,6 +86,32 @@ def read_experiment_paths() -> dict[ExperimentName, list[Path]]:
     return project_paths_per_experiment
 
 
+def handle_jsonl_file(
+    project_path: Path,
+    run_id: int,
+    answer_infos_cache: AnswerInfoCache,
+    in_q: queue.Queue,
+    graphql_endpoint: str,
+) -> int:
+    put_in_queue = 0
+    for item in iter_jsonl_zst(project_path / TRACK_FILE_NAME_COMPRESSED):
+        entry = TrackEntry.model_validate(item)
+
+        if entry.phoenix_span_info.span_id_hex is None:
+            raise NotImplementedError("The SpanID should be always set.")
+
+        in_q.put(
+            SendPackage(
+                id=answer_infos_cache.register_answer_info(entry, run_id),
+                span_id=entry.phoenix_span_info.span_id_hex,
+                phoenix_graphql_endpoint=graphql_endpoint,
+            )
+        )
+        put_in_queue += 1
+
+    return put_in_queue
+
+
 async def build_parquet_files(output_directory: Path):
     total_put_in_queue = 0
     total_flushed = 0
@@ -92,9 +120,8 @@ async def build_parquet_files(output_directory: Path):
 
     id_generators = {model: count() for model in models}
 
-    # maps from run_id to configs
-    run_configs: dict[int, MainConfig] = {}
-    run_meta_infos: dict[int, ExperimentMetaInfo] = {}
+    run_configs = LazyDict(read_hydra_config, max_cached=50)
+    run_meta_infos = LazyDict(read_meta_config, max_cached=50)
 
     answer_infos_cache = AnswerInfoCache()
 
@@ -196,89 +223,109 @@ async def build_parquet_files(output_directory: Path):
     runs = []
     experiments = []
 
-    with Live(get_renderable=make_process_status_table) as live:
-        try:
-            for experiment_name, project_paths in project_paths_per_experiment.items():
-                logger.info(f"Reading: {experiment_name}")
+    executing_files = set()
 
-                experiment_id = next(id_generators[Experiment])
+    def handle_done_files(executing_files, wait_for_all: bool = False):
+        nonlocal total_put_in_queue
 
-                experiments.append(
-                    Experiment.from_raw_data(
-                        assigned_id=experiment_id, experiment_name=experiment_name
-                    )
-                )
+        if wait_for_all:
+            done_file, executing_files = concurrent.futures.wait(executing_files)
+        else:
+            done_file, executing_files = concurrent.futures.wait(
+                executing_files,
+                timeout=0.01,
+                return_when=concurrent.futures.FIRST_COMPLETED,
+            )
 
-                for project_path in project_paths:
-                    run_id = next(id_generators[Run])
+        for future in done_file:
+            put_in_q = future.result()
+            total_put_in_queue += put_in_q
 
-                    run_configs[run_id] = read_hydra_config(project_path)
-                    run_meta_infos[run_id] = read_meta_config(project_path)
+        return executing_files
 
-                    runs.append(
-                        Run.from_raw_data(
-                            assigned_id=run_id,
-                            hydra_config=run_configs[run_id],
-                            experiment_id=experiment_id,
-                            meta_info=run_meta_infos[run_id],
+    with ThreadPoolExecutor(PARALLEL_FILE_WRITES) as file_executor:
+        with Live(get_renderable=make_process_status_table) as live:
+            try:
+                for (
+                    experiment_name,
+                    project_paths,
+                ) in project_paths_per_experiment.items():
+                    logger.info(f"Reading: {experiment_name}")
+
+                    experiment_id = next(id_generators[Experiment])
+
+                    experiments.append(
+                        Experiment.from_raw_data(
+                            assigned_id=experiment_id, experiment_name=experiment_name
                         )
                     )
 
-                    for item in iter_jsonl_zst(
-                        project_path / TRACK_FILE_NAME_COMPRESSED
-                    ):
-                        entry = TrackEntry.model_validate(item)
+                    for project_path in project_paths:
+                        run_id = next(id_generators[Run])
 
-                        if entry.phoenix_span_info.span_id_hex is None:
-                            raise NotImplementedError(
-                                "The SpanID should be always set."
+                        run_configs.register(run_id, project_path)
+                        run_meta_infos.register(run_id, project_path)
+
+                        runs.append(
+                            Run.from_raw_data(
+                                assigned_id=run_id,
+                                hydra_config=run_configs[run_id],
+                                experiment_id=experiment_id,
+                                meta_info=run_meta_infos[run_id],
                             )
+                        )
 
-                        in_q.put(
-                            SendPackage(
-                                id=answer_infos_cache.register_answer_info(
-                                    entry, run_id
-                                ),
-                                span_id=entry.phoenix_span_info.span_id_hex,
-                                phoenix_graphql_endpoint=replace_host_with_localhost(
+                        executing_files.add(
+                            file_executor.submit(
+                                handle_jsonl_file,
+                                project_path,
+                                run_id,
+                                answer_infos_cache,
+                                in_q,
+                                replace_host_with_localhost(
                                     run_configs[run_id].execution.phoenix_server_url
-                                    + "/graphql"
+                                    + "/graphql",
                                 ),
                             )
                         )
-                        total_put_in_queue += 1
-                    if in_q.qsize() / in_q.maxsize > 0.1:
-                        drain_results_nonblocking(out_q, buffer)
-                        buffer = try_flush(buffer)
 
-            in_q.put(SENTINEL)
+                        if in_q.qsize() / in_q.maxsize > 0.1:
+                            drain_results_nonblocking(out_q, buffer)
+                            buffer = try_flush(buffer)
 
-            while (msg := out_q.get()) != SENTINEL:
-                if isinstance(msg, Exception):
-                    raise msg
+                        executing_files = handle_done_files(executing_files)
 
-                buffer.append(msg)
-                buffer = try_flush(buffer)
+                in_q.put(SENTINEL)
+                if runs:
+                    writers[Run].write_table(Run.create_parquet_table(runs))
 
-            if runs:
-                writers[Run].write_table(Run.create_parquet_table(runs))
-            if experiments:
-                writers[Experiment].write_table(
-                    Experiment.create_parquet_table(experiments)
-                )
+                if experiments:
+                    writers[Experiment].write_table(
+                        Experiment.create_parquet_table(experiments)
+                    )
 
-            buffer = try_flush(buffer, force=True)
+                while (msg := out_q.get()) != SENTINEL:
+                    if isinstance(msg, Exception):
+                        raise msg
 
-        except Exception:
-            in_q.put(EXCEPTION_SENTINEL)
-            raise
+                    buffer.append(msg)
+                    buffer = try_flush(buffer)
 
-        finally:
-            live.update(make_process_status_table())
-            thread.join()
+                    if executing_files:
+                        executing_files = handle_done_files(executing_files)
 
-            for writer in writers.values():
-                writer.close()
+                buffer = try_flush(buffer, force=True)
+
+            except Exception:
+                in_q.put(EXCEPTION_SENTINEL)
+                raise
+
+            finally:
+                live.update(make_process_status_table())
+                thread.join()
+
+                for writer in writers.values():
+                    writer.close()
 
     if buffer:
         raise RuntimeError(f"Buffer was not completely emptied. ({len(buffer)})")

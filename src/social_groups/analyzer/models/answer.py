@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
-from social_groups.analyzer.io_operations import ATTRIBUTE_KEY_SPAN_URL
+from social_groups.analyzer.algorithm.utils.io_operations import ATTRIBUTE_KEY_SPAN_URL
 from social_groups.analyzer.models.base import PolarsBaseModel
 from social_groups.general.tracking import TrackEntry
 from social_groups.trialrunner.utils.hydra_config import MainConfig
