@@ -6,6 +6,10 @@ import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
+import huggingface_hub.errors
+import langgraph_sdk.errors
+import openai
+
 from social_groups.general.tracking import ExperimentTracker, TrackEntry
 from social_groups.general.utils.standard_library import flatten_dict
 from social_groups.trialrunner.data_connectors.base import DataConnector, Example
@@ -20,7 +24,10 @@ from social_groups.trialrunner.utils.hydra_config import (
     MainConfig,
 )
 from social_groups.trialrunner.utils.logging import progress_iter
-from social_groups.trialrunner.utils.phoenix import phoenix_example_span
+from social_groups.trialrunner.utils.phoenix import (
+    phoenix_example_span,
+    phoenix_log_span,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +61,15 @@ def run_experiment(config: MainConfig, output_directory: Path):
         logger.info("Keyboard Interrupt detected. Ending early, but gracefully")
 
 
+MAXIMMUM_RETRIES_PER_EXPERIMENT = 3
+# TODO :Add more errors.
+EXCEPTIONS_TO_RETRY = (
+    openai.BadRequestError,
+    langgraph_sdk.errors.BadRequestError,
+    huggingface_hub.errors.BadRequestError,
+)
+
+
 def execute_experiment(
     data_connector: DataConnector,
     decision_scheme: DecisionScheme,
@@ -64,32 +80,51 @@ def execute_experiment(
         with phoenix_example_span(
             example_id=example.question_id,
             attributes={"question": example.model_dump_json()},
-        ) as (
-            span,
-            span_info,
-        ):
+        ) as (span, span_info):
+            error = None
             example_in = data_connector.prepare_example(example)
-            try:
-                example_out = decision_scheme.run_example(example_in)
-                span.set_attributes(
-                    flatten_dict(
-                        {"output": example_out.model_dump_json(exclude={"history"})},
-                        map_to_basic_types=True,
+            for attempt in range(1, MAXIMMUM_RETRIES_PER_EXPERIMENT + 1):
+                try:
+                    example_out = decision_scheme.run_example(example_in)
+                    span.set_attributes(
+                        flatten_dict(
+                            {
+                                "output": example_out.model_dump_json(
+                                    exclude={"history"}
+                                )
+                            },
+                            map_to_basic_types=True,
+                        )
                     )
-                )
-            except Exception as e:
-                logger.error(
-                    f"Received '{str(e)}', skipping example with ID {example.question_id}."
-                )
-                span.set_attributes(
-                    flatten_dict(
-                        {"exception": json.dumps(e, cls=ExceptionEncoder)},
-                        map_to_basic_types=True,
-                    )
-                )
-                example_out = None
+                    return example_in, example_out, span_info
 
-            return example_in, example_out, span_info
+                except EXCEPTIONS_TO_RETRY as e:
+                    logger.info(f"Received exception {e}. Retrying.")
+
+                    with phoenix_log_span(f"Exception {e} caught. Retrying ..."):
+                        time.sleep(min(2**attempt, 10))  # simple exponential backoff
+
+                    if attempt == MAXIMMUM_RETRIES_PER_EXPERIMENT:
+                        error = e
+
+                except Exception as e:
+                    logger.error(
+                        f"Received uncaught exception {e}. Cancelling Example immediately."
+                    )
+                    error = e
+                    break
+
+            logger.error(
+                f"Received '{str(error)}' after trying {attempt} times, skipping example with ID {example.question_id}."
+            )
+            if error:
+                span.set_attributes(
+                    flatten_dict(
+                        {"exception": json.dumps(error, cls=ExceptionEncoder)},
+                        map_to_basic_types=True,
+                    )
+                )
+            return example_in, None, span_info
 
     in_flight_cap = 2 * execution_config.num_workers
     executor = ThreadPoolExecutor(max_workers=execution_config.num_workers)

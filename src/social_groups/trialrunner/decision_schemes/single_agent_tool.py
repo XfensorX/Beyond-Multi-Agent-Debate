@@ -83,6 +83,9 @@ class SingleAgentToolBaseline(DecisionScheme[SingleAgentToolConfiguration]):
             except (NoToolCallsException, InvalidToolCallException, KeyError):
                 continue
 
-        raise InvalidToolCallException(
-            f"Even After {self.config.retries_on_invalid_tool_call} retries."
+        return ExampleOutput(
+            used_input_tokens=total_input_tokens,
+            used_output_tokens=total_output_tokens,
+            final_answer=None,
+            history=history,
         )
