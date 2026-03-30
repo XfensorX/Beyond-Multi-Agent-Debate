@@ -5,7 +5,6 @@ import typer
 from social_groups.orchestrator.models.execution_environment import ExecutionLocation
 from social_groups.orchestrator.services import (
     PhoenixConfiguration,
-    SlurmService,
     SlurmServiceName,
     load_config,
 )
@@ -44,12 +43,23 @@ async def extract_phoenix(
     current_jobs: list[SlurmJobInfo], where: ExecutionLocation
 ) -> tuple[PhoenixConfigType, SlurmJobInfo]:
     phoenix_jobs = [
-        j
-        for j in map(lambda j: with_phoenix_config(j, where), current_jobs)
-        if j is not None
+        cj
+        for cj in map(lambda j: with_phoenix_config(j, where), current_jobs)
+        if cj is not None
     ]
 
     if len(phoenix_jobs) != 1:
-        raise typer.BadParameter(f"Needs 1 phoenix job. Detected {len(phoenix_jobs)}")
+        typer.echo(
+            f"Detected {len(phoenix_jobs)} phoenix instances. Single phoenix-pg instance preferred."
+        )
+        phoenix_job = [
+            (c, j)
+            for (c, j) in phoenix_jobs
+            if isinstance(c, PhoenixWithPostgresConfiguration)
+        ]
+        if len(phoenix_job) != 1:
+            raise typer.BadParameter(
+                f"Detected {len(phoenix_jobs)} phoenix-pg instances. Single phoenix-pg instance needed!"
+            )
 
     return phoenix_jobs[0]
