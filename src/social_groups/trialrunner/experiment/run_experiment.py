@@ -78,7 +78,8 @@ def execute_experiment(
 ):
     def run_single_example(example: Example):
         with phoenix_example_span(
-            example_id=example.question_id,
+            span_name=f"Example (ID {example.question_id})",
+            example_id=str(example.question_id),
             attributes={"question": example.model_dump_json()},
         ) as (span, span_info):
             error = None
