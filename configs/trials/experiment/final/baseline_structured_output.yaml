@@ -20,7 +20,7 @@ experiment:
     configuration:
       llm:
         max_new_tokens: 4096
-        temperature: 0.0
+        temperature: 0.1
         top_p: 0.1
         top_k: null
         typical_p: null
