@@ -49,15 +49,33 @@ class VLLMConfiguration(BaseInferenceService):
             f"source {exec_config.project_dir / '.venv' / 'bin' / 'activate'} && "
             f"uv run vllm serve {self._chosen_model_id} "
             f"--host=0.0.0.0 "
-            "--enable-auto-tool-choice "
-            "--tool-call-parser hermes "
             f"--port={used_model.port} "
             + (
-                f"--max-model-len={used_model.max_total_tokens}"
+                f"--enable-auto-tool-choice --tool-call-parser {used_model.tool_call_parser} "
+                if used_model.tool_call_parser
+                else ""
+            )
+            + (
+                f"--max-model-len={used_model.max_total_tokens} "
                 if used_model.max_total_tokens
                 else ""
             )
             + (f"--data-parallel-size={number_gpus} " if number_gpus != 1 else "")
             + (f"--api-server-count={number_gpus} " if number_gpus != 1 else "")
+            + (
+                f"--tokenizer_mode={used_model.tokenizer_mode} "
+                if used_model.tokenizer_mode
+                else ""
+            )
+            + (
+                f"--config_format={used_model.config_format} "
+                if used_model.config_format
+                else ""
+            )
+            + (
+                f"--load_format={used_model.load_format} "
+                if used_model.load_format
+                else ""
+            )
             # f"--quantization=" # For the future
         )

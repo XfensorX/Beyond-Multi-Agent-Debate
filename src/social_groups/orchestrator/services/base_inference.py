@@ -13,9 +13,16 @@ from social_groups.orchestrator.utils.types import ModelId
 class ModelConfiguration(BaseModel):
     port: int
 
+    tool_call_parser: Optional[str] = "hermes"
+
     max_batch_prefill_tokens: Optional[int] = None
     max_total_tokens: Optional[int] = None
     max_input_tokens: Optional[int] = None
+
+    tokenizer_mode: Optional[str] = None
+    config_format: Optional[str] = None
+    load_format: Optional[str] = None
+    reasoning_parser: Optional[str] = None
 
 
 class BaseInferenceService(SlurmService, ABC):
