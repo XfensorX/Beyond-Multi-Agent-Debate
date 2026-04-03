@@ -96,13 +96,9 @@ def get_llm(
         Backend.vLLMExternal.value,
         Backend.LMSTUDIO.value,
     }:
-        if (
-            config.top_k is not None
-            or config.typical_p is not None
-            or config.repetition_penalty is not None
-        ):
+        if config.top_k is not None or config.typical_p is not None:
             raise NotImplementedError(
-                "ChatOpenAi does not support these variables: top_k, typical_p, repetition_penalty"
+                "Does not support these variables: top_k, typical_p"
             )
 
         if "mistralai" in backend.model_name:
@@ -125,7 +121,7 @@ def get_llm(
                     f"Called ChatMistralAI with Instruct but want thinking mode,"
                     f" switch from {old_model} to {model} for these kind of requests."
                 )
-            return ChatMistralAI(
+            llm = ChatMistralAI(
                 model=model,
                 base_url=global_config_holder.global_hydra_config.execution.get_endpoint(
                     BackendInfo(backend=backend.backend, model_name=model)
@@ -137,6 +133,13 @@ def get_llm(
                 top_p=config.top_p,
                 random_seed=config.seed,
             )
+
+            if config.repetition_penalty is not None:
+                llm = llm.bind(
+                    extra_body={"repetition_penalty": config.repetition_penalty}
+                )
+
+            return llm
 
         elif "Qwen" in backend.model_name:
             llm = ChatQwen(
@@ -156,11 +159,20 @@ def get_llm(
                     }
                 )
 
+            if config.repetition_penalty is not None:
+                llm = llm.bind(
+                    extra_body={"repetition_penalty": config.repetition_penalty}
+                )
+
             return llm
 
         else:
             if with_thinking is not None:
                 raise NotImplementedError()
+            if config.repetition_penalty is not None:
+                raise NotImplementedError(
+                    "ChatOpenAi does not support these variables: repetition_penalty"
+                )
             return ChatOpenAI(
                 model=backend.model_name,
                 base_url=base_url + "/v1",

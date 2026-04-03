@@ -24,7 +24,7 @@ experiment:
         top_p: 0.1
         top_k: null
         typical_p: null
-        repetition_penalty: null
+        repetition_penalty: 1.1
         seed: 42
 
       use_few_shot_prompting: true
