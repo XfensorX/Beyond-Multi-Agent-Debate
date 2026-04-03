@@ -2,7 +2,12 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
 from social_groups.general.utils.standard_library import BaseModelWithExtraFields
-from social_groups.trialrunner.config import BackendInfo, LLMConfig, get_llm
+from social_groups.trialrunner.config import (
+    BackendInfo,
+    LLMConfig,
+    get_llm,
+    get_structured_output_method,
+)
 from social_groups.trialrunner.decision_schemes.base import (
     DecisionScheme,
     ExampleInput,
@@ -27,6 +32,7 @@ class SingleAgentStructuredOutputConfiguration(BaseModelWithExtraFields):
     backend: BackendInfo
 
     use_few_shot_prompting: bool
+    use_thinking: bool | None
 
 
 @register_decision_scheme("single-agent-structured-output")
@@ -47,12 +53,12 @@ class SingleAgentStructuredOutputBaseline(
         ]
 
         output = (
-            get_llm(self.config.llm, self.config.backend)
+            get_llm(self.config.llm, self.config.backend, self.config.use_thinking)
             .with_structured_output(
                 AnswerResponseFormat,
-                method="json_schema",
                 strict=True,
                 include_raw=True,
+                method=get_structured_output_method(self.config.backend.model_name),
             )
             .invoke(messages)
         )

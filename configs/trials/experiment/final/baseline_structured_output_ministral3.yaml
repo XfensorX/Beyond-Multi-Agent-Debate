@@ -9,3 +9,4 @@ hydra:
     params:
       experiment/hetero/backend@experiment.strategy.configuration.backend: ministral3-3b, ministral3-8b, ministral3-14b
       experiment.strategy.configuration.use_few_shot_prompting: false, true
+      experiment.strategy.configuration.use_thinking: false, true

@@ -1,3 +1,5 @@
+import re
+
 from langchain_core.messages import AIMessage
 from pydantic import BaseModel, Field, ValidationError
 
@@ -35,3 +37,49 @@ def retrieve_single_answer_info(ai_msg: AIMessage) -> SingleAnswerInfo:
 
     except KeyError as e:
         raise InvalidResponseException(str(e)) from e
+
+
+THINKING_TAGS = {
+    "think",
+    "thinking",
+    "reasoning",
+    "step",
+    "steps",
+    "thought",
+    "thoughts",
+}
+
+
+def strip_out_thinking_process(response: str):
+    """
+    Very fast version using regex.
+    Removes everything between any combination of the listed thinking tags.
+    """
+    if not THINKING_TAGS:
+        return response
+
+    etags = [re.escape(tag) for tag in THINKING_TAGS]
+
+    # Build pattern like: <think>.*?</think>|<thinking>.*?</thinking>|...
+    tags_pattern = "|".join(f"<{tag}>.*?</{tag}>" for tag in etags)
+
+    # (?s) = dot matches newline, *? = non-greedy
+    pattern = re.compile(f"(?s){tags_pattern}")
+
+    # Remove all matches repeatedly until none left (handles nesting & multiple types)
+    prev_len = -1
+    while len(response) != prev_len:
+        prev_len = len(response)
+        response = pattern.sub("", response)
+
+    # repeat for only closing tags that are left.
+    closing_only_pattern = re.compile(
+        r"(?s)" + "|".join(f"^.*?</{tag}>" for tag in etags)
+    )
+
+    prev_len = -1
+    while len(response) != prev_len:
+        prev_len = len(response)
+        response = closing_only_pattern.sub("", response)
+
+    return response.strip()

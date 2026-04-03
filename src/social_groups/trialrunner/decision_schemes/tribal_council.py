@@ -17,11 +17,11 @@ from social_groups.trialrunner.decision_schemes.base import (
     ExampleInput,
     ExampleOutput,
 )
-from social_groups.trialrunner.decision_schemes.thinking_mad import (
+from social_groups.trialrunner.experiment.main_registry import register_decision_scheme
+from social_groups.trialrunner.utils.llm_calls import (
+    retrieve_single_answer_info,
     strip_out_thinking_process,
 )
-from social_groups.trialrunner.experiment.main_registry import register_decision_scheme
-from social_groups.trialrunner.utils.llm_calls import retrieve_single_answer_info
 from social_groups.trialrunner.utils.phoenix import phoenix_log_span
 from social_groups.trialrunner.utils.tool_calls import (
     InvalidToolCallException,
@@ -47,6 +47,7 @@ class TribalCouncilConfiguration(BaseModelWithExtraFields):
 
 def extract_letter(v: str):
     if isinstance(v, str):
+        v = v.replace("'", "").replace('"', "")
         # TODO: make this configurable for different question types:
         match = re.search(r"(?i)[\(\[]?([A-J])[\)\]\.:]?\b", v.strip())
         if match:

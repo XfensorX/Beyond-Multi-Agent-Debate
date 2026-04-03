@@ -23,6 +23,7 @@ class SingleAgentToolConfiguration(BaseModelWithExtraFields):
     backend: BackendInfo
 
     use_few_shot_prompting: bool
+    use_thinking: bool | None
     retries_on_invalid_tool_call: int
 
 
@@ -58,8 +59,8 @@ class SingleAgentToolBaseline(DecisionScheme[SingleAgentToolConfiguration]):
 
         for _ in range(self.config.retries_on_invalid_tool_call):
             ai_msg = (
-                get_llm(self.config.llm, self.config.backend)
-                .bind_tools([submit_answer], tool_choice=submit_answer.name)
+                get_llm(self.config.llm, self.config.backend, self.config.use_thinking)
+                .bind_tools([submit_answer])
                 .invoke(messages)
             )
             answer_info = retrieve_single_answer_info(ai_msg)

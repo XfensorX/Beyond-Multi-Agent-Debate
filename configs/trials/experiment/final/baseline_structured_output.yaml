@@ -28,6 +28,7 @@ experiment:
         seed: 42
 
       use_few_shot_prompting: true
+      use_thinking: null
 
   additional_info:
     description: >-

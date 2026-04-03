@@ -29,7 +29,8 @@ experiment:
 
       use_few_shot_prompting: true
       retries_on_invalid_tool_call: 3
-
+      use_thinking: null
+  
   additional_info:
     description: >-
       Baseline evaluation with Tool Usage — ${experiment.strategy.configuration.backend.model_name}

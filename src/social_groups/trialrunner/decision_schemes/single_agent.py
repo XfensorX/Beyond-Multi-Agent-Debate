@@ -1,5 +1,4 @@
 from langchain_core.messages import HumanMessage, SystemMessage
-from pydantic import BaseModel
 
 from social_groups.general.utils.standard_library import BaseModelWithExtraFields
 from social_groups.trialrunner.config import BackendInfo, LLMConfig, get_llm
@@ -35,14 +34,9 @@ class SingleAgentBaseline(DecisionScheme[SingleAgentConfiguration]):
             ),
         ]
 
-        ai_msg = get_llm(self.config.llm, self.config.backend).invoke(
-            messages,
-            extra_body=(
-                None
-                if self.config.use_thinking
-                else {"chat_template_kwargs": {"enable_thinking": False}}
-            ),
-        )
+        ai_msg = get_llm(
+            self.config.llm, self.config.backend, self.config.use_thinking
+        ).invoke(messages)
 
         answer_info = retrieve_single_answer_info(ai_msg)
         return ExampleOutput(

@@ -1,4 +1,3 @@
-import re
 from copy import deepcopy
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -12,6 +11,7 @@ from social_groups.trialrunner.decision_schemes.base import (
     HistoryMessage,
 )
 from social_groups.trialrunner.experiment.main_registry import register_decision_scheme
+from social_groups.trialrunner.utils.llm_calls import strip_out_thinking_process
 from social_groups.trialrunner.utils.phoenix import phoenix_log_span
 
 
@@ -19,42 +19,6 @@ class ThinkingMadConfiguration(BaseModel):
     debate_agents: list[DebateAgent]
     number_of_rounds: int
     openly_thinking_models: set[BackendInfo]
-
-
-THINKING_TAGS = {
-    "think",
-    "thinking",
-    "reasoning",
-    "step",
-    "steps",
-    "thought",
-    "thoughts",
-}
-
-
-def strip_out_thinking_process(response: str):
-    """
-    Very fast version using regex.
-    Removes everything between any combination of the listed thinking tags.
-    """
-    if not THINKING_TAGS:
-        return response
-
-    # Build pattern like: <think>.*?</think>|<thinking>.*?</thinking>|...
-    tags_pattern = "|".join(
-        f"<{re.escape(tag)}>.+?</{re.escape(tag)}>" for tag in THINKING_TAGS
-    )
-
-    # (?s) = dot matches newline, *? = non-greedy
-    pattern = re.compile(f"(?s){tags_pattern}")
-
-    # Remove all matches repeatedly until none left (handles nesting & multiple types)
-    prev_len = -1
-    while len(response) != prev_len:
-        prev_len = len(response)
-        response = pattern.sub("", response)
-
-    return response.strip()
 
 
 @register_decision_scheme("thinking-mad")
