@@ -2104,6 +2104,15 @@ wheels = [
 ]
 
 [[package]]
+name = "json-repair"
+version = "0.53.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b6/4e/f92634077c08208df2f7d5999af3288f29bd4348849ba99fdd34f59689f4/json_repair-0.53.1.tar.gz", hash = "sha256:9eacf70954399c49f29c4723e3b899088dab096795b70c061d0421af720b35fa", size = 35947, upload-time = "2025-11-18T11:23:14.437Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1b/52/afc5ba813be79f3d34c4cb88dea63a91c2e403a899168455d2c6e56cadfb/json_repair-0.53.1-py3-none-any.whl", hash = "sha256:6d80d725f747e55373d098f883bd8c48c55c24f80b034458f5cf7e82834c803f", size = 27601, upload-time = "2025-11-18T11:23:13.012Z" },
+]
+
+[[package]]
 name = "json5"
 version = "0.14.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2425,6 +2434,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/9c/1d/a509af07535d8f4621d77f3ba5ec846ee6d52c59d2239e1385ec3b29bf92/langchain-1.2.13-py3-none-any.whl", hash = "sha256:37d4526ac4b0cdd3d7706a6366124c30dc0771bf5340865b37cdc99d5e5ad9b1", size = 112488, upload-time = "2026-03-19T17:16:06.134Z" },
 ]
 
+[package.optional-dependencies]
+mistralai = [
+    { name = "langchain-mistralai" },
+]
+
 [[package]]
 name = "langchain-core"
 version = "1.2.23"
@@ -2459,6 +2473,22 @@ wheels = [
 ]
 
 [[package]]
+name = "langchain-mistralai"
+version = "1.1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "httpx-sse" },
+    { name = "langchain-core" },
+    { name = "pydantic" },
+    { name = "tokenizers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ab/b1/712930c5bce9ffc9475e89872f42c6ed5f9567b59052f6fe0ad202c4416f/langchain_mistralai-1.1.2.tar.gz", hash = "sha256:3c852b1b2d8a729299f25fba7d5c9cadb9e2128387c2771745e8e8cb412b33cd", size = 119418, upload-time = "2026-03-13T14:12:57.856Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1f/da/de08a5442d88e23bdf3b44716be9c38e958dd888ada159de0789c91fd6c7/langchain_mistralai-1.1.2-py3-none-any.whl", hash = "sha256:2c55a7d1df6a090b61d3c3ca0a7894895c87557b8248e6fb1608d61ad9f149ee", size = 20357, upload-time = "2026-03-13T14:12:56.375Z" },
+]
+
+[[package]]
 name = "langchain-ollama"
 version = "1.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2483,6 +2513,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/d6/0f/01147f842499338ae3b0dd0a351fb83006d9ed623cf3a999bd68ba5bbe2d/langchain_openai-1.1.10.tar.gz", hash = "sha256:ca6fae7cf19425acc81814efed59c7d205ec9a1f284fd1d08aae9bda85d6501b", size = 1059755, upload-time = "2026-02-17T18:03:44.506Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/72/17/3785cbcdc81c451179247e4176d2697879cb4f45ab2c59d949ca574e072d/langchain_openai-1.1.10-py3-none-any.whl", hash = "sha256:d91b2c09e9fbc70f7af45345d3aa477744962d41c73a029beb46b4f83b824827", size = 87205, upload-time = "2026-02-17T18:03:43.502Z" },
+]
+
+[[package]]
+name = "langchain-qwq"
+version = "0.3.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "json-repair" },
+    { name = "langchain" },
+    { name = "langchain-core" },
+    { name = "langchain-openai" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a0/89/12444f63b4b9a1b4df3a2338c09c3b0650bc99b377a621815353142553b0/langchain_qwq-0.3.4.tar.gz", hash = "sha256:5156c1f6c5082d1cb8e509b912e4184182baf15f0e3cab66ff9ad62ce144bf77", size = 17952, upload-time = "2026-01-09T14:12:54.622Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/88/c7b1b2ee8cfd3f11eec50a1a8130b9a01ba2b41cce428e9ed9cb02e26b10/langchain_qwq-0.3.4-py3-none-any.whl", hash = "sha256:d04d5e1803fb694d1bb513dcbf83d7d6b04069f934786e05a706d32d9324251c", size = 17824, upload-time = "2026-01-09T14:12:53.576Z" },
 ]
 
 [[package]]
@@ -5008,11 +5054,12 @@ dependencies = [
     { name = "hydra-core" },
     { name = "hydra-joblib-launcher" },
     { name = "ipywidgets" },
-    { name = "langchain" },
+    { name = "langchain", extra = ["mistralai"] },
     { name = "langchain-core" },
     { name = "langchain-huggingface" },
     { name = "langchain-ollama" },
     { name = "langchain-openai" },
+    { name = "langchain-qwq" },
     { name = "langgraph" },
     { name = "logfire" },
     { name = "matplotlib" },
@@ -5081,10 +5128,12 @@ requires-dist = [
     { name = "hydra-joblib-launcher", specifier = ">=1.2.0" },
     { name = "ipywidgets", specifier = ">=8.1.8" },
     { name = "langchain", specifier = ">=1.1.0" },
+    { name = "langchain", extras = ["mistralai"], specifier = ">=1.1.0" },
     { name = "langchain-core", specifier = ">=1.1.0" },
     { name = "langchain-huggingface", specifier = ">=1.1.0" },
     { name = "langchain-ollama", specifier = ">=1.0.0" },
     { name = "langchain-openai", specifier = ">=1.1.0" },
+    { name = "langchain-qwq", specifier = ">=0.3.4" },
     { name = "langgraph", specifier = ">=1.0.4" },
     { name = "logfire", specifier = ">=4.15.0" },
     { name = "matplotlib", specifier = ">=3.10.7" },

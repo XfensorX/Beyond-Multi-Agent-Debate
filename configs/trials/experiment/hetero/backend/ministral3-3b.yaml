@@ -1,2 +1,2 @@
 backend: vLLMExternal
-model_name: mistralai/Ministral-3-3B-Instruct-2512
+model_name: mistralai/Ministral-3-3B-Reasoning-2512
