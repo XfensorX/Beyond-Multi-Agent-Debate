@@ -68,8 +68,11 @@ class SingleAgentStructuredOutputBaseline(
             output["parsing_error"],
         )
 
-        if error or (structured_output is None):
-            raise InvalidResponseException(error)
+        if error:
+            raise InvalidResponseException() from error
+
+        if structured_output is None:
+            raise InvalidResponseException("The structured output returned is None")
 
         answer_info = retrieve_single_answer_info(ai_msg)
 
