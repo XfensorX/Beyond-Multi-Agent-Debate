@@ -116,7 +116,7 @@ def execute_experiment(
                     break
 
             logger.error(
-                f"Received '{str(error)}' after trying {attempt} times, skipping example with ID {example.question_id}."
+                f"Received '{str(error)}' after trying {attempt} times, skipping example with ID {example.question_id} ({tracker.out_path.parent})."
             )
             if error:
                 span.set_attributes(
