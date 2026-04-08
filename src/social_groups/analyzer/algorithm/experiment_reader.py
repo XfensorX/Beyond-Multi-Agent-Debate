@@ -1,3 +1,4 @@
+import asyncio
 import concurrent.futures
 import logging
 import queue
@@ -89,14 +90,14 @@ def read_experiment_paths() -> dict[ExperimentName, list[Path]]:
     return project_paths_per_experiment
 
 
-def handle_jsonl_file(
+async def handle_jsonl_file(
     project_path: Path,
     run_id: int,
     in_q: queue.Queue,
     graphql_endpoint: str,
     global_answer_infos_cache: AnswerInfoCache,
-) -> tuple[int, AnswerInfoCache]:
-    """Returns (number_put_in_q, answer_infos)"""
+) -> int:
+    """Returns answer_infos"""
     answer_infos_cache = AnswerInfoCache()
     put_in_queue = 0
     packages = []
@@ -108,20 +109,23 @@ def handle_jsonl_file(
 
         packages.append(
             SendPackage(
-                id=answer_infos_cache.register_answer_info(entry, run_id),
+                id=await answer_infos_cache.register_answer_info(entry, run_id),
                 run_id=run_id,
                 span_id=entry.phoenix_span_info.span_id_hex,
                 phoenix_graphql_endpoint=graphql_endpoint,
             )
         )
 
-    global_answer_infos_cache.update(answer_infos_cache)
+    await global_answer_infos_cache.update(answer_infos_cache)
 
     for p in packages:
         in_q.put(p)
         put_in_queue += 1
 
-    return put_in_queue, answer_infos_cache
+    return put_in_queue
+
+
+ExecutingFileFuture = asyncio.Future[int]
 
 
 async def build_parquet_files(output_directory: Path):
@@ -155,7 +159,7 @@ async def build_parquet_files(output_directory: Path):
     in_q: queue.Queue = queue.Queue(maxsize=IN_QUEUE_MAXSIZE)
     out_q: queue.Queue = queue.Queue(maxsize=OUT_QUEUE_MAXSIZE)
 
-    def try_flush(
+    async def try_flush(
         buf: list[ReceivePackage], force: bool = False
     ) -> list[ReceivePackage]:
         nonlocal total_flushed
@@ -174,12 +178,7 @@ async def build_parquet_files(output_directory: Path):
             run_ids = []
 
             for b in chunk:
-                try:
-                    b_entry = answer_infos_cache.retrieve_answer_info(b.id, b.run_id)
-                except KeyError:
-                    # Answer Info of that thread is not yet joined
-                    buf.append(b)
-                    continue
+                b_entry = await answer_infos_cache.retrieve_answer_info(b.id, b.run_id)
 
                 q = Question.from_raw_data(
                     assigned_id=next(id_generators[Question]),
@@ -249,120 +248,137 @@ async def build_parquet_files(output_directory: Path):
     runs = []
     experiments = []
 
-    executing_files = set()
+    executing_files: set[ExecutingFileFuture] = set()
 
-    def handle_done_files(executing_files, wait_for_all: bool = False):
+    async def handle_done_files(
+        _executing_files: set[ExecutingFileFuture], wait_for_all: bool = False
+    ) -> set[ExecutingFileFuture]:
         nonlocal total_put_in_queue
 
         if wait_for_all:
-            done_file, executing_files = concurrent.futures.wait(executing_files)
+            done_file, new_executing_files = await asyncio.wait(_executing_files)
         else:
-            done_file, executing_files = concurrent.futures.wait(
-                executing_files,
-                timeout=0.01,
-                return_when=concurrent.futures.FIRST_COMPLETED,
+            done_file, new_executing_files = await asyncio.wait(
+                _executing_files, timeout=0.01, return_when=asyncio.FIRST_COMPLETED
             )
 
         for future in done_file:
-            put_in_q, single_answer_infos_cache = future.result()
+            put_in_q = future.result()
             total_put_in_queue += put_in_q
-            answer_infos_cache.update(single_answer_infos_cache)
 
-        return executing_files
+        return new_executing_files
 
-    with ThreadPoolExecutor(PARALLEL_FILE_WRITES) as file_executor:
-        with Live(get_renderable=make_process_status_table) as live:
-            try:
-                for (
-                    experiment_name,
-                    project_paths,
-                ) in project_paths_per_experiment.items():
-                    print(f"Reading: {experiment_name}")
+    handle_jsonl_file_semaphore = asyncio.Semaphore(PARALLEL_FILE_WRITES)
 
-                    experiment_id = next(id_generators[Experiment])
+    with Live(get_renderable=make_process_status_table) as live:
+        try:
+            for (
+                experiment_name,
+                project_paths,
+            ) in project_paths_per_experiment.items():
+                print(f"Reading: {experiment_name}")
 
-                    experiments.append(
-                        Experiment.from_raw_data(
-                            assigned_id=experiment_id, experiment_name=experiment_name
+                experiment_id = next(id_generators[Experiment])
+
+                experiments.append(
+                    Experiment.from_raw_data(
+                        assigned_id=experiment_id, experiment_name=experiment_name
+                    )
+                )
+
+                for project_path in project_paths:
+                    run_id = next(id_generators[Run])
+
+                    run_configs.register(run_id, project_path)
+                    run_meta_infos.register(run_id, project_path)
+
+                    runs.append(
+                        Run.from_raw_data(
+                            assigned_id=run_id,
+                            hydra_config=run_configs[run_id],
+                            experiment_id=experiment_id,
+                            meta_info=run_meta_infos[run_id],
                         )
                     )
 
-                    for project_path in project_paths:
-                        run_id = next(id_generators[Run])
-
-                        run_configs.register(run_id, project_path)
-                        run_meta_infos.register(run_id, project_path)
-
-                        runs.append(
-                            Run.from_raw_data(
-                                assigned_id=run_id,
-                                hydra_config=run_configs[run_id],
-                                experiment_id=experiment_id,
-                                meta_info=run_meta_infos[run_id],
+                    async def _wrapped_handle_jsonl_file(
+                        _project_path: Path,
+                        _run_id: int,
+                        _in_q: queue.Queue,
+                        _graphql_endpoint: str,
+                        _global_answer_infos_cache: AnswerInfoCache,
+                    ):
+                        async with handle_jsonl_file_semaphore:
+                            return await handle_jsonl_file(
+                                _project_path,
+                                _run_id,
+                                _in_q,
+                                _graphql_endpoint,
+                                _global_answer_infos_cache,
                             )
-                        )
 
-                        executing_files.add(
-                            file_executor.submit(
-                                handle_jsonl_file,
+                    executing_files.add(
+                        asyncio.create_task(
+                            _wrapped_handle_jsonl_file(
                                 project_path,
                                 run_id,
                                 in_q,
                                 replace_host_with_localhost(
                                     run_configs[run_id].execution.phoenix_server_url
-                                    + "/graphql",
+                                    + "/graphql"
                                 ),
                                 answer_infos_cache,
                             )
                         )
-
-                        executing_files = handle_done_files(executing_files)
-                        drain_results_nonblocking(out_q, buffer)
-                        buffer = try_flush(buffer)
-
-                if runs:
-                    writers[Run].write_table(Run.create_parquet_table(runs))
-
-                if experiments:
-                    writers[Experiment].write_table(
-                        Experiment.create_parquet_table(experiments)
                     )
 
-                sentinel_sent = False
-                print("Reached the End")
-                while True:
-                    if executing_files:
-                        executing_files = handle_done_files(executing_files)
-                    elif not sentinel_sent:
-                        in_q.put(SENTINEL)
-                        sentinel_sent = True
-
+                    executing_files = await handle_done_files(executing_files)
                     drain_results_nonblocking(out_q, buffer)
+                    buffer = await try_flush(buffer)
 
-                    if len(buffer) > CHUNK_SIZE:
-                        buffer = try_flush(buffer)
-                    else:
-                        msg = out_q.get()
+            if runs:
+                writers[Run].write_table(Run.create_parquet_table(runs))
 
-                        if msg == SENTINEL:
-                            break
-                        if isinstance(msg, Exception):  # This has to be removed
-                            raise msg
+            if experiments:
+                writers[Experiment].write_table(
+                    Experiment.create_parquet_table(experiments)
+                )
 
-                        buffer.append(msg)
+            sentinel_sent = False
+            print("Reached the End")
+            while True:
+                if executing_files:
+                    executing_files = await handle_done_files(executing_files)
+                elif not sentinel_sent:
+                    in_q.put(SENTINEL)
+                    sentinel_sent = True
 
-                buffer = try_flush(buffer, force=True)
+                drain_results_nonblocking(out_q, buffer)
 
-            except Exception:
-                in_q.put(EXCEPTION_SENTINEL)
-                raise
+                if len(buffer) > CHUNK_SIZE:
+                    buffer = await try_flush(buffer)
+                else:
+                    msg = out_q.get()
 
-            finally:
-                live.update(make_process_status_table())
-                thread.join()
+                    if msg == SENTINEL:
+                        break
+                    if isinstance(msg, Exception):  # This has to be removed
+                        raise msg
 
-                for writer in writers.values():
-                    writer.close()
+                    buffer.append(msg)
+
+            buffer = await try_flush(buffer, force=True)
+
+        except Exception:
+            in_q.put(EXCEPTION_SENTINEL)
+            raise
+
+        finally:
+            live.update(make_process_status_table())
+            thread.join()
+
+            for writer in writers.values():
+                writer.close()
 
     if buffer:
         raise RuntimeError(f"Buffer was not completely emptied. ({len(buffer)})")

@@ -54,10 +54,11 @@ def with_per_span_cache():
                     result[sid] = data
 
             if missing:
-                batch_result = func(
+                batch_result = await func(
                     span_ids=missing,
                     phoenix_graphql_endpoint=phoenix_graphql_endpoint,
                 )
+
                 for sid, data in batch_result.items():
                     key = make_cache_key(sid, phoenix_graphql_endpoint)
                     PHOENIX_DISK_CACHE.set(key, data)  # direct set
