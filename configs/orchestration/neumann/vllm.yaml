@@ -1,0 +1,82 @@
+slurm_config:
+  time: 48:00:00
+  cpus_per_task: 16
+  memory_GB: 128
+  gres: gpu:1
+  partition: ampere
+
+llm_models:
+  Qwen/Qwen2.5-0.5B-Instruct:
+    port: 8000
+  #    max_batch_prefill_tokens: 8193
+  #    max_total_tokens: 8192
+  #    max_input_tokens: 7168
+
+  Qwen/Qwen3-0.6B:
+    port: 40006
+  Qwen/Qwen3-4B:
+    port: 40004
+  Qwen/Qwen3-14B:
+    port: 40014
+
+  Qwen/Qwen3.5-0.8B:
+    port: 40508
+    tool_call_parser: qwen3_coder
+
+  Qwen/Qwen3.5-4B:
+    port: 40504
+    tool_call_parser: qwen3_coder
+
+  Qwen/Qwen3.5-9B:
+    port: 40509
+    tool_call_parser: qwen3_coder
+
+  mistralai/Ministral-3-3B-Instruct-2512:
+    port: 40253
+    tokenizer_mode: mistral
+    config_format: mistral
+    load_format: mistral
+    tool_call_parser: null
+
+  mistralai/Ministral-3-8B-Instruct-2512:
+    port: 40258
+    max_total_tokens: 100000 # to fit in VRAM
+    tokenizer_mode: mistral
+    config_format: mistral
+    load_format: mistral
+    tool_call_parser: null
+
+  mistralai/Ministral-3-14B-Instruct-2512:
+    port: 40251
+    max_total_tokens: 100000 # to fit in VRAM
+    tokenizer_mode: mistral
+    config_format: mistral
+    load_format: mistral
+    tool_call_parser: null
+
+
+  mistralai/Ministral-3-3B-Reasoning-2512:
+    port: 41253
+    tokenizer_mode: mistral
+    config_format: mistral
+    load_format: mistral
+    tool_call_parser: mistral
+    reasoning_parser: mistral
+
+  mistralai/Ministral-3-8B-Reasoning-2512:
+    port: 41258
+    max_total_tokens: 100000 # to fit in VRAM
+    tokenizer_mode: mistral
+    config_format: mistral
+    load_format: mistral
+    tool_call_parser: mistral
+    reasoning_parser: mistral
+
+  mistralai/Ministral-3-14B-Reasoning-2512:
+    port: 41251
+    max_total_tokens: 100000 # to fit in VRAM
+    tokenizer_mode: mistral
+    config_format: mistral
+    load_format: mistral
+    tool_call_parser: mistral
+    reasoning_parser: mistral

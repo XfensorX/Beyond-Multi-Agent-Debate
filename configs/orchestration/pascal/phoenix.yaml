@@ -1,0 +1,5 @@
+slurm_config:
+  time: 72:00:00
+  cpus_per_task: 16
+  memory_GB: 12
+port: 6006

@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - final/baseline_structured_output
+  - _self_
+  - override /experiment/hetero/backend@experiment.strategy.configuration.backend: qwen35-4b
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/backend@experiment.strategy.configuration.backend: qwen35-0_8b, qwen35-4b, qwen35-9b
+      experiment.strategy.configuration.use_few_shot_prompting: false, true

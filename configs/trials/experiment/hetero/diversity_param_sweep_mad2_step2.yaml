@@ -1,0 +1,51 @@
+# @package _global_
+defaults:
+  - _self_
+  - /experiment/hetero/groups/Qwen3@_models: LL
+
+hydra:
+  sweeper:
+    params:
+      params_temperature: 0.0, 0.2, 0.7, 1.3
+      params_top_p: 0.1, 0.3
+      experiment/hetero/groups/Qwen3@_models: LL, LM, HL, MM, HM, HH
+
+params_temperature: 0.0
+params_top_p: 1.0
+
+experiment:
+  name: diversity_parameter_sweep_mad2_step2
+  data: mmlu-pro-subset
+
+  strategy:
+    name: multi-agent-debate
+    configuration:
+      number_of_rounds: 3
+
+      debate_agents:
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 4096
+            temperature: ${params_temperature}
+            top_p: ${params_top_p}
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+          backend: ${_models.0}
+
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 4096
+            temperature: ${params_temperature}
+            top_p: ${params_top_p}
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+          backend: ${_models.1}
+
+
+  additional_info:
+    description: MAD2 Param Sweep step2 top_p=${params_top_p}, temp=${params_temperature}— ${_models.0},${_models.1}
+
+
+

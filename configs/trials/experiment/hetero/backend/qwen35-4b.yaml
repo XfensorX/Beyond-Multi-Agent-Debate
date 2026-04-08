@@ -1,0 +1,2 @@
+backend: vLLMExternal
+model_name: Qwen/Qwen3.5-4B

@@ -1,0 +1,5 @@
+# @package _global_
+defaults:
+  - /experiment/hetero/backend@0: qwen35-4b
+  - /experiment/hetero/backend@1: qwen35-9b
+  - /experiment/hetero/backend@2: qwen35-0_8b

@@ -1,0 +1,50 @@
+# @package _global_
+defaults:
+  - _self_
+  - /experiment/hetero/groups/Qwen3@_models: LL
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/groups/Qwen3@_models: LL, LM, HL, MM, HM, HH
+
+
+experiment:
+  name: heterogeneous_group_mad2
+  data: mmlu-pro-subset
+
+  strategy:
+    name: multi-agent-debate
+    configuration:
+      number_of_rounds: 3
+
+      debate_agents:
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 4096
+            temperature: 0.0
+            top_p: 1.0
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+            seed: 42
+          backend: ${_models.0}
+
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 4096
+            temperature: 0.0
+            top_p: 1.0
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+            seed: 42
+          backend: ${_models.1}
+
+
+
+  additional_info:
+    description: Multi Agent Debate Evaluation — ${_models.0},${_models.1}
+
+
+

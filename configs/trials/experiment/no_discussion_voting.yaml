@@ -1,0 +1,38 @@
+# @package _global_
+defaults:
+  - _self_
+  - /experiment/hetero/groups/Qwen3@_models: L
+
+hydra:
+  sweeper:
+    params:
+      _temperature: 0.0, 0.1, 0.3
+      experiment/hetero/groups/Qwen3@_models: L, M, H
+
+_temperature: 0.0
+
+experiment:
+  name: no_discussion_voting
+  data: mmlu-pro-subset
+
+  strategy:
+    name: multi-agent-debate
+    configuration:
+      number_of_rounds: 1
+
+      debate_agents:
+        - number_of_agents: 12
+          params:
+            max_new_tokens: 4096
+            temperature: ${_temperature}
+            top_p: 1.0
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+          backend: ${_models.0}
+
+  additional_info:
+    description: No Discussion, just voting with ${_models.0} and temperature ${_temperature}
+
+
+

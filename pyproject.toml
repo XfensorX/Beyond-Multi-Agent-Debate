@@ -1,0 +1,122 @@
+[project]
+name = "social_groups"
+version = "0.1.0"
+description = "Some Experiments on behaviour of Agents in Groups"
+readme = "README.md"
+requires-python = "==3.11.*"
+dependencies = [
+    "altair[all]>=6.0.0",
+    "arize-phoenix>=12.27.0",
+    "arize-phoenix-client>=1.27.1",
+    "beautifulsoup4>=4.14.2",
+    "bitsandbytes>=0.46.1",
+    "datamodel-code-generator>=0.52.2",
+    "datasets>=4.4.1",
+    "grpcio>=1.76.0",
+    "grpcio-health-checking>=1.76.0",
+    "httpx>=0.28.1",
+    "hydra-core>=1.3.2",
+    "hydra-joblib-launcher>=1.2.0",
+    "ipywidgets>=8.1.8",
+    "langchain>=1.1.0",
+    "langchain[mistralai]>=1.1.0",
+    "langchain-core>=1.1.0",
+    "langchain-huggingface>=1.1.0",
+    "langchain-ollama>=1.0.0",
+    "langchain-openai>=1.1.0",
+    "langgraph>=1.0.4",
+    "logfire>=4.15.0",
+    "matplotlib>=3.10.7",
+    "notebook>=7.5.0",
+    "numpy<2.3",
+    "omegaconf>=2.3.0",
+    "openai>=2.8.1",
+    "openinference-instrumentation-langchain>=0.1.56",
+    "pandas>=2.3.3",
+    "pandas-stubs==2.3.2.250926",
+    "patito>=0.8.5",
+    "playwright>=1.56.0",
+    "polars>=1.36.1",
+    "pydantic>=2.12.4",
+    "python-dotenv>=1.2.1",
+    "questionary>=2.1.1",
+    "rich>=14.2.0",
+    "rich-pyfiglet>=1.0.0",
+    "ruff>=0.14.8",
+    "streamlit>=1.52.2",
+    "taskipy>=1.14.1",
+    "textual[syntax]>=7.4.0",
+    "textual-dev>=1.8.0",
+    "typer>=0.21.0",
+    "uv>=0.9.18",
+    "vllm>=0.18.1; sys_platform == 'linux'",
+    "zstandard>=0.25.0",
+    "pyfonts>=1.2.0",
+    "highlight-text>=0.2",
+    "drawarrow>=0.1.0",
+    "plotly>=6.5.2",
+    "watchdog>=6.0.0",
+    "dagster>=1.12.14",
+    "dagster-webserver>=1.12.14",
+    "dagster-dg-cli>=1.12.14",
+    "dagster-polars>=0.27.9",
+    "dagstermill>=0.28.14",
+    "vega>=4.1.0",
+    "ty>=0.0.20",
+    "pyrefly>=0.55.0",
+    "seaborn>=0.13.2",
+    "diskcache>=5.6.3",
+    "py-spy>=0.4.1",
+    "asyncpg>=0.31.0",
+    "psycopg>=3.3.3",
+    "langchain-qwq>=0.3.4",
+    "poldantic>=0.3.1",
+]
+
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.uv]
+package = true
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
+[project.scripts]
+orch = "social_groups.orchestrator.__main__:main"
+orchestrator = "social_groups.orchestrator.__main__:main"
+trial = "social_groups.trialrunner.__main__:main"
+trialrunner = "social_groups.trialrunner.__main__:main"
+slorch = "social_groups.slorch.__main__:main"
+ana = "social_groups.analyzer.__main__:main"
+analyzer = "social_groups.analyzer.__main__:main"
+
+phoenix_proxy = "social_groups.orchestrator.proxy:main"
+
+
+[tool.taskipy.tasks]
+pull_tgi_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/tgi.sif docker://ghcr.io/huggingface/text-generation-inference:2.3.0", help = "Pull the docker Image of TGI from huggingface and save it as apptainer sif." }
+pull_pg_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/postgres.sif docker://postgres:16", help = "Pull the docker Image of Postgres from docker and save it as apptainer sif." }
+pull_nginx_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/nginx.sif docker://nginxinc/nginx-unprivileged:latest", help = "Pull the docker Image of Nginx from docker and save it as apptainer sif." }
+tools = { cwd = ".", cmd = "uv run streamlit run src/social_groups/tools/app.py", help = "Run the tools App." }
+dagster = { cwd = ".", cmd = "uv run dg dev" }
+
+[tool.dg]
+directory_type = "project"
+
+[tool.dg.project]
+root_module = "social_groups.analysis"
+registry_modules = [
+    "social_groups.analysis.components.*",
+]
+
+[dependency-groups]
+dev = [
+    "marimo>=0.21.1",
+]

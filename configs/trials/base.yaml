@@ -1,0 +1,26 @@
+defaults:
+  - _self_
+  - override hydra/launcher: joblib
+
+
+hydra:
+  run:
+    dir: results/runs/${hostname:}/${experiment.name}/${now:%Y-%m-%d-%H-%M-%S}
+
+  sweep:
+    dir: results/multirun/${hostname:}/${experiment.name}/${now:%Y-%m-%d-%H-%M-%S}
+    subdir: ${experiment.name}_${hydra.job.num}
+
+  job:
+    chdir: false
+
+
+execution:
+  seconds_between_start_of_new_experiment: 1.0
+  phoenix_server_url: http://localhost:6006
+  phoenix_graphql_url: http://localhost:4317
+  model_backends: [ ] # To fill on startup
+  backend_api_key_env_vars: { } # to fill on startup
+  num_workers: 5
+  llm_request_timeout: 180
+  llm_request_max_retries: 3
