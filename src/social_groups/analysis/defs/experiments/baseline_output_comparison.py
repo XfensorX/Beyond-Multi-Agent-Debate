@@ -28,46 +28,45 @@ def baseline_output_comparison(combined_data: pl.DataFrame):
                 "heterogeneous_group_baseline_tool",
             }
         )
+        & pl.col("data_connector").is_in({"mmlu-pro-subset"}),
     ).with_columns(
         model_name=pl.col("experiment_configuration_json").map_elements(
-            lambda x: ExperimentConfig.model_validate(
-                json.loads(x)
-            ).strategy.configuration.backend.model_name,
+            lambda x: (
+                ExperimentConfig.model_validate(
+                    json.loads(x)
+                ).strategy.configuration.backend.model_name
+            ),
             return_dtype=pl.Utf8,
         ),
         with_few_shot_prompting=pl.col("experiment_configuration_json").map_elements(
-            lambda x: (
+            lambda x: getattr(
                 getattr(
                     getattr(
-                        getattr(
-                            ExperimentConfig.model_validate(json.loads(x)),
-                            "strategy",
-                            None,
-                        ),
-                        "configuration",
+                        ExperimentConfig.model_validate(json.loads(x)),
+                        "strategy",
                         None,
                     ),
-                    "use_few_shot_prompting",
+                    "configuration",
                     None,
-                )
+                ),
+                "use_few_shot_prompting",
+                None,
             ),
             return_dtype=pl.Boolean,
         ),
         use_thinking=pl.col("experiment_configuration_json").map_elements(
-            lambda x: (
+            lambda x: getattr(
                 getattr(
                     getattr(
-                        getattr(
-                            ExperimentConfig.model_validate(json.loads(x)),
-                            "strategy",
-                            None,
-                        ),
-                        "configuration",
+                        ExperimentConfig.model_validate(json.loads(x)),
+                        "strategy",
                         None,
                     ),
-                    "use_thinking",
+                    "configuration",
                     None,
-                )
+                ),
+                "use_thinking",
+                None,
             ),
             return_dtype=pl.Boolean,
         ),

@@ -20,11 +20,14 @@ from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
 def baseline(combined_data: pl.DataFrame):
     frame = combined_data.filter(
         pl.col("name").is_in({"heterogeneous_group_baseline"})
+        & pl.col("data_connector").is_in({"mmlu-pro-subset"})
     ).with_columns(
         model_name=pl.col("experiment_configuration_json").map_elements(
-            lambda x: ExperimentConfig.model_validate(
-                json.loads(x)
-            ).strategy.configuration.backend.model_name,
+            lambda x: (
+                ExperimentConfig.model_validate(
+                    json.loads(x)
+                ).strategy.configuration.backend.model_name
+            ),
             return_dtype=pl.Utf8,
         )
     )
