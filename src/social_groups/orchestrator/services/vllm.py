@@ -7,9 +7,7 @@ from social_groups.orchestrator.models.execution_environment import (
     ExecutionLocationConfig,
 )
 from social_groups.orchestrator.services.base import register_slurm_service
-from social_groups.orchestrator.services.base_inference import (
-    BaseInferenceService,
-)
+from social_groups.orchestrator.services.base_inference import BaseInferenceService
 
 
 @register_slurm_service("vllm")

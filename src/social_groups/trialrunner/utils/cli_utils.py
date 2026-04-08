@@ -62,9 +62,7 @@ def print_config_overview(config: MainConfig):
         Panel(
             Syntax(
                 OmegaConf.to_yaml(
-                    OmegaConf.create(
-                        config.model_dump(mode="json", exclude={"meta_info"})
-                    ),
+                    OmegaConf.create(config.model_dump(mode="json")),
                     resolve=True,
                 ),
                 "yaml",

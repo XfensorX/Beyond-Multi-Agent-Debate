@@ -32,7 +32,7 @@ class SingleAgentStructuredOutputConfiguration(BaseModelWithExtraFields):
     backend: BackendInfo
 
     use_few_shot_prompting: bool
-    use_thinking: bool | None
+    use_thinking: bool | None = None
 
 
 @register_decision_scheme("single-agent-structured-output")

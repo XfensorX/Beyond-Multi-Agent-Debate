@@ -23,7 +23,7 @@ class SingleAgentToolConfiguration(BaseModelWithExtraFields):
     backend: BackendInfo
 
     use_few_shot_prompting: bool
-    use_thinking: bool | None
+    use_thinking: bool | None = None
     retries_on_invalid_tool_call: int
 
 
