@@ -2,7 +2,7 @@
 defaults:
   - final/changed_order_mad3
   - _self_
-  - /experiment/hetero/groups/Qwen35@_models: LLL
+  - override /experiment/hetero/groups/Qwen35@_models: LLL
 
 hydra:
   sweeper:

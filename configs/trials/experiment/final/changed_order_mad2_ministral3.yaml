@@ -2,7 +2,7 @@
 defaults:
   - final/changed_order_mad2
   - _self_
-  - /experiment/hetero/groups/Ministral3@_models: LL
+  - override /experiment/hetero/groups/Ministral3@_models: LL
 
 hydra:
   sweeper:
