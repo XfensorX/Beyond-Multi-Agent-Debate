@@ -1,12 +1,12 @@
 set -euo pipefail
 
 ITEMS=(
-'final/changed_order_mad2'
-'final/changed_order_mad2_ministral3'
+'final/changed_order_mad2_qwen3'
+'final/changed_order_mad3_qwen3'
 'final/changed_order_mad2_qwen35'
-'final/changed_order_mad3'
-'final/changed_order_mad3_ministral3'
 'final/changed_order_mad3_qwen35'
+#'final/changed_order_mad2_ministral3'
+#'final/changed_order_mad3_ministral3'
 )
 
 INTERVAL=10

@@ -1,8 +1,8 @@
 # @package _global_
 defaults:
-  - final/changed_order_mad3
+  - final/changed_order_mad3_base
   - _self_
-  - override /experiment/hetero/groups/Qwen35@_models: LLL
+  - /experiment/hetero/groups/Qwen35@_models: LLL
 
 hydra:
   sweeper:

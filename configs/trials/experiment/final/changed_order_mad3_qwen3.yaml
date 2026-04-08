@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - final/changed_order_mad3_base
+  - _self_
+  - /experiment/hetero/groups/Qwen3@_models: LLL
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/groups/Qwen3@_models: LLL, LLM, LLH, LML, LMM, LMH, LHL, LHM, LHH, MLL, MLM, MLH, MML, MMM, MMH, MHL, MHM, MHH, HLL, HLM, HLH, HML, HMM, HMH, HHL, HHM, HHH
