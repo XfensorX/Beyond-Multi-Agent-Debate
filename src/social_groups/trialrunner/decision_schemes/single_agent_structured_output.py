@@ -69,17 +69,19 @@ class SingleAgentStructuredOutputBaseline(
         )
 
         if error:
-            raise InvalidResponseException() from error
+            raise InvalidResponseException(error)
 
         if structured_output is None:
-            raise InvalidResponseException("The structured output returned is None")
+            final_answer = None
+        else:
+            final_answer = structured_output.response
 
         answer_info = retrieve_single_answer_info(ai_msg)
 
         return ExampleOutput(
             used_input_tokens=answer_info.input_tokens,
             used_output_tokens=answer_info.output_tokens,
-            final_answer=structured_output.response,
+            final_answer=final_answer,
             history=[
                 HistoryMessage(
                     input_context=messages, answer=answer_info.response, agent_id=0
