@@ -40,7 +40,7 @@ llm_models:
 
   mistralai/Ministral-3-8B-Instruct-2512:
     port: 40258
-    max_total_tokens: 150000 # to fit in VRAM
+    max_total_tokens: 100000 # to fit in VRAM
     tokenizer_mode: mistral
     config_format: mistral
     load_format: mistral
@@ -65,7 +65,7 @@ llm_models:
 
   mistralai/Ministral-3-8B-Reasoning-2512:
     port: 41258
-    max_total_tokens: 150000 # to fit in VRAM
+    max_total_tokens: 100000 # to fit in VRAM
     tokenizer_mode: mistral
     config_format: mistral
     load_format: mistral
