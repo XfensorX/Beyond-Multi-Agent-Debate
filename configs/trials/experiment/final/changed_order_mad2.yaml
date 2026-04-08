@@ -27,6 +27,7 @@ experiment:
             top_k: null
             typical_p: null
             repetition_penalty: null
+            seed: 42
           backend: ${_models.0}
 
         - number_of_agents: 1
@@ -37,6 +38,7 @@ experiment:
             top_k: null
             typical_p: null
             repetition_penalty: null
+            seed: 42
           backend: ${_models.1}
 
 
