@@ -132,6 +132,7 @@ def get_llm(
                 max_tokens=config.max_new_tokens,
                 top_p=config.top_p,
                 random_seed=config.seed,
+                timeout=None,
             )
 
             if config.repetition_penalty is not None:
