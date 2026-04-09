@@ -27,8 +27,9 @@ class SlurmConfiguration(BaseModel):
             f"#SBATCH --time={self.formatted_time}",
             f"#SBATCH --cpus-per-task={self.cpus_per_task}",
             f"#SBATCH --mem={self.memory_GB}G",
-            f"#SBATCH --output={get_slurm_log_filename(job_name)}",  # TODO: Change output file
+            f"#SBATCH --output={get_slurm_log_filename(job_name)}",
             "#SBATCH --signal=B:TERM@300",
+            "#SBATCH --mail-type=END",
         ]
 
         if self.partition:
