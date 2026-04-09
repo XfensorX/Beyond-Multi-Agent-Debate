@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - final/no_discussion_voting_base
+  - _self_
+  - /experiment/hetero/groups/Qwen3@_models: L
+
+hydra:
+  sweeper:
+    params:
+      _temperature: 0.0, 0.7
+      experiment/hetero/groups/Qwen3@_models: L, M, H
