@@ -2,6 +2,8 @@
 defaults:
   - _self_
 
+_temperature: null
+
 experiment:
   name: no_discussion_voting
   data: mmlu-pro-big-subset
