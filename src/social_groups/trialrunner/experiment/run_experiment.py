@@ -6,6 +6,8 @@ import time
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 
+import httpcore
+import httpx
 import huggingface_hub.errors
 import langgraph_sdk.errors
 import openai
@@ -61,12 +63,17 @@ def run_experiment(config: MainConfig, output_directory: Path):
         logger.info("Keyboard Interrupt detected. Ending early, but gracefully")
 
 
-MAXIMMUM_RETRIES_PER_EXPERIMENT = 3
-# TODO :Add more errors.
+MAXIMUM_RETRIES_PER_EXPERIMENT = 3
 EXCEPTIONS_TO_RETRY = (
     openai.BadRequestError,
     langgraph_sdk.errors.BadRequestError,
     huggingface_hub.errors.BadRequestError,
+    httpx.TimeoutException,
+    httpcore.TimeoutException,
+    huggingface_hub.errors.InferenceEndpointTimeoutError,
+    huggingface_hub.errors.InferenceTimeoutError,
+    langgraph_sdk.errors.APITimeoutError,
+    openai.APITimeoutError,
 )
 
 
@@ -84,7 +91,7 @@ def execute_experiment(
         ) as (span, span_info):
             error = None
             example_in = data_connector.prepare_example(example)
-            for attempt in range(1, MAXIMMUM_RETRIES_PER_EXPERIMENT + 1):
+            for attempt in range(1, MAXIMUM_RETRIES_PER_EXPERIMENT + 1):
                 try:
                     example_out = decision_scheme.run_example(example_in)
                     span.set_attributes(
@@ -105,7 +112,7 @@ def execute_experiment(
                     with phoenix_log_span(f"Exception {e} caught. Retrying ..."):
                         time.sleep(min(2**attempt, 10))  # simple exponential backoff
 
-                    if attempt == MAXIMMUM_RETRIES_PER_EXPERIMENT:
+                    if attempt == MAXIMUM_RETRIES_PER_EXPERIMENT:
                         error = e
 
                 except Exception as e:
