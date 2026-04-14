@@ -143,7 +143,10 @@ def execute_experiment(
         total = data_connector.data_length()
 
         progress_it = progress_iter(
-            range(total), total=total, desc="Running Examples ...", logger=logger
+            range(total),
+            total=total,
+            desc=f"(#{tracker.out_path.parent.name.split('_')[-1]}) Running Examples ...",
+            logger=logger,
         )
 
         for _ in range(in_flight_cap):
