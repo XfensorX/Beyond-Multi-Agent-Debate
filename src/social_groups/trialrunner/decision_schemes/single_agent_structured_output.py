@@ -1,3 +1,4 @@
+from langchain_core.exceptions import OutputParserException
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
 
@@ -15,10 +16,7 @@ from social_groups.trialrunner.decision_schemes.base import (
     HistoryMessage,
 )
 from social_groups.trialrunner.experiment.main_registry import register_decision_scheme
-from social_groups.trialrunner.utils.llm_calls import (
-    InvalidResponseException,
-    retrieve_single_answer_info,
-)
+from social_groups.trialrunner.utils.llm_calls import retrieve_single_answer_info
 
 
 class AnswerResponseFormat(BaseModel):
@@ -52,24 +50,24 @@ class SingleAgentStructuredOutputBaseline(
             ),
         ]
 
-        output = (
-            get_llm(self.config.llm, self.config.backend, self.config.use_thinking)
-            .with_structured_output(
-                AnswerResponseFormat,
-                strict=True,
-                include_raw=True,
-                method=get_structured_output_method(self.config.backend.model_name),
+        try:
+            output = (
+                get_llm(self.config.llm, self.config.backend, self.config.use_thinking)
+                .with_structured_output(
+                    AnswerResponseFormat,
+                    strict=True,
+                    include_raw=True,
+                    method=get_structured_output_method(self.config.backend.model_name),
+                )
+                .invoke(messages)
             )
-            .invoke(messages)
-        )
-        structured_output, ai_msg, error = (
-            output["parsed"],
-            output["raw"],
-            output["parsing_error"],
-        )
-
-        if error:
-            raise InvalidResponseException(error)
+            structured_output, ai_msg, _ = (
+                output["parsed"],
+                output["raw"],
+                output["parsing_error"],
+            )
+        except OutputParserException:
+            structured_output, ai_msg = (None, None)
 
         if structured_output is None:
             final_answer = None
