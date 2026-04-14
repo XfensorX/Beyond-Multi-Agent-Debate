@@ -13,6 +13,9 @@ from pydantic import BaseModel, ConfigDict, SecretStr
 
 from social_groups.trialrunner.utils import global_config_holder
 
+MAX_RETRIES = 3
+MAX_TIMEOUT = 24 * 60 * 60
+
 CLI_TITLE = "Social Studies"
 CLI_SUBTITLE = "Agent Swarm Experiments"
 
@@ -132,7 +135,8 @@ def get_llm(
                 max_tokens=config.max_new_tokens,
                 top_p=config.top_p,
                 random_seed=config.seed,
-                timeout=24 * 60 * 60,  # one day, to stop it from throwing errors
+                timeout=MAX_TIMEOUT,  # one day, to stop it from throwing errors
+                max_retries=MAX_RETRIES,
             )
 
             if config.repetition_penalty is not None:
@@ -151,6 +155,8 @@ def get_llm(
                 max_tokens=config.max_new_tokens,
                 top_p=config.top_p,
                 seed=config.seed,
+                timeout=MAX_TIMEOUT,  # one day, to stop it from throwing errors
+                max_retries=MAX_RETRIES,
             )
 
             if with_thinking is not None:
