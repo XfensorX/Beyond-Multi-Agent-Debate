@@ -70,6 +70,8 @@ def sync_exact_with_confirmation(from_dir: Path, to_dir: Path):
     wanted_files = set()
     for src_path in from_dir.rglob("*"):
         if src_path.is_file():
+            if src_path.name == ".DS_Store":
+                continue
             rel = src_path.relative_to(from_dir)
             wanted_files.add(rel)
 

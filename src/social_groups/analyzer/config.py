@@ -7,3 +7,7 @@ MAX_RETRIES = 2**30
 QUEUE_TIMEOUT = 10  # seconds
 
 PARALLEL_FILE_WRITES = 30
+
+
+# maps know faulty span_Ids to the ID that should be actually used in parsing
+KNOWN_FAULTY_SPAN_IDS = {"b150eaf387158101": "8450ca24a6399f52"}
