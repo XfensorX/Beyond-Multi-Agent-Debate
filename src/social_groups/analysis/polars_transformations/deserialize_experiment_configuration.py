@@ -7,7 +7,7 @@ from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
 
 def deserialize_experiment_configuration(expr: pl.Expr) -> pl.Expr:
     try:
-        return expr.map_elements(
+        elements = expr.map_elements(
             lambda x: ExperimentConfig.model_validate(json.loads(x)).model_dump_json(),
             return_dtype=pl.Utf8,
         ).str.json_decode(
@@ -18,6 +18,18 @@ def deserialize_experiment_configuration(expr: pl.Expr) -> pl.Expr:
                             "name": pl.String,
                             "configuration": pl.Struct(
                                 {
+                                    "debate_agents": pl.List(
+                                        pl.Struct(
+                                            {
+                                                "backend": pl.Struct(
+                                                    {"model_name": pl.String}
+                                                ),
+                                                "params": pl.Struct(
+                                                    {"temperature": pl.Float32}
+                                                ),
+                                            }
+                                        )
+                                    ),
                                     "use_few_shot_prompting": pl.Boolean,
                                     "use_thinking": pl.Boolean,
                                     "backend": pl.Struct(
@@ -32,6 +44,8 @@ def deserialize_experiment_configuration(expr: pl.Expr) -> pl.Expr:
                 }
             )
         )
+
+        return elements
     except pl.exceptions.StructFieldNotFoundError as e:
         raise NotImplementedError(
             "The Field is not extracted from the json decoding module. Please add it."

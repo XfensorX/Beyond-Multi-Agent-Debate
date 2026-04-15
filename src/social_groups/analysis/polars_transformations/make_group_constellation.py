@@ -11,3 +11,13 @@ def make_group_constellation():
         .list.join("")
         .alias(plc.group_constellation)
     )
+
+
+def make_model_family():
+    return (
+        pl.col(plc.model_names)
+        .list.eval(pl.element().str.split("/").list.last().str.split("-").list.first())
+        .list.unique()
+        .list.item()
+        .alias(plc.model_family)
+    )

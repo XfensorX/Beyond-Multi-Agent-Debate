@@ -13,6 +13,8 @@ final_answer = "final_answer"
 # the model names of the models involved as a list
 model_names = "model_names"
 
+model_family = "model_family"
+
 
 # The models that are allowed to openly think
 thinking_models = "thinking_models"
