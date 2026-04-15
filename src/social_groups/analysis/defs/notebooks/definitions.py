@@ -1,3 +1,6 @@
+import os
+import warnings
+from pathlib import Path
 from typing import Any, TypedDict
 
 import dagster as dg
@@ -74,25 +77,30 @@ def register_materialization(
     name: str,
     obj: Any,
     description: str,
+    force: bool = False,
 ):
-    context = dagstermill.get_context()
-    is_in_dagster = isinstance(
-        context,
-        dagstermill.context.DagstermillRuntimeExecutionContext,
-    )
 
-    if not is_in_dagster:
-        print("Skipping Materialization because in interactive mode.")
-        return
+    with warnings.catch_warnings(action="ignore", category=RuntimeWarning):
+        context = dagstermill.get_context()
+        is_in_dagster = isinstance(
+            context,
+            dagstermill.context.DagstermillRuntimeExecutionContext,
+        )
 
-    notebook_name = context.op_name.split("__")[-1]  # Take away group names
-    ext = global_notebook_registry[notebook_name]["extra_assets"][name]
-    ExtraNotebookAsset(
-        name=name, extension=ext, notebook_name=notebook_name
-    ).register_materialization(
-        obj,
-        description=description,
-    )
+        if not force and not is_in_dagster:
+            print("Skipping Materialization because in interactive mode.")
+            return
+        if force:
+            notebook_name = Path(os.getenv("JPY_SESSION_NAME") or "___INVALID___").stem
+        else:
+            notebook_name = context.op_name.split("__")[-1]  # Take away group names
+
+        ext = global_notebook_registry[notebook_name]["extra_assets"][name]
+        ExtraNotebookAsset(
+            name=name, extension=ext, notebook_name=notebook_name
+        ).register_materialization(
+            obj, description=description, print_output_path=force
+        )
 
 
 defs = dg.Definitions(
