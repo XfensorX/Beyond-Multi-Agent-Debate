@@ -1,3 +1,5 @@
+import pprint
+import subprocess
 from pathlib import Path
 from typing import Any, Literal
 
@@ -6,13 +8,14 @@ import dagster as dg
 import dagstermill
 import pandas as pd
 import polars as pl
+import seaborn
 from dagstermill import define_dagstermill_asset
 from matplotlib.figure import Figure
 from pydantic import BaseModel
 
 from social_groups.directories import DAGSTER_BASE_DIR
 
-SUPPORTED_EXTENSION = Literal["csv", "tex", "svg"]
+SUPPORTED_EXTENSION = Literal["csv", "tex", "svg", "pdf", "png"]
 
 
 class ExtraNotebookAsset(BaseModel):
@@ -59,15 +62,20 @@ class ExtraNotebookAsset(BaseModel):
                 return dg.MetadataValue.md(obj.to_markdown(index=False))
             else:
                 raise NotImplementedError
-        elif self.extension == "svg":
-            return None
+        elif self.extension in {"svg", "pdf", "png"}:
+            return None  # TODO: does pdf work here maybe?
         else:
             raise ValueError(f"Cannot handle type {type(obj)}")
 
-    def register_materialization(self, obj: Any, description: str):
+    def register_materialization(
+        self, obj: Any, description: str, print_output_path: bool = False
+    ):
         """Used from within a notebook to register the materialization of output assets."""
         path = self._get_path()
         path.parent.mkdir(parents=True, exist_ok=True)
+
+        if print_output_path:
+            print("Wrote to: ", path)
 
         if isinstance(obj, str):
             path.write_text(obj)
@@ -82,16 +90,23 @@ class ExtraNotebookAsset(BaseModel):
             if isinstance(obj, pl.DataFrame):
                 obj = obj.rename({col: col.replace("_", " ") for col in obj.columns})
 
-                obj.to_pandas().to_latex(path, index=False)
+                obj.to_pandas().to_latex(
+                    path, index=False, float_format="{:,.1f}".format
+                )
             elif isinstance(obj, pd.DataFrame):
                 obj.to_latex(path, index=False)
+            elif isinstance(obj, str):
+                with open(path, "w") as f:
+                    f.write(obj)
             else:
                 raise NotImplementedError
-        elif self.extension == "svg":
+        elif self.extension in {"svg", "pdf", "png"}:
             if isinstance(obj, Figure):
                 obj.savefig(path)
             elif isinstance(obj, altair.vegalite.v6.api.Chart):
                 obj.save(path)
+            elif isinstance(obj, seaborn.FacetGrid):
+                obj.savefig(path)
             else:
                 raise NotImplementedError
         else:
@@ -156,3 +171,47 @@ def create_notebook_asset(
     return [notebook_def] + [
         spec.get_spec(deps=[notebook_def]) for spec in extra_assets
     ]
+
+
+def code_to_latex_snippet(
+    code: str, *, caption: str, label: str, style="python"
+) -> str:
+    def format_string_with_ruff(source_code: str) -> str:
+        process = subprocess.Popen(
+            ["ruff", "format", "-"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        stdout, stderr = process.communicate(input=source_code)
+        if process.returncode != 0:
+            raise Exception(f"Ruff formatting failed: {stderr}")
+        return stdout
+
+    return "\n".join(
+        [
+            f"\\begin{{lstlisting}}[style={style}, caption={{{caption}}}, label={{code:{label}}}]",
+            format_string_with_ruff(code),
+            "\end{lstlisting}",
+        ]
+    )
+
+
+def definition_to_code_string(obj, var_name: str):
+    if isinstance(obj, list):
+        lines = [f"{var_name} = ["]
+
+        for item in obj:
+            if not isinstance(item, str) or "\\" not in item:
+                lines.append(f"{pprint.pformat(item, width=100, sort_dicts=False)},")
+                continue
+
+            escaped = item.replace('"', r"\"").replace("'", r"\'")
+            lines.append(f'r"{escaped}", ')
+
+        lines.append("]")
+        return "\n".join(lines)
+
+    value_str = pprint.pformat(obj, width=100, sort_dicts=False)
+    return f"{var_name} = {value_str}"
