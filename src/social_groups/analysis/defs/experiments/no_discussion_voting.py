@@ -32,6 +32,7 @@ from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
 def no_discussion_voting(combined_data: pl.DataFrame):
     frame = combined_data.filter(
         pl.col("name").is_in({"no_discussion_voting"})
+        & pl.col("data_connector").is_in({"mmlu-pro-subset"})
     ).with_columns(
         pl.col(plc.experiment_configuration_json)
         .map_elements(

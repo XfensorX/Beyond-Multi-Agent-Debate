@@ -32,7 +32,10 @@ from social_groups.trialrunner.utils.hydra_config import ExperimentConfig
 )
 def changed_prompt_mad(combined_data: pl.DataFrame):
     frame = (
-        combined_data.filter(pl.col("name").str.contains("changed_prompt"))
+        combined_data.filter(
+            pl.col("name").str.contains("changed_prompt")
+            & pl.col("data_connector").is_in({"mmlu-pro-subset"}),
+        )
         .with_columns(
             pl.col(plc.experiment_configuration_json)
             .map_elements(
@@ -49,25 +52,31 @@ def changed_prompt_mad(combined_data: pl.DataFrame):
             .alias(plc.model_names),
             pl.col(plc.experiment_configuration_json)
             .map_elements(
-                lambda x: ExperimentConfig.model_validate(
-                    json.loads(x)
-                ).strategy.configuration.system_message,
+                lambda x: (
+                    ExperimentConfig.model_validate(
+                        json.loads(x)
+                    ).strategy.configuration.system_message
+                ),
                 return_dtype=pl.String,
             )
             .alias("prompt_system_message"),
             pl.col(plc.experiment_configuration_json)
             .map_elements(
-                lambda x: ExperimentConfig.model_validate(
-                    json.loads(x)
-                ).strategy.configuration.human_messsage_before_other_answers,
+                lambda x: (
+                    ExperimentConfig.model_validate(
+                        json.loads(x)
+                    ).strategy.configuration.human_messsage_before_other_answers
+                ),
                 return_dtype=pl.String,
             )
             .alias("prompt_human_messsage_before_other_answers"),
             pl.col(plc.experiment_configuration_json)
             .map_elements(
-                lambda x: ExperimentConfig.model_validate(
-                    json.loads(x)
-                ).strategy.configuration.human_messsage_after_other_answers,
+                lambda x: (
+                    ExperimentConfig.model_validate(
+                        json.loads(x)
+                    ).strategy.configuration.human_messsage_after_other_answers
+                ),
                 return_dtype=pl.String,
             )
             .alias("prompt_human_messsage_after_other_answers"),

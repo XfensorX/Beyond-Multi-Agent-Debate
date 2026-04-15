@@ -4,7 +4,7 @@ import dagster as dg
 import polars as pl
 from dagster import AssetCheckSpec
 
-import src.social_groups.polars_columns as plc
+import social_groups.polars_columns as plc
 from social_groups.analysis.asset_checks import (
     check_unique_data_connector,
 )
@@ -26,6 +26,7 @@ def changed_order_mad(combined_data: pl.DataFrame):
     frame = (
         combined_data.filter(
             pl.col("name").is_in({"changed_order_mad2", "changed_order_mad3"})
+            & pl.col("data_connector").is_in({"mmlu-pro-subset"}),
         )
         .with_columns(
             model_names=pl.col("experiment_configuration_json").map_elements(
