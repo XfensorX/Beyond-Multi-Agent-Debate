@@ -110,4 +110,5 @@ defs = dg.Definitions(
             else None,
         )
     ],
+    executor=dg.multiprocess_executor.configured({"max_concurrent": 1}),
 )
