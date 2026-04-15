@@ -3,7 +3,7 @@ set -euo pipefail
 ITEMS=(
 "Qwen/Qwen3.5-0.8B --gpus 1"
 "Qwen/Qwen3.5-4B --gpus 1"
-"Qwen/Qwen3.5-9B --gpus 1"
+"Qwen/Qwen3.5-9B --gpus 2"
 )
 
 
