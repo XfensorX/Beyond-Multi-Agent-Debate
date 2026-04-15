@@ -1,10 +1,8 @@
 import asyncio
-import concurrent.futures
 import logging
 import queue
 import threading
 from collections import defaultdict
-from concurrent.futures.thread import ThreadPoolExecutor
 from itertools import count
 from pathlib import Path
 from typing import List
@@ -76,12 +74,14 @@ def read_experiment_paths() -> dict[ExperimentName, list[Path]]:
             project_paths_per_experiment[experiment_dir.name].append(run_dir)
 
     for experiment_dir in MULTIRUN_FINAL_RESULTS_DIR.iterdir():
-        if experiment_dir == ".DS_Store":
+        if experiment_dir.name == ".DS_Store":
             continue
         for run_dir in experiment_dir.iterdir():
-            if run_dir == ".DS_Store":
+            if run_dir.name == ".DS_Store":
                 continue
             for sub_run_dir in run_dir.iterdir():
+                if sub_run_dir.name == ".DS_Store":
+                    continue
                 if not sub_run_dir.is_dir():
                     continue  # hydra multirun config files
 
