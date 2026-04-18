@@ -56,6 +56,7 @@ class PhoenixWithPostgresConfiguration(SlurmService):
         phoenix_dir = working_dir / "phoenix"
         backup_wal_directory = working_dir / "wal_backup"
         postgres_run_dir = working_dir / "pgrun"
+        recovery_dir = working_dir / "full_backup"
 
         wal_dir = f"/dev/shm/pgwal_{self.database_user.replace('.', '_')}"
 
@@ -66,6 +67,7 @@ class PhoenixWithPostgresConfiguration(SlurmService):
             "PGDATA": postgres_dir,
             "PGWAL": wal_dir,
             "PG_WAL_BACKUP": backup_wal_directory,
+            "PG_FULL_BACKUP_DIR": recovery_dir,
             "PGRUN": postgres_run_dir,
             "PGPORT": self.postgres.port,
             "POSTGRES_PORT": self.postgres.port,
@@ -79,6 +81,8 @@ class PhoenixWithPostgresConfiguration(SlurmService):
             # Phoenix Performance
             "PHOENIX_SQLALCHEMY_POOL_SIZE": self.phoenix_sql_alchemy_pool_size,
             "PHOENIX_SQLALCHEMY_MAX_OVERFLOW": self.phoenix_sql_alchemy_max_overflow,
+            "LANG": "en_US.UTF-8",
+            "LC_ALL": "en_US.UTF-8",
         }
 
     def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
@@ -92,7 +96,7 @@ class PhoenixWithPostgresConfiguration(SlurmService):
         prepare_pg_backup_wal = "mkdir -p $PG_WAL_BACKUP && chmod 700 $PG_WAL_BACKUP"
         prepare_pg_run = "mkdir -p $PGRUN && chmod 700 $PGRUN"
         prepare_wal_dir = "mkdir -p $PGWAL && chmod 700 $PGWAL"
-        symlink_pg_wal = "rm -rf $PGDATA/pg_wal && ln -s $PGWAL $PGDATA/pg_wal"
+        symlink_pg_wal = "rm -f $PGDATA/pg_wal && ln -s $PGWAL $PGDATA/pg_wal"
         wal_backup = (
             "rm -rf $PG_WAL_BACKUP && cp -R $PGWAL $PG_WAL_BACKUP && echo WAL-BACKUP"
         )
@@ -110,6 +114,7 @@ class PhoenixWithPostgresConfiguration(SlurmService):
         init_postgres_db = f"""
 if [[ ! -f "$PGDATA/PG_VERSION" ]]; then
     {init}
+    INITIALIZED_DB_THIS_RUN=1
 fi
         """
 
@@ -158,6 +163,9 @@ trap 'cleanup' EXIT SIGTERM SIGINT
                 [[ -v APPTAINER_CLEANUP_DONE ]] && return
                 APPTAINER_CLEANUP_DONE=1
                 
+                kill -TERM "$APPTAINER_PG_BACKUP_PID" || true
+                wait "$APPTAINER_PG_BACKUP_PID" | true
+                
                 echo "TRAP - Stopping Postgres from inside apptainer..."
                 kill -TERM "$APPTAINER_PG_PID" || true
                 wait "$APPTAINER_PG_PID" || true
@@ -176,8 +184,22 @@ trap 'cleanup' EXIT SIGTERM SIGINT
             --checkpoint_timeout=1min \\
             -c "restore_command=cp $PG_WAL_BACKUP/%f %p" \\
             &
-        
+            
             APPTAINER_PG_PID=$!
+            
+            until pg_isready -h /var/run/postgresql -p $PGPORT -U {self.database_user} -d postgres; do \n sleep 1 \ndone
+            
+            pg_basebackup -D $PG_FULL_BACKUP_DIR/$(date +%Y%m%d_%H%M%S) \\
+            -F t \\
+            -z \\
+            -P \\
+            -X stream \\
+            -c fast \\
+            &
+            
+            APPTAINER_PG_BACKUP_PID=$!
+                    
+            wait $APPTAINER_PG_BACKUP_PID
             wait $APPTAINER_PG_PID
             """
             "' "
@@ -197,6 +219,12 @@ for i in "${{!PHOENIX_PORTS[@]}}"; do
     PHOENIX_PORT=${{PHOENIX_PORTS[$i]}} \\
     uv run phoenix serve &
     PHOENIX_PIDS+=($!)
+    
+    if [[ -v INITIALIZED_DB_THIS_RUN ]]; then
+        if [[ $i -eq 0 ]]; then
+            sleep 20
+        fi
+    fi
 done
 
 echo "Starting NGINX (Apptainer)..."
