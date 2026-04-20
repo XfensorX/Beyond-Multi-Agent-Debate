@@ -15,7 +15,7 @@ experiment:
           params:
             max_new_tokens: 4096
             temperature: 0.0
-            top_p: 0.1
+            top_p: 1.0
             top_k: null
             typical_p: null
             repetition_penalty: null
@@ -26,7 +26,7 @@ experiment:
           params:
             max_new_tokens: 4096
             temperature: 0.0
-            top_p: 0.1
+            top_p: 1.0
             top_k: null
             typical_p: null
             repetition_penalty: null
@@ -38,7 +38,7 @@ experiment:
           params:
             max_new_tokens: 4096
             temperature: 0.0
-            top_p: 0.1
+            top_p: 1.0
             top_k: null
             typical_p: null
             repetition_penalty: null
@@ -49,7 +49,7 @@ experiment:
           params:
             max_new_tokens: 4096
             temperature: 0.0
-            top_p: 0.1
+            top_p: 1.0
             top_k: null
             typical_p: null
             repetition_penalty: null
