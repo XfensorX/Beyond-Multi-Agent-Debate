@@ -1,0 +1,79 @@
+# @package _global_
+defaults:
+  - _self_
+
+
+experiment:
+  name: changed_prompt_mad3
+  data: mmlu-pro-subset
+
+  strategy:
+    name: changed_prompt_mad
+    configuration:
+      system_message: >-
+        The following questions are examples for your task. At the end you get a question to answer as accurately as possible.
+        Think about your answer carefully and validate your assumptions and knowledge.
+        After thinking about the correct answer thoroughly put it in the form "The answer is (X)" at the end of your response. 
+
+      human_messsage_before_other_answers: >-
+        You are part of a multi-agent debate about the last question above. You will now see the answers and reasoning of the other 
+        agents. Please read and evaluate them carefully and validate their reasoning, assumptions and used facts.
+        Please use their information to carefully VALIDATE your own Answer from before and revise or change it, if you find
+        that facts or reasoning from the others does make sense and is valid.
+        If you still think you are correct, please provide arguments in your new answer that can be used as feedback 
+        from the other debate participants to revise their own solutions.
+        
+        -------------------------------------------------------------------------
+      
+      
+
+      human_messsage_after_other_answers: >-
+        ------------------------------------------------------------------
+        
+        
+        Now think about the other answers carefully, validate your own reasoning and rework your solution from before
+        If you think that you were wrong, you are free to change your response or opinion, otherwise convince the other
+        of your answer.
+        Put your answer in the form "The answer is (X)" at the end of your response.
+      
+      number_of_rounds: 3
+
+      debate_agents:
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 4096
+            temperature: 0.0
+            top_p: 0.1
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+          backend: ${_models.0}
+
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 4096
+            temperature: 0.0
+            top_p: 0.1
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+          backend: ${_models.1}
+
+
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 4096
+            temperature: 0.0
+            top_p: 0.1
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+          backend: ${_models.2}
+
+
+
+  additional_info:
+    description: MAD with a new prompt. — ${_models.0},${_models.1},${_models.2}
+
+
+

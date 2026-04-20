@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - final/diversity_param_sweep_mad2_base
+  - _self_
+  - /experiment/hetero/groups/Ministral3@_models: LL
+
+hydra:
+  sweeper:
+    params:
+      params_temperature: 0.0, 0.2, 0.7, 1.3
+      params_top_p: 0.3, 0.7, 1.0
+      experiment/hetero/groups/Ministral3@_models: LL, LM, HL, MM, HM, HH
+
+

@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - final/small_mad4_base
+  - _self_
+  - /experiment/hetero/groups/Qwen3@_models: LLLL
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/groups/Qwen3@_models: LLLL, LLLM, HLLL, LLMM, HLLM, HHLL, LMMM, HLMM, HHLM, HHHL, MMMM, HMMM, HHMM, HHHM, HHHH
