@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - final/different_families_mad3_base
+  - _self_
+  - /experiment/hetero/groups/mixed@_models: HqHQHm
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/groups/mixed@_models: HqHQHm, HqHmHQ, HQHqHm, HQHmHq, HmHqHQ, HmHQHq
+
+
+
+
