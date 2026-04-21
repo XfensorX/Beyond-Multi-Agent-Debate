@@ -163,9 +163,6 @@ trap 'cleanup' EXIT SIGTERM SIGINT
                 [[ -v APPTAINER_CLEANUP_DONE ]] && return
                 APPTAINER_CLEANUP_DONE=1
                 
-                kill -TERM "$APPTAINER_PG_BACKUP_PID" || true
-                wait "$APPTAINER_PG_BACKUP_PID" | true
-                
                 echo "TRAP - Stopping Postgres from inside apptainer..."
                 kill -TERM "$APPTAINER_PG_PID" || true
                 wait "$APPTAINER_PG_PID" || true
