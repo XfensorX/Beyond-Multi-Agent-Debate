@@ -31,14 +31,14 @@ llm_models:
     port: 40509
     tool_call_parser: qwen3_coder
 
-  mistralai/Ministral-3-3B-Instruct-2512:
+  mistralai/Ministral-3-3B-Instruct-2512-BF16:
     port: 40253
     tokenizer_mode: mistral
     config_format: mistral
     load_format: mistral
     tool_call_parser: null
 
-  mistralai/Ministral-3-8B-Instruct-2512:
+  mistralai/Ministral-3-8B-Instruct-2512-BF16:
     port: 40258
     max_total_tokens: 100000 # to fit in VRAM
     tokenizer_mode: mistral
@@ -46,7 +46,7 @@ llm_models:
     load_format: mistral
     tool_call_parser: null
 
-  mistralai/Ministral-3-14B-Instruct-2512:
+  mistralai/Ministral-3-14B-Instruct-2512-BF16:
     port: 40251
     max_total_tokens: 50000 # to fit in VRAM
     tokenizer_mode: mistral

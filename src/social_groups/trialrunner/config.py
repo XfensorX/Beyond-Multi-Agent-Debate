@@ -110,6 +110,7 @@ def get_llm(
             if (with_thinking is False) and "Reasoning" in backend.model_name:
                 old_model = model
                 model = old_model.replace("Reasoning", "Instruct")
+                model = model + "-BF16"
 
                 logger.warning(
                     f"Called ChatMistralAI with Reasoning but want no thinking mode,"
@@ -118,12 +119,13 @@ def get_llm(
 
             if (with_thinking is True) and "Instruct" in backend.model_name:
                 old_model = model
-                model = old_model.replace("Instruct", "Reasoning")
+                model = old_model.replace("Instruct", "Reasoning").replace("-BF16", "")
 
                 logger.warning(
                     f"Called ChatMistralAI with Instruct but want thinking mode,"
                     f" switch from {old_model} to {model} for these kind of requests."
                 )
+
             llm = ChatMistralAI(
                 model=model,
                 base_url=global_config_holder.global_hydra_config.execution.get_endpoint(
