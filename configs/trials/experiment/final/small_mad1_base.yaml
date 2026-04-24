@@ -5,7 +5,7 @@ defaults:
 
 experiment:
   name: heterogeneous_group_mad1
-  data: mmlu-pro-subset
+  data: mmlu-pro-medium-subset
 
   strategy:
     name: multi-agent-debate

@@ -5,7 +5,7 @@ defaults:
 
 experiment:
   name: changed_prompt_mad3
-  data: mmlu-pro-subset
+  data: mmlu-pro-medium-subset
 
   strategy:
     name: changed_prompt_mad

@@ -6,7 +6,7 @@ params_top_p: 1.0
 
 experiment:
   name: diversity_parameter_sweep_mad3
-  data: mmlu-pro-subset
+  data: mmlu-pro-medium-subset
 
   strategy:
     name: multi-agent-debate
