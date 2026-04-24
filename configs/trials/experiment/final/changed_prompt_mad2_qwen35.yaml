@@ -1,3 +1,4 @@
+# @package _global_
 defaults:
   - final/changed_prompt_mad2_base
   - _self_
