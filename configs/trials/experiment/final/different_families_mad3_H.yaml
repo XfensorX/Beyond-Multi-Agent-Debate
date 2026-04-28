@@ -2,12 +2,12 @@
 defaults:
   - final/different_families_mad3_base
   - _self_
-  - /experiment/hetero/groups/mixed@_models: HqHQHm
+  - /experiment/hetero/groups/mixed@_models: HkHkHm
 
 hydra:
   sweeper:
     params:
-      experiment/hetero/groups/mixed@_models: HqHQHm, HqHmHQ, HQHqHm, HQHmHq, HmHqHQ, HmHQHq
+      experiment/hetero/groups/mixed@_models: HkHkHm, HkHmHk, HkHkHm, HkHmHq, HmHqHk, HmHkHq
 
 
 
