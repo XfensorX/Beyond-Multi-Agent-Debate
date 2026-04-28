@@ -5096,9 +5096,6 @@ requires-dist = [
     { name = "zstandard", specifier = ">=0.25.0" },
 ]
 
-[package.metadata.requires-dev]
-dev = []
-
 [[package]]
 name = "soupsieve"
 version = "2.8.3"
