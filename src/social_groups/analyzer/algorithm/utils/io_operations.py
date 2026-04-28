@@ -15,6 +15,7 @@ from pyarrow.parquet import ParquetWriter
 from social_groups.analyzer.algorithm.utils.phoenix_span_attribute_cache import (
     with_per_span_cache,
 )
+from social_groups.analyzer.config import ATTRIBUTE_KEY_SPAN_URL
 from social_groups.directories import META_FILE_NAME
 from social_groups.general.types import SpanId
 from social_groups.trialrunner.utils.hydra_config import MainConfig
@@ -36,8 +37,6 @@ def create_parquet_writer(location: Path, schema: pl.Schema) -> ParquetWriter:
     )
 
 
-ATTRIBUTE_KEY_SPAN_URL = "custom_phoenix_span_url_attribute"
-
 CLIENT: None | httpx.AsyncClient = None
 
 
@@ -54,8 +53,8 @@ def worker_initializer():
 
 @with_per_span_cache()
 async def get_span_attributes(
-    *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
-) -> dict[SpanId, dict[str, Any]]:
+        *, span_ids: list[SpanId], phoenix_graphql_endpoint: str
+) -> dict[SpanId, dict[str, Any] | None]:
     global CLIENT
 
     if CLIENT is None:
@@ -81,11 +80,12 @@ async def get_span_attributes(
     if "errors" in data:
         raise RuntimeError(data["errors"])
 
-    out: dict[SpanId, dict[str, Any]] = {}
+    out: dict[SpanId, dict[str, Any] | None] = {}
     for alias, node in data["data"].items():
         original_oid = alias[2:]
         if node is None:
-            raise RuntimeError(f"Span {original_oid} has no node")
+            out[original_oid] = None
+            continue
 
         attrs = node["attributes"]
         span = json.loads(attrs) if isinstance(attrs, str) else attrs

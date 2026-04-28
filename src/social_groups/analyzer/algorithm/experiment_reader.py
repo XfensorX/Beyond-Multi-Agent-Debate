@@ -243,6 +243,7 @@ async def build_parquet_files(output_directory: Path):
             "[b]Total Submitted[/b]", f"[green]{total_put_in_queue:>6}[/green]"
         )
         table.add_row("[b]Total Written[/b]", f"[green]{total_flushed:>6}[/green]")
+        table.add_row("[b]In Buffer[/b]", f"[green]{len(buffer):>6}[/green]")
         return table
 
     runs = []
@@ -270,7 +271,23 @@ async def build_parquet_files(output_directory: Path):
 
     handle_jsonl_file_semaphore = asyncio.Semaphore(PARALLEL_FILE_WRITES)
 
-    with Live(get_renderable=make_process_status_table) as live:
+    async def _wrapped_handle_jsonl_file(
+        _project_path: Path,
+        _run_id: int,
+        _in_q: queue.Queue,
+        _graphql_endpoint: str,
+        _global_answer_infos_cache: AnswerInfoCache,
+    ):
+        async with handle_jsonl_file_semaphore:
+            return await handle_jsonl_file(
+                _project_path,
+                _run_id,
+                _in_q,
+                _graphql_endpoint,
+                _global_answer_infos_cache,
+            )
+
+    with Live(get_renderable=make_process_status_table, refresh_per_second=1) as live:
         try:
             for (
                 experiment_name,
@@ -300,22 +317,6 @@ async def build_parquet_files(output_directory: Path):
                             meta_info=run_meta_infos[run_id],
                         )
                     )
-
-                    async def _wrapped_handle_jsonl_file(
-                        _project_path: Path,
-                        _run_id: int,
-                        _in_q: queue.Queue,
-                        _graphql_endpoint: str,
-                        _global_answer_infos_cache: AnswerInfoCache,
-                    ):
-                        async with handle_jsonl_file_semaphore:
-                            return await handle_jsonl_file(
-                                _project_path,
-                                _run_id,
-                                _in_q,
-                                _graphql_endpoint,
-                                _global_answer_infos_cache,
-                            )
 
                     executing_files.add(
                         asyncio.create_task(
