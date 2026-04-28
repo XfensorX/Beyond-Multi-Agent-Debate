@@ -2,4 +2,4 @@
 defaults:
   - /experiment/hetero/backend@0: ministral3-8b
   - /experiment/hetero/backend@1: ministral3-8b
-  - /experiment/hetero/backend@2: qwen35-4b
+  - /experiment/hetero/backend@2: qwen-4b
