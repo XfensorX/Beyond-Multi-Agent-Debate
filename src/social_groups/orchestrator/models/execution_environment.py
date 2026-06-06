@@ -26,6 +26,7 @@ class ExecutionLocationConfig(BaseModel):
     ssh_login: str
     project_dir: Path
     slurm_log_dir_inside_project: Path
+    home_directory: Path
 
     def get_logdir(self) -> Path:
         return self.project_dir / self.slurm_log_dir_inside_project

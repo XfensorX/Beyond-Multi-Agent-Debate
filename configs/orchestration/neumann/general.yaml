@@ -2,4 +2,5 @@ where: neumann
 ssh_login: neumann.l3s
 project_dir: /homes/neumann/philipp.link/social_studies
 slurm_log_dir_inside_project: results/slurm_logs
+home_directory: /homes/neumann/philipp.link
 
