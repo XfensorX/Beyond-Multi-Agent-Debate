@@ -7,7 +7,7 @@ defaults:
 hydra:
   sweeper:
     params:
-      params_temperature: 0.0, 0.2, 0.7, 1.3
+      params_temperature: 0.0, 0.3, 0.7, 0.99
       params_top_p: 0.3, 0.7, 1.0
       experiment/hetero/groups/Qwen3@_models: LL, LM, HL, MM, HM, HH
 
