@@ -7,7 +7,7 @@ This file shall be available under GPL3.0 as the original source.
 import ast
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel
 
 from social_groups.general.utils.standard_library import BaseModelWithExtraFields
@@ -25,7 +25,7 @@ from social_groups.trialrunner.utils.phoenix import phoenix_log_span
 class EncouragingAgent:
     def __init__(self, llm: BaseChatModel):
         self.llm = llm
-        self.memory_lst = []
+        self.memory_lst: list[BaseMessage] = []
         self.total_input_tokens = 0
         self.total_output_tokens = 0
 
@@ -108,10 +108,10 @@ def evaluate_mod_answer(mod_ans):
 
 
 def init_agents(
-        affirmative: EncouragingAgent,
-        negative: EncouragingAgent,
-        moderator: EncouragingAgent,
-        debate_prompt_config,
+    affirmative: EncouragingAgent,
+    negative: EncouragingAgent,
+    moderator: EncouragingAgent,
+    debate_prompt_config,
 ):
     affirmative.add_system_message(debate_prompt_config["player_meta_prompt"])
     negative.add_system_message(debate_prompt_config["player_meta_prompt"])
@@ -141,14 +141,14 @@ def init_agents(
 
 
 def run(
-        mod_ans,
-        neg_ans,
-        aff_ans,
-        affirmative: EncouragingAgent,
-        negative: EncouragingAgent,
-        moderator: EncouragingAgent,
-        debate_prompt_config,
-        max_round: int,
+    mod_ans,
+    neg_ans,
+    aff_ans,
+    affirmative: EncouragingAgent,
+    negative: EncouragingAgent,
+    moderator: EncouragingAgent,
+    debate_prompt_config,
+    max_round: int,
 ):
     for r in range(max_round - 1):
         if mod_ans["debate_answer"] != "":
@@ -187,8 +187,8 @@ def run(
 
     else:
         judge_player = EncouragingAgent(moderator.llm)
-        aff_ans = affirmative.memory_lst[2]["content"]
-        neg_ans = negative.memory_lst[2]["content"]
+        aff_ans = affirmative.memory_lst[2].content
+        neg_ans = negative.memory_lst[2].content
 
         judge_player.add_system_message(debate_prompt_config["moderator_meta_prompt"])
 
@@ -245,14 +245,14 @@ class EncouragingDivergentThinking(
         )
 
         total_input_tokens = (
-                negative.total_input_tokens
-                + moderator.total_input_tokens
-                + affirmative.total_input_tokens
+            negative.total_input_tokens
+            + moderator.total_input_tokens
+            + affirmative.total_input_tokens
         )
         total_output_tokens = (
-                negative.total_output_tokens
-                + moderator.total_output_tokens
-                + affirmative.total_output_tokens
+            negative.total_output_tokens
+            + moderator.total_output_tokens
+            + affirmative.total_output_tokens
         )
 
         if judge:
