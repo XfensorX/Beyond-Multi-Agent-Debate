@@ -114,7 +114,7 @@ def baseline_structural_black_hole_plot(knowledge_differences: pl.DataFrame):
 
     plt.figure(figsize=(14, 12))
     ax = sns.heatmap(
-        plot_data, cmap="Blues", annot=True, fmt=".0%", annot_kws={"fontsize": 6}
+        plot_data, cmap="Blues", annot=True, fmt=".0%", annot_kws={"fontsize": 12}
     )
     ax.set_ylabel("This model is correct in __ part of cases")
     ax.set_xlabel("Given that this model is wrong")

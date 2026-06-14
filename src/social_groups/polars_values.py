@@ -6,7 +6,7 @@ class thinking_models(SimpleNamespace):
     everyone = "everyone"
 
 
-MODEL_NAME_TO_LETTER_MAPPING = {
+MODEL_NAME_TO_LETTER_MAPPING: dict[str, str] = {
     "Qwen/Qwen3-14B": "H",
     "Qwen/Qwen3-4B": "M",
     "Qwen/Qwen3-0.6B": "L",

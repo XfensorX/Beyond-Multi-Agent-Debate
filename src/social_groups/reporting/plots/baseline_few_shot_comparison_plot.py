@@ -1,48 +1,41 @@
+import matplotlib.pyplot as plt
 import polars as pl
+import seaborn as sns
 
 
 def baseline_few_shot_comparison_plot(pretty_main: pl.DataFrame):
+    # === 1. Focus ONLY on 0-Shot → 5-Shot gains (right side of original plot) ===
     improvment_few_shot = (
         pretty_main.filter(pl.col("Method") == "Chat Completion")
         .group_by("Family", "Model", "Reasoning")
         .agg(
-            pl.when((pl.col("Few Shot Prompting") == "Yes"))
-            .then(pl.col("Accuracy (Advanced)") - pl.col("Accuracy (Naive)"))
-            .alias("Naive -> Advanced (5-Shot)")
-            .drop_nulls()
-            .item(),
-            pl.when((pl.col("Few Shot Prompting") == "No"))
-            .then(pl.col("Accuracy (Advanced)") - pl.col("Accuracy (Naive)"))
-            .alias("Naive -> Advanced (0-Shot)")
-            .drop_nulls()
-            .item(),
             pl.when(pl.col("Few Shot Prompting") == "Yes")
             .then(pl.col("Accuracy (Naive)"))
             .alias("temp_5shot_naive")
             .drop_nulls()
-            .first(),
+            .item(),
             pl.when(pl.col("Few Shot Prompting") == "No")
             .then(pl.col("Accuracy (Naive)"))
             .alias("temp_0shot_naive")
             .drop_nulls()
-            .first(),
+            .item(),
             pl.when(pl.col("Few Shot Prompting") == "Yes")
             .then(pl.col("Accuracy (Advanced)"))
             .alias("temp_5shot_adv")
             .drop_nulls()
-            .first(),
+            .item(),
             pl.when(pl.col("Few Shot Prompting") == "No")
             .then(pl.col("Accuracy (Advanced)"))
             .alias("temp_0shot_adv")
             .drop_nulls()
-            .first(),
+            .item(),
         )
         .with_columns(
             (pl.col("temp_5shot_naive") - pl.col("temp_0shot_naive")).alias(
-                "0-Shot -> 5-Shot (Naive)"
+                "0-Shot → 5-Shot (Naive)"
             ),
             (pl.col("temp_5shot_adv") - pl.col("temp_0shot_adv")).alias(
-                "0-Shot -> 5-Shot (Advanced)"
+                "0-Shot → 5-Shot (Advanced)"
             ),
         )
         .drop(
@@ -62,135 +55,102 @@ def baseline_few_shot_comparison_plot(pretty_main: pl.DataFrame):
 
     df_plot = improvment_few_shot.to_pandas().copy()
 
-    # Create a nice label for the y-axis
+    # Nice model label
     df_plot["Model Label"] = df_plot["Model"]
 
-    # Melt into long format
+    # Melt to long format — now only the two relevant columns
     df_long = df_plot.melt(
         id_vars=["Family", "Model", "Model Label", "Reasoning"],
         value_vars=[
-            "Naive -> Advanced (5-Shot)",
-            "Naive -> Advanced (0-Shot)",
-            "0-Shot -> 5-Shot (Naive)",
-            "0-Shot -> 5-Shot (Advanced)",
+            "0-Shot → 5-Shot (Naive)",
+            "0-Shot → 5-Shot (Advanced)",
         ],
-        var_name="Metric",
+        var_name="Parsing Type",
         value_name="Delta",
     )
 
-    # Create the two main categories for columns
-    df_long["Improvement Category"] = df_long["Metric"].apply(
-        lambda x: (
-            "Naive → Advanced Parsing"
-            if "Naive -> Advanced" in x
-            else "0-Shot → 5-Shot"
-        )
-    )
-
-    # Create the sub-type (what appears inside each column)
-    df_long["Shot Type"] = df_long["Metric"].replace(
+    # Clean up labels
+    df_long["Parsing Type"] = df_long["Parsing Type"].replace(
         {
-            "Naive -> Advanced (5-Shot)": "5-Shot",
-            "Naive -> Advanced (0-Shot)": "0-Shot",
-            "0-Shot -> 5-Shot (Naive)": "Naive",
-            "0-Shot -> 5-Shot (Advanced)": "Advanced",
+            "0-Shot → 5-Shot (Naive)": "Naive",
+            "0-Shot → 5-Shot (Advanced)": "Advanced",
         }
     )
-    import matplotlib.pyplot as plt
-    import seaborn as sns
 
-    # NeurIPS-style setup: clean, high-quality, sans-serif
-    sns.set_theme(style="white", context="paper")  # "white" for clean paper look
-
+    # ====================== PLOTTING ======================
+    sns.set_theme(style="white", context="paper")
     plt.rcParams.update(
         {
-            "font.family": "DejaVu Sans",  # or "Arial" / "Helvetica" if available
+            "font.family": "DejaVu Sans",
             "font.size": 10,
             "axes.labelsize": 11,
             "axes.titlesize": 12,
-            "xtick.labelsize": 9,
-            "ytick.labelsize": 9,
-            "legend.fontsize": 9,
-            "legend.title_fontsize": 10,
+            "xtick.labelsize": 10,
+            "ytick.labelsize": 10,
+            "legend.fontsize": 10,
             "axes.linewidth": 0.8,
-            "grid.linewidth": 0.6,
-            "lines.linewidth": 1.2,
-            "patch.linewidth": 0.8,  # bar edge
-            "figure.dpi": 300,  # high-res for saving
+            "figure.dpi": 300,
             "savefig.dpi": 300,
             "savefig.bbox": "tight",
-            "savefig.pad_inches": 0.05,
         }
     )
 
-    # Main plot with better proportions
-    g = sns.catplot(
-        data=df_long,
-        kind="bar",
-        x="Delta",
-        y="Model Label",
-        hue="Shot Type",
-        col="Improvement Category",
-        row="Reasoning",
-        orient="h",
-        palette="muted",  # or "tab10", "Set2" for more contrast
-        height=7.0,  # taller per facet for bigger bars
-        aspect=1.2,  # wider aspect → bigger bars, less squished
-        width=1.0,  # thicker bars (0.6-0.85 works well)
-        dodge=True,  # ensure hue bars don't overlap
-        legend=True,
-        sharex=True,
-        sharey=False,  # y can differ per row if needed
-        margin_titles=True,
-        gap=0.45,
-        legend_out=True,
-    )
+    # One figure with two subplots side-by-side (Naive vs Advanced)
+    fig, axes = plt.subplots(1, 2, figsize=(15, 8), sharey=True)
 
-    g.legend.set_loc("lower center")
-    g.legend.set_bbox_to_anchor([0.85, 0.87])
+    palette = sns.color_palette("muted", n_colors=2)  # one color per Reasoning level
 
-    # Suptitle (NeurIPS-style: bold, centered, slightly larger)
-    g.figure.suptitle(
-        "Performance Gains from Prompting Strategies on Standard Generation (Percentage Points)",
-        y=1.02,
-        fontsize=13,
-        fontweight="bold",
-    )
+    for ax, parsing_type in zip(axes, ["Naive", "Advanced"]):
+        data = df_long[df_long["Parsing Type"] == parsing_type]
 
-    # Axis labels
-    g.set_axis_labels("Δ Accuracy (percentage points)", "")
-    g.set_titles(
-        row_template="Reasoning: {row_name}",
-        col_template="{col_name}",
-        size=11,
-        weight="semibold",
-    )
+        # Vertical bars (bottom to top)
+        sns.barplot(
+            data=data,
+            x="Model Label",
+            y="Delta",
+            hue="Reasoning",
+            palette=palette,
+            ax=ax,
+            dodge=True,
+            edgecolor="black",
+            linewidth=0.8,
+        )
 
-    # Improve bar labels: larger, better positioned, avoid overlap
-    for ax in g.axes.flat:
-        for container in ax.containers:
-            ax.bar_label(
-                container,
-                fmt="%.1f",  # one decimal is usually enough
-                padding=4,
-                fontsize=9,
-                label_type="edge",  # or "center" if bars are wide enough
-                color="black",
-            )
-
-    # Clean axes appearance (NeurIPS-like)
-    for ax in g.axes.flat:
-        ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.7, axis="x")
-        ax.set_axisbelow(True)
-        ax.axvline(x=0, color="black", linestyle="-", linewidth=0.9, alpha=0.75)
+        ax.set_title(f"{parsing_type} Parsing", fontsize=13, pad=15)
+        ax.set_xlabel("")
+        ax.set_ylabel("Δ Accuracy (percentage points)" if ax == axes[0] else "")
+        ax.axhline(y=0, color="black", linestyle="-", linewidth=1.0)
+        ax.tick_params(axis="x", rotation=45, length=0, pad=8)
         sns.despine(ax=ax, left=False, bottom=False, top=True, right=True)
-        ax.tick_params(axis="y", length=0, pad=6)
 
-    # for ax in g.axes.flat:
-    #     ax.legend(g._legend_data, title="", loc="upper right") # Customize location as needed
+        # Bar labels
+        for container in ax.containers:
+            ax.bar_label(container, fmt="%.1f", padding=3, fontsize=9, color="black")
 
-    # Final figure size (adjust based on your number of rows/cols)
-    # Example: ~2 rows × several cols → wide landscape
-    g.figure.set_size_inches(w=16, h=9)  # tweak: e.g., (16, 12) or (20, 11)
+    # Overall title
+    fig.suptitle(
+        "Performance Gains from using few-shot prompting",
+        fontsize=14,
+        fontweight="bold",
+        y=0.98,
+    )
 
-    return g
+    # Legend at the bottom center
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        labels,
+        title="Reasoning",
+        title_fontsize=11,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.08),
+        ncol=2,
+        frameon=False,
+    )
+
+    # Remove individual subplot legends
+    for ax in axes:
+        ax.get_legend().remove()
+
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # leave space for suptitle + legend
+    return fig

@@ -146,177 +146,179 @@ def pareto_frontier_with_heterogeneous_points_plot(
     family_order = sorted(
         set(pareto_pd["model_family"])
         | set(baseline_pareto_pd["model_family"])
+        | set(homogeneous_pareto_pd["model_family"])
         | set(scatter_pd["model_family"])
     )
-
     palette = dict(
         zip(
             family_order,
             sns.color_palette("muted", n_colors=len(family_order)),
         )
     )
-
-    fig, ax = plt.subplots(figsize=(12, 7.5))
-
-    # ax.set_xscale('log')
-    sns.lineplot(
-        data=pareto_pd,
-        x="call_cost_heuristic",
-        y="accuracy_mean",
-        hue="model_family",
-        hue_order=family_order,
-        palette=palette,
-        linewidth=2.5,
-        marker="o",
-        markersize=6,
-        ax=ax,
-        legend=False,
-        alpha=0.7,
+    n_families = len(family_order)
+    fig, axes = plt.subplots(
+        1,
+        n_families,
+        figsize=(5.2 * n_families, 7.5),
+        sharex=True,
+        sharey=True,
     )
 
-    sns.lineplot(
-        data=baseline_pareto_pd,
-        x="call_cost_heuristic",
-        y="accuracy",
-        hue="model_family",
-        hue_order=family_order,
-        palette=palette,
-        linewidth=2.2,
-        linestyle=":",
-        marker="o",
-        markersize=5,
-        ax=ax,
-        legend=False,
-        alpha=0.7,
-    )
+    if n_families == 1:
+        axes = [axes]
 
-    sns.lineplot(
-        data=homogeneous_pareto_pd,
-        x="call_cost_heuristic",
-        y="accuracy",
-        hue="model_family",
-        hue_order=family_order,
-        palette=palette,
-        linewidth=2.2,
-        linestyle="--",
-        marker="o",
-        markersize=5,
-        ax=ax,
-        legend=False,
-        alpha=0.7,
-    )
+    for ax, family in zip(axes, family_order):
+        family_color = palette[family]
 
-    sns.scatterplot(
-        data=muted_points,
-        x="call_cost_heuristic_no_discussion_voting_same_calls_baseline",
-        y="best_accuracy",
-        hue="model_family",
-        hue_order=family_order,
-        palette=palette,
-        s=45,
-        alpha=0.28,
-        edgecolor="none",
-        ax=ax,
-        legend=False,
-    )
+        pareto_f = pareto_pd[pareto_pd["model_family"] == family]
+        baseline_f = baseline_pareto_pd[baseline_pareto_pd["model_family"] == family]
+        homogeneous_f = homogeneous_pareto_pd[
+            homogeneous_pareto_pd["model_family"] == family
+        ]
 
-    sns.scatterplot(
-        data=partial_points,
-        x="call_cost_heuristic_no_discussion_voting_same_calls_baseline",
-        y="best_accuracy",
-        hue="model_family",
-        hue_order=family_order,
-        palette=palette,
-        s=65,
-        alpha=0.55,
-        edgecolor="gray",
-        linewidth=0.4,
-        ax=ax,
-        legend=False,
-    )
+        muted_f = muted_points[muted_points["model_family"] == family]
+        partial_f = partial_points[partial_points["model_family"] == family]
+        good_f = good_points[good_points["model_family"] == family]
 
-    sns.scatterplot(
-        data=good_points,
-        x="call_cost_heuristic_no_discussion_voting_same_calls_baseline",
-        y="best_accuracy",
-        hue="model_family",
-        hue_order=family_order,
-        palette=palette,
-        s=90,
-        alpha=0.95,
-        edgecolor="black",
-        linewidth=0.6,
-        ax=ax,
-        legend=False,
-    )
-
-    texts = []
-
-    x_range = ax.get_xlim()[1] - ax.get_xlim()[0]
-    y_range = ax.get_ylim()[1] - ax.get_ylim()[0]
-
-    dx = -0.006 * x_range
-    dy = 0.006 * y_range
-
-    for _, row in good_points.iterrows():
-        texts.append(
-            ax.text(
-                row["call_cost_heuristic_no_discussion_voting_same_calls_baseline"]
-                + dx,
-                row["best_accuracy"] + dy,
-                row["label"],
-                fontsize=8.5,
-                weight="semibold",
-                ha="right",
-                va="bottom",
-                color="black",
-            )
-        )
-
-    for _, row in partial_points.iterrows():
-        texts.append(
-            ax.text(
-                row["call_cost_heuristic_no_discussion_voting_same_calls_baseline"]
-                + dx,
-                row["best_accuracy"] + dy,
-                row["label"],
-                fontsize=7.2,
-                weight="normal",
-                ha="right",
-                va="bottom",
-                color="gray",
-                alpha=0.75,
-            )
-        )
-
-    if HAS_ADJUST_TEXT:
-        adjust_text(
-            texts,
-            ax=ax,
-            only_move={"points": "xy", "text": "xy"},
-            expand_points=(1.3, 1.6),
-            expand_text=(1.15, 1.35),
-            force_points=(0.25, 0.45),
-            force_text=(0.35, 0.7),
-            arrowprops=dict(
-                arrowstyle="-",
-                lw=0.5,
-                alpha=0.45,
-                color="gray",
-            ),
-        )
-
-    family_handles = [
-        Line2D(
-            [0],
-            [0],
-            color=palette[family],
-            lw=2.5,
+        sns.lineplot(
+            data=pareto_f,
+            x="call_cost_heuristic",
+            y="accuracy_mean",
+            color=family_color,
+            linewidth=2.5,
             marker="o",
-            label=family,
+            markersize=6,
+            ax=ax,
         )
-        for family in family_order
-    ]
+
+        sns.lineplot(
+            data=baseline_f,
+            x="call_cost_heuristic",
+            y="accuracy",
+            color=family_color,
+            linewidth=2.2,
+            linestyle=":",
+            marker="o",
+            markersize=5,
+            ax=ax,
+        )
+
+        sns.lineplot(
+            data=homogeneous_f,
+            x="call_cost_heuristic",
+            y="accuracy",
+            color=family_color,
+            linewidth=2.2,
+            linestyle="--",
+            marker="o",
+            markersize=5,
+            ax=ax,
+        )
+
+        sns.scatterplot(
+            data=muted_f,
+            x="call_cost_heuristic_no_discussion_voting_same_calls_baseline",
+            y="best_accuracy",
+            color=family_color,
+            s=45,
+            alpha=0.4,
+            edgecolor="none",
+            ax=ax,
+            legend=False,
+        )
+
+        sns.scatterplot(
+            data=partial_f,
+            x="call_cost_heuristic_no_discussion_voting_same_calls_baseline",
+            y="best_accuracy",
+            color=family_color,
+            s=65,
+            alpha=0.7,
+            edgecolor="gray",
+            linewidth=0.4,
+            ax=ax,
+            legend=False,
+        )
+
+        sns.scatterplot(
+            data=good_f,
+            x="call_cost_heuristic_no_discussion_voting_same_calls_baseline",
+            y="best_accuracy",
+            color=family_color,
+            s=90,
+            edgecolor="black",
+            linewidth=0.6,
+            ax=ax,
+            legend=False,
+        )
+
+        texts = []
+
+        x_range = ax.get_xlim()[1] - ax.get_xlim()[0]
+        y_range = ax.get_ylim()[1] - ax.get_ylim()[0]
+
+        dx = -0.006 * x_range
+        dy = 0.006 * y_range
+
+        for _, row in good_f.iterrows():
+            texts.append(
+                ax.text(
+                    row["call_cost_heuristic_no_discussion_voting_same_calls_baseline"]
+                    + dx,
+                    row["best_accuracy"] + dy,
+                    row["label"],
+                    fontsize=8.5,
+                    weight="semibold",
+                    ha="right",
+                    va="bottom",
+                    color="black",
+                )
+            )
+
+        for _, row in partial_f.iterrows():
+            texts.append(
+                ax.text(
+                    row["call_cost_heuristic_no_discussion_voting_same_calls_baseline"]
+                    + dx,
+                    row["best_accuracy"] + dy,
+                    row["label"],
+                    fontsize=7.2,
+                    weight="normal",
+                    ha="right",
+                    va="bottom",
+                    color="gray",
+                    alpha=0.75,
+                )
+            )
+
+        if HAS_ADJUST_TEXT:
+            adjust_text(
+                texts,
+                ax=ax,
+                only_move={"points": "xy", "text": "xy"},
+                expand_points=(1.3, 1.6),
+                expand_text=(1.15, 1.35),
+                force_points=(0.25, 0.45),
+                force_text=(0.35, 0.7),
+                arrowprops=dict(
+                    arrowstyle="-",
+                    lw=0.5,
+                    alpha=0.45,
+                    color="gray",
+                ),
+            )
+
+        ax.set_title(f"Model family: {family}")
+        ax.set_xlabel("Call cost heuristic (2 x params per call)")
+        ax.grid(True, alpha=0.25)
+        sns.despine(ax=ax)
+
+    axes[0].set_ylabel("Accuracy")
+
+    for ax in axes[1:]:
+        ax.set_ylabel("")
+        ax.set_xlim(0, 250)
+        ax.set_ylim(0.3, 0.8)
 
     style_handles = [
         Line2D(
@@ -377,30 +379,19 @@ def pareto_frontier_with_heterogeneous_points_plot(
         ),
     ]
 
-    legend_1 = ax.legend(
-        handles=family_handles,
-        title="Model family",
-        loc="lower right",
-        frameon=True,
-    )
-
-    ax.add_artist(legend_1)
-
-    ax.legend(
+    fig.legend(
         handles=style_handles,
         title="Series",
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.00),
+        bbox_to_anchor=(0.5, -0.04),
         ncol=2,
         frameon=True,
     )
 
-    ax.set_title("Accuracy - Cost Tradeoff for Size-Heterogeneous MAD")
-    ax.set_xlabel("Call cost heuristic (2 x params per call)")
-    ax.set_ylabel("Accuracy")
+    fig.suptitle(
+        "Accuracy - Cost Tradeoff for Size-Heterogeneous MAD",
+        fontweight="bold",
+    )
 
-    sns.despine(ax=ax)
-    ax.grid(True, alpha=0.25)
-
-    plt.tight_layout()
+    plt.tight_layout(rect=(0, 0.08, 1, 0.94))
     return fig

@@ -32,7 +32,19 @@ is_correct = "is_correct"
 
 accuracy = "accuracy"
 
+used_input_tokens = "used_input_tokens"
+used_output_tokens = "used_output_tokens"
+
 # TODO: refactor
 parsed_individual_answers_after: str = (
     AnalysisColumn.parsed_individual_answers_after.value
 )
+
+parsed_individual_answers_before: str = (
+    AnalysisColumn.parsed_individual_answers_before.value
+)
+
+parsed_combined_answers_before: str = (
+    AnalysisColumn.parsed_combined_answers_before.value
+)
+parsed_combined_answers_after: str = AnalysisColumn.parsed_combined_answers_after.value
