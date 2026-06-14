@@ -22,6 +22,8 @@ class Answer(PolarsBaseModel):
     answers_at_beginning: List[str]
     answers_at_end: List[str]
     final_answer: Optional[str]
+    used_input_tokens: int
+    used_output_tokens: int
 
     @classmethod
     def from_raw_data(
@@ -35,6 +37,7 @@ class Answer(PolarsBaseModel):
         question_id: int,
         span_attributes: dict[str, Any] | None,
     ) -> Answer:
+
         return cls(
             id=assigned_id,
             run_id=run_id,
@@ -52,4 +55,6 @@ class Answer(PolarsBaseModel):
             phoenix_span_url=span_attributes[ATTRIBUTE_KEY_SPAN_URL]
             if span_attributes
             else "unavailable",
+            used_input_tokens=entry.output.used_input_tokens,
+            used_output_tokens=entry.output.used_output_tokens,
         )

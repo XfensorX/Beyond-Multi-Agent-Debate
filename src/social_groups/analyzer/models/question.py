@@ -55,7 +55,12 @@ class Question(PolarsBaseModel):
         span_attributes: dict[str, Any] | None,
     ) -> Question:
         match hydra_config.experiment.data.value:
-            case "mmlu-pro" | "mmlu-pro-subset" | "mmlu-pro-big-subset":
+            case (
+                "mmlu-pro"
+                | "mmlu-pro-subset"
+                | "mmlu-pro-big-subset"
+                | "mmlu-pro-medium-subset"
+            ):
                 if span_attributes is not None:
                     question = MMLUProExample.model_validate(
                         json.loads(span_attributes["question"])
