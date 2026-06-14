@@ -70,6 +70,68 @@ global_notebook_registry: dict[str, NotebookEntry] = {
         "ins": {"baseline_output_frame": dg.AssetIn("baseline_output_comparison")},
         "extra_assets": {"baseline_approach_comparison_table": "tex"},
     },
+    "final_no_discussion_voting": {
+        "ins": {
+            "baseline": dg.AssetIn("final_baseline"),
+            "no_discussion_data": dg.AssetIn("final_no_discussion_voting"),
+        },
+        "extra_assets": {
+            "no_discussion_voting_by_number_of_participants": "png",
+            "entropy_accuracy_curve_for_different_participant_numbers_general_case": "png",
+            "no_discussion_voting_mixed_model_sizes": "png",
+            "no_discussion_voting_mixed_model_families": "png",
+            "mixed_methods_vs_best_constituent_models_temp07": "png",
+            "mixed_methods_vs_best_constituent_models_temp00": "png",
+            "mixed_methods_vs_best_constituent_models_equal_or_less_cost_temp00": "png",
+            "mixed_methods_vs_best_constituent_models_equal_or_less_cost_temp07": "png",
+            "knowledge_blackhole_heatmap": "png",
+            "no_discussion_voting_main_result_table": "parquet",
+            "all_group_combinations_majority_voting": "parquet",
+        },
+    },
+    "final_baseline_analysis": {
+        "ins": {
+            "final_baseline": dg.AssetIn("final_baseline"),
+            "baseline_paper_reported": dg.AssetIn(
+                ["report", "external", "baseline_paper_reported"]
+            ),
+        },
+        "extra_assets": {
+            "baseline_accuracy_overview_all_with_parsing": "tex",
+            "baseline_method_comparison_plot": "png",
+            "used_parsing_regular_expressions": "tex",
+            "baseline_few_shot_comparison_plot": "png",
+            "baseline_structural_black_hole_plot": "png",
+            "baseline_comparison_with_reported_numbers": "tex",
+            "baseline_standard_ordering_into_LMH_groups": "tex",
+        },
+    },
+    "final_mad_baseline": {
+        "ins": {
+            "frame": dg.AssetIn("final_changed_order_mad"),
+            "baseline": dg.AssetIn("final_baseline"),
+            "no_discussion_baseline": dg.AssetIn(
+                [
+                    "report",
+                    "final_no_discussion_voting",
+                    "all_group_combinations_majority_voting",
+                ]
+            ),
+        },
+        "extra_assets": {
+            "improvement_per_family_constellation_heatmap_plot_homogeneous_mad": "png",
+            "main_results_homog_mad_formatted": "tex",
+            "homogeneous_mad_cost_tradeoff_paretofront_plot": "png",
+            "rho_matrix_group_constellation_correlation": "tex",
+            "heterogeneous_group_composition_performance_against_baselines": "png",
+            "mode_compositions_that_can_be_better_than_baselines": "tex",
+            "baseline_pareto_frontiers_with_heterogeneous_points": "png",
+            "accuracy_spread_by_group_ordering_per_composition": "tex",
+            "wasserstein_distance_correlation_heterogeneous_mad": "png",
+            "best_fitting_decision_scheme_across_heterogeneous_mad": "png",
+            "decisionscheme_correlation_with_improvement_over_baselines": "tex",
+        },
+    },
 }
 
 
@@ -118,5 +180,5 @@ defs = dg.Definitions(
             else None,
         )
     ],
-    executor=dg.multiprocess_executor.configured({"max_concurrent": 1}),
+    executor=dg.multiprocess_executor.configured({"max_concurrent": 2}),
 )
