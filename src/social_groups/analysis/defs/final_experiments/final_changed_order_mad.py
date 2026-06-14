@@ -36,15 +36,7 @@ from social_groups.analysis.polars_transformations.make_group_constellation impo
 def final_changed_order_mad(combined_data: pl.DataFrame):
     final_changed_order_mad = (
         combined_data.filter(
-            (
-                pl.col("name").is_in(
-                    {
-                        "changed_order_mad2",
-                        "changed_order_mad3",
-                        # TODO: what to do with Mad4?
-                    }
-                )
-            )
+            (pl.col("name").is_in({"changed_order_mad2", "changed_order_mad3"}))
             & (pl.col("data_connector") == "mmlu-pro-big-subset")
         )
         .with_columns(
@@ -68,28 +60,9 @@ def final_changed_order_mad(combined_data: pl.DataFrame):
     )
 
     yield check_unique_data_connector(final_changed_order_mad)
-    yield check_correct_data_length(
-        final_changed_order_mad, 54000
-    )  # TODO: change when mad3s are done
+    yield check_correct_data_length(final_changed_order_mad, 108000)
 
-    yield dg.Output(
-        final_changed_order_mad.drop(
-            [
-                "experiment_id",  #
-                "name",  #
-                "message_ids",  # not filled
-                "phoenix_span_id",  # not interesting
-                "data_connector",  # all "mmlu-pro-big-subset"
-                "original_source",  # not interesting
-                "experiment_configuration_json",  # already used
-                "meta_info_json",
-                "execution_config_json",
-                "answer_index",
-                "answer_options",
-                "final_answer",
-            ]
-        )
-    )
+    yield dg.Output(final_changed_order_mad)
 
 
 defs = dg.Definitions(assets=dg.with_source_code_references([final_changed_order_mad]))
