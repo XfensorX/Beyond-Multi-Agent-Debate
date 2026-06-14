@@ -54,7 +54,6 @@ class PhoenixWithPostgresConfiguration(SlurmService):
 
         postgres_dir = working_dir / "pgdata"
         phoenix_dir = working_dir / "phoenix"
-        backup_wal_directory = working_dir / "wal_backup"
         postgres_run_dir = working_dir / "pgrun"
         recovery_dir = working_dir / "full_backup"
 
@@ -66,8 +65,9 @@ class PhoenixWithPostgresConfiguration(SlurmService):
             # Postgres
             "PGDATA": postgres_dir,
             "PGWAL": wal_dir,
-            "PG_WAL_BACKUP": backup_wal_directory,
+            "PG_WAL_BACKUP": (working_dir / "wal_backup"),
             "PG_FULL_BACKUP_DIR": recovery_dir,
+            "PG_WAL_COMBINED": (working_dir / "wal_combined"),
             "PGRUN": postgres_run_dir,
             "PGPORT": self.postgres.port,
             "POSTGRES_PORT": self.postgres.port,
@@ -90,19 +90,18 @@ class PhoenixWithPostgresConfiguration(SlurmService):
         nginx_sif = exec_config.project_dir / self.ngingx_sif_location_inside_project
         nginx_conf = exec_config.project_dir / self.ngingx_conf_location_inside_project
 
-        apptainer_options = "--no-mount bind-paths --bind $PGDATA:/var/lib/postgresql/data --bind $PGRUN:/var/run/postgresql --writable-tmpfs"
-
-        prepare_pg_data = "mkdir -p $PGDATA && chmod 700 $PGDATA"
-        prepare_pg_backup_wal = "mkdir -p $PG_WAL_BACKUP && chmod 700 $PG_WAL_BACKUP"
-        prepare_pg_run = "mkdir -p $PGRUN && chmod 700 $PGRUN"
-        prepare_wal_dir = "mkdir -p $PGWAL && chmod 700 $PGWAL"
-        symlink_pg_wal = "rm -f $PGDATA/pg_wal && ln -s $PGWAL $PGDATA/pg_wal"
-        wal_backup = (
-            "rm -rf $PG_WAL_BACKUP && cp -R $PGWAL $PG_WAL_BACKUP && echo WAL-BACKUP"
+        apptainer_options = (
+            "--no-mount bind-paths "
+            "--bind $PGDATA:/var/lib/postgresql/data "
+            "--bind $PGRUN:/var/run/postgresql  "
+            "--bind $PG_WAL_BACKUP:$PG_WAL_BACKUP "
+            "--bind $PG_WAL_COMBINED:$PG_WAL_COMBINED "
+            "--bind $PG_FULL_BACKUP_DIR:$PG_FULL_BACKUP_DIR "
+            "--writable-tmpfs"
         )
-        signal_pg_recovery_needed = 'touch "$PGDATA/recovery.signal"'
-        wal_load_backup = "rm -rf $PGWAL && cp -R $PG_WAL_BACKUP $PGWAL"
 
+        prepare_wal_dir = "mkdir -p $PGWAL && chmod 700 $PGWAL"
+        wal_backup = 'cp -a "$PGWAL"/. "$PG_WAL_BACKUP"/ && echo WAL-BACKUP'
         init = (
             f"apptainer exec {apptainer_options} {str(pg_sif)} "
             "bash -c "
@@ -153,10 +152,9 @@ trap 'cleanup' EXIT SIGTERM SIGINT
             "'"
             f"""
             set -euo pipefail
-        
             {prepare_wal_dir}
-            {wal_load_backup}
-            {symlink_pg_wal}
+            rm -rf $PGDATA/pg_wal && ln -s $PGWAL $PGDATA/pg_wal
+            echo \"$(readlink -f \"$PGWAL\")\" && find \"$PGWAL\" -mindepth 1 -delete && cp -a \"$PG_WAL_BACKUP\"/. \"$PGWAL\"/
         
             cleanup() {{
                 # prevent running twice
@@ -179,7 +177,7 @@ trap 'cleanup' EXIT SIGTERM SIGINT
             --work_mem=128MB \\
             --huge_pages=off \\
             --checkpoint_timeout=1min \\
-            -c "restore_command=cp $PG_WAL_BACKUP/%f %p" \\
+            -c "restore_command=cp $PG_WAL_COMBINED/%f %p" \\
             &
             
             APPTAINER_PG_PID=$!
@@ -246,11 +244,11 @@ wait "$NGINX_PID"
         return "\n".join(
             [
                 prepare_wal_dir,
-                prepare_pg_backup_wal,
-                prepare_pg_run,
-                prepare_pg_data,
+                "mkdir -p $PG_WAL_BACKUP && chmod 700 $PG_WAL_BACKUP",
+                "mkdir -p $PGRUN && chmod 700 $PGRUN",
+                "mkdir -p $PGDATA && chmod 700 $PGDATA",
                 init_postgres_db,
-                signal_pg_recovery_needed,
+                'touch "$PGDATA/recovery.signal"',
                 start_postgres,
                 capture_pg_pid,
                 register_cleanup_for_postgres,

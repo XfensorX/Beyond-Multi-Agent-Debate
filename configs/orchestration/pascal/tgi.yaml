@@ -7,8 +7,8 @@ slurm_config:
 
 
 sif_path_in_project: assets/orchestration/tgi.sif
-data_bind_directory: /home/philipp.link/tgi-data
-huggingface_cache_directory: /home/philipp.link/.cache/huggingface
+data_bind_directory: /homes/neumann/philipp.link/tgi-data
+huggingface_cache_directory: /homes/neumann/philipp.link/.cache/huggingface
 
 llm_models:
   Qwen/Qwen2.5-0.5B-Instruct:

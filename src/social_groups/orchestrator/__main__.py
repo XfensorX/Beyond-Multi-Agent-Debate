@@ -328,8 +328,8 @@ def pipe_ssh(where: ExecutionLocation, service: SlurmServiceName):
             "ssh",
             "-N",
             "-L",
-            f"localhost:{port}:localhost:{port}",
-            node,
+            f"localhost:{port}:{node}:{port}",
+            exec_config.ssh_login,
         ]
     )
 
