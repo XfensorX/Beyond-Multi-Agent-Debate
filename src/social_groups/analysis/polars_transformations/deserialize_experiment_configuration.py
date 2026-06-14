@@ -18,6 +18,7 @@ def deserialize_experiment_configuration(expr: pl.Expr) -> pl.Expr:
                             "name": pl.String,
                             "configuration": pl.Struct(
                                 {
+                                    "number_of_rounds": pl.Int64,
                                     "debate_agents": pl.List(
                                         pl.Struct(
                                             {

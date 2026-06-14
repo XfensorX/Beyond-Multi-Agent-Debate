@@ -1,4 +1,5 @@
 import pprint
+import re
 import subprocess
 from pathlib import Path
 from typing import Any, Literal
@@ -15,7 +16,7 @@ from pydantic import BaseModel
 
 from social_groups.directories import DAGSTER_BASE_DIR
 
-SUPPORTED_EXTENSION = Literal["csv", "tex", "svg", "pdf", "png"]
+SUPPORTED_EXTENSION = Literal["csv", "tex", "svg", "pdf", "png", "parquet"]
 
 
 class ExtraNotebookAsset(BaseModel):
@@ -29,12 +30,16 @@ class ExtraNotebookAsset(BaseModel):
         )
 
     def get_spec(self, *, deps) -> dg.AssetSpec:
+        metadata = {"file_extension": self.extension}
+        if self.extension == "parquet":
+            metadata["dagster/io_manager_key"] = "polars_parquet_io_manager"
+
         return dg.AssetSpec(
             key=self.get_key(),
             deps=deps,
             group_name=self.notebook_name.replace(".ipynb", ""),
-            metadata={"file_extension": self.extension},
             description="See Metadata for description.",
+            metadata=metadata,
         )
 
     def _get_file_name(self) -> str:
@@ -62,8 +67,9 @@ class ExtraNotebookAsset(BaseModel):
                 return dg.MetadataValue.md(obj.to_markdown(index=False))
             else:
                 raise NotImplementedError
-        elif self.extension in {"svg", "pdf", "png"}:
+        elif self.extension in {"svg", "pdf", "png", "parquet"}:
             return None  # TODO: does pdf work here maybe?
+
         else:
             raise ValueError(f"Cannot handle type {type(obj)}")
 
@@ -88,10 +94,22 @@ class ExtraNotebookAsset(BaseModel):
                 raise NotImplementedError
         elif self.extension == "tex":
             if isinstance(obj, pl.DataFrame):
-                obj = obj.rename({col: col.replace("_", " ") for col in obj.columns})
+
+                def format_latex_header(col: str) -> str:
+                    col = break_middliest_space(col)
+                    col = small_parentheses(col)
+                    return r"\makecell{" + col + "}"
+
+                obj = obj.rename(
+                    {col: format_latex_header(col) for col in obj.columns}
+                ).with_columns(
+                    pl.selectors.string()
+                    .str.replace_all("%", r"\%")
+                    .map_elements(small_parentheses)
+                )
 
                 obj.to_pandas().to_latex(
-                    path, index=False, float_format="{:,.1f}".format
+                    path, index=False, float_format="{:,.2f}".format, escape=False
                 )
             elif isinstance(obj, pd.DataFrame):
                 obj.to_latex(path, index=False)
@@ -102,11 +120,18 @@ class ExtraNotebookAsset(BaseModel):
                 raise NotImplementedError
         elif self.extension in {"svg", "pdf", "png"}:
             if isinstance(obj, Figure):
-                obj.savefig(path)
+                obj.savefig(path, bbox_inches="tight")
             elif isinstance(obj, altair.vegalite.v6.api.Chart):
                 obj.save(path)
             elif isinstance(obj, seaborn.FacetGrid):
                 obj.savefig(path)
+            else:
+                raise NotImplementedError(f"Cannot handle type {type(obj)}")
+        elif self.extension == "parquet":
+            if isinstance(obj, pl.DataFrame):
+                obj.to_pandas().to_parquet(path, index=False)
+            elif isinstance(obj, pd.DataFrame):
+                obj.to_parquet(path, index=False)
             else:
                 raise NotImplementedError
         else:
@@ -215,3 +240,21 @@ def definition_to_code_string(obj, var_name: str):
 
     value_str = pprint.pformat(obj, width=100, sort_dicts=False)
     return f"{var_name} = {value_str}"
+
+
+def break_middliest_space(s: str) -> str:
+    s = s.replace("_", " ")
+    space_positions = [m.start() for m in re.finditer(" ", s)]
+    if not space_positions:
+        return s
+    middle = len(s) / 2
+    best_pos = min(space_positions, key=lambda pos: abs(pos - middle))
+    return s[:best_pos] + r"\\" + s[best_pos + 1 :]
+
+
+def small_parentheses(s: str) -> str:
+    return re.sub(
+        r"\((.*?)\)",
+        lambda m: r"{\scriptsize(" + m.group(1) + ")}",
+        s,
+    )
