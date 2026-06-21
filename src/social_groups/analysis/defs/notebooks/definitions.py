@@ -132,6 +132,23 @@ global_notebook_registry: dict[str, NotebookEntry] = {
             "decisionscheme_correlation_with_improvement_over_baselines": "tex",
         },
     },
+    "final_changing_prompt": {
+        "ins": {
+            "changed_prompt_mad": dg.AssetIn("final_changed_prompt_mad"),
+            "medium_mad": dg.AssetIn(
+                [
+                    "report",
+                    "final_medium_subset_mad",
+                    "medium_basic_mad_size_heterogeneity_result",
+                ]
+            ),
+        },
+        "extra_assets": {
+            "accuracy_change_by_group_constellation": "png",
+            "permutation_effect_within_each_model_family": "png",
+            "changed_prompt_vs_standard_prompt": "png",
+        },
+    },
 }
 
 
