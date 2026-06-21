@@ -93,6 +93,9 @@ class ExtraNotebookAsset(BaseModel):
             else:
                 raise NotImplementedError
         elif self.extension == "tex":
+            if isinstance(obj, pd.DataFrame):
+                obj = pl.from_pandas(obj)
+
             if isinstance(obj, pl.DataFrame):
 
                 def format_latex_header(col: str) -> str:
@@ -111,8 +114,7 @@ class ExtraNotebookAsset(BaseModel):
                 obj.to_pandas().to_latex(
                     path, index=False, float_format="{:,.2f}".format, escape=False
                 )
-            elif isinstance(obj, pd.DataFrame):
-                obj.to_latex(path, index=False)
+
             elif isinstance(obj, str):
                 with open(path, "w") as f:
                     f.write(obj)

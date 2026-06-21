@@ -130,6 +130,30 @@ global_notebook_registry: dict[str, NotebookEntry] = {
             "wasserstein_distance_correlation_heterogeneous_mad": "png",
             "best_fitting_decision_scheme_across_heterogeneous_mad": "png",
             "decisionscheme_correlation_with_improvement_over_baselines": "tex",
+            "homogeneous_mad_big_subset_result": "parquet",
+            "size_heterogeneous_mad_big_subset_result": "parquet",
+        },
+    },
+    "final_medium_subset_mad": {
+        "ins": {
+            "medium_mad": dg.AssetIn("final_medium_subset_mad"),
+            "big_homo_mad": dg.AssetIn(
+                ["report", "final_mad_baseline", "homogeneous_mad_big_subset_result"]
+            ),
+            "big_size_hetero_mad": dg.AssetIn(
+                [
+                    "report",
+                    "final_mad_baseline",
+                    "size_heterogeneous_mad_big_subset_result",
+                ]
+            ),
+        },
+        "extra_assets": {
+            "accuracy_correlation_medium_and_big_subset": "tex",
+            "accuracy_difference_from_big_to_medium_subset": "tex",
+            "medium_subset_pareto_friend_by_group_size": "png",
+            "accuracy_gain_vs_wasserstein_distance": "png",
+            "medium_basic_mad_size_heterogeneity_result": "parquet",
         },
     },
     "final_changing_prompt": {
