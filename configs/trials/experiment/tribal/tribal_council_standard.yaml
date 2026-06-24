@@ -17,9 +17,9 @@ council_size: 2
 
 experiment:
   name: tribal_council
-  data: mmlu-pro-subset
+  data: mmlu-pro-medium-subset
   strategy:
-    name: tribal-council
+    name: tribal-council-sweep
     configuration:
       num_different_proposals: ${num_different_proposals}
       accept_after_n_invalid_proposals: 7
