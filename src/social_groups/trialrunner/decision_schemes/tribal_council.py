@@ -143,7 +143,7 @@ def make_proposal(
     )
 
     args = parse_tool_call_arguments(ai_msg)
-    with phoenix_log_span(
+    with phoenix_log_span(  # TODO: Remove
         f"""args_of_tool_call={json.dumps(args)}
         ai_message={ai_msg.content},
         cannot_choose={cannot_choose},
@@ -164,7 +164,16 @@ def make_proposal(
         )  # noqa: some wired behaviour with validator
 
     except (ValidationError, KeyError) as e:
-        raise InvalidToolCallException() from e
+        with phoenix_log_span(  # TODO: Remove
+            "Received Error",
+            title="ERROR",
+            error=str(e),
+            args_of_tool_call=json.dumps(args),
+            ai_message=ai_msg.content,
+            cannot_choose=cannot_choose,
+            question=question,
+        ):
+            raise InvalidToolCallException() from e
 
 
 def trim_answers(q: str):
@@ -432,7 +441,7 @@ class TribalCouncilDebate(DecisionScheme[TribalCouncilConfiguration]):
             try:
                 new_prop = make_proposal(agent, question, answers_given, agent_id=agent)
                 if (
-                    not any(p.answer == new_prop.answer for p in proposals)
+                    not any([p.answer == new_prop.answer for p in proposals])
                     or n_same_proposals >= self.config.accept_after_n_same_proposals
                 ):
                     n_same_proposals = 0
