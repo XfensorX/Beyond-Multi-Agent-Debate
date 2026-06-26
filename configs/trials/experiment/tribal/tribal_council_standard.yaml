@@ -17,7 +17,7 @@ council_size: 2
 
 experiment:
   name: tribal_council-sweep
-  data: mmlu-pro-single
+  data: mmlu-pro-medium-subset
   strategy:
     name: tribal-council
     configuration:

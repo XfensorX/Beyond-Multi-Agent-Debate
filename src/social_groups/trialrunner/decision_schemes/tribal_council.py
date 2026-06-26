@@ -142,18 +142,7 @@ def make_proposal(
     )
 
     args = parse_tool_call_arguments(ai_msg)
-    with phoenix_log_span(  # TODO: Remove
-        f"""args_of_tool_call={json.dumps(args)}
-        ai_message={ai_msg.content},
-        cannot_choose={cannot_choose},
-        question={question}""",
-        title="Aborting",
-        args_of_tool_call=json.dumps(args),
-        ai_message=ai_msg.content,
-        cannot_choose=cannot_choose,
-        question=question,
-    ):
-        parser = AnswerParser(AnswerOptions.letters_A_to_J)
+    parser = AnswerParser(AnswerOptions.letters_A_to_J)
 
     try:
         return Proposal(
@@ -163,7 +152,7 @@ def make_proposal(
         )  # noqa: some wired behaviour with validator
 
     except (ValidationError, KeyError) as e:
-        with phoenix_log_span(  # TODO: Remove
+        with phoenix_log_span(
             "Received Error",
             title="ERROR",
             error=str(e),
@@ -365,8 +354,9 @@ def get_final_decision(
         ]
         + [
             HumanMessage(
-                "After the discussion, what do you think is the correct solution?"
-                "Please evaluate carefully and submit your decision using the given tool."
+                "After the discussion, what do you think is the correct solution?\n"
+                "Please evaluate carefully and submit your decision using the given tool. "
+                "You do not have to choose a certain proposal. Choose what is right based on what was said!"
             )
         ]
     )
