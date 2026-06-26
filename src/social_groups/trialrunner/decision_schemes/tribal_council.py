@@ -12,6 +12,7 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, BeforeValidator, ValidationError
 
 from social_groups.general.utils.standard_library import BaseModelWithExtraFields
+from social_groups.reporting.parsing import AnswerOptions, AnswerParser
 from social_groups.trialrunner.config import BackendInfo, LLMConfig, get_llm
 from social_groups.trialrunner.decision_schemes.base import (
     DecisionScheme,
@@ -141,9 +142,10 @@ def make_proposal(
     )
 
     args = parse_tool_call_arguments(ai_msg)
+    parser = AnswerParser(AnswerOptions.letters_A_to_J)
     try:
         return Proposal(
-            answer=args["correct_answer"],
+            answer=parser._parser(args["correct_answer"]),
             reasoning=args["reasoning"],
             agent_id=agent_id,
         )  # noqa: some wired behaviour with validator
@@ -173,7 +175,7 @@ def remove_answer(original_question: str, answer: str) -> str:
 
     parts = original_question.split("Options are:")
     parts[-1] = re.sub(
-        rf"^\(\s*{answer}\s*\):\s*.+\n?", "", parts[-1], flags=re.MULTILINE
+        rf"^\(\s*{answer.capitalize()}\s*\):\s*.+\n?", "", parts[-1], flags=re.MULTILINE
     )
 
     return "Options are:".join(parts)
