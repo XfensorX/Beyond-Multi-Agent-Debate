@@ -62,7 +62,6 @@ class TribalCouncilConfiguration(BaseModelWithExtraFields):
 
     @cached_property
     def proposal_agent_llms(self):
-
         agents = []
 
         for a in self.proposal_agents:
@@ -439,7 +438,9 @@ class TribalCouncilDebate(DecisionScheme[TribalCouncilConfiguration]):
         while len(proposals) < num_different_proposals:
             agent = self.config.proposal_agent_llms[agents_turn]
             try:
-                new_prop = make_proposal(agent, question, answers_given, agent_id=agent)
+                new_prop = make_proposal(
+                    agent, question, answers_given, agent_id=agents_turn
+                )
                 if (
                     not any([p.answer == new_prop.answer for p in proposals])
                     or n_same_proposals >= self.config.accept_after_n_same_proposals
