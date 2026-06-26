@@ -1,3 +1,4 @@
+import json
 import re
 from functools import cached_property
 from typing import Annotated, Literal
@@ -142,7 +143,18 @@ def make_proposal(
     )
 
     args = parse_tool_call_arguments(ai_msg)
-    parser = AnswerParser(AnswerOptions.letters_A_to_J)
+    with phoenix_log_span(
+        "Received Invalid Tool Call",
+        title="Aborting",
+        attrs={
+            "args_of_tool_call": json.dumps(args),
+            "ai_message": ai_msg.content,
+            "cannot_choose": cannot_choose,
+            "question": question,
+        },
+    ):
+        parser = AnswerParser(AnswerOptions.letters_A_to_J)
+
     try:
         return Proposal(
             answer=parser._parser(args["correct_answer"]),

@@ -22,7 +22,7 @@ experiment:
     name: tribal-council
     configuration:
       num_different_proposals: ${num_different_proposals}
-      accept_after_n_invalid_proposals: 7
+      accept_after_n_invalid_proposals: 3
       accept_after_n_same_proposals: 3
       total_invalid_question_formulations_accepted: 5
       total_invalid_final_decisions_ignored: 3
