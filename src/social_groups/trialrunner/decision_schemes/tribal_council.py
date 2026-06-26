@@ -144,14 +144,15 @@ def make_proposal(
 
     args = parse_tool_call_arguments(ai_msg)
     with phoenix_log_span(
-        "Received Invalid Tool Call",
+        f"""args_of_tool_call={json.dumps(args)}
+        ai_message={ai_msg.content},
+        cannot_choose={cannot_choose},
+        question={question}""",
         title="Aborting",
-        attrs={
-            "args_of_tool_call": json.dumps(args),
-            "ai_message": ai_msg.content,
-            "cannot_choose": cannot_choose,
-            "question": question,
-        },
+        args_of_tool_call=json.dumps(args),
+        ai_message=ai_msg.content,
+        cannot_choose=cannot_choose,
+        question=question,
     ):
         parser = AnswerParser(AnswerOptions.letters_A_to_J)
 
