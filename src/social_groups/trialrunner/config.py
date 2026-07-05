@@ -174,6 +174,28 @@ def get_llm(
                 )
 
             return llm
+        elif "gemma-4" in backend.model_name:
+            if with_thinking is not None:
+                raise NotImplementedError("Gemma does not support thinking mode here.")
+
+            llm = ChatOpenAI(
+                model=backend.model_name,
+                base_url=base_url + "/v1",
+                api_key=SecretStr(api_key or "-"),
+                temperature=config.temperature,
+                max_tokens=config.max_new_tokens,
+                top_p=config.top_p,
+                seed=config.seed,
+                timeout=MAX_TIMEOUT,
+                max_retries=MAX_RETRIES,
+            )
+
+            if config.repetition_penalty is not None:
+                llm = llm.bind(
+                    extra_body={"repetition_penalty": config.repetition_penalty}
+                )
+
+            return llm
 
         else:
             if with_thinking is not None:
