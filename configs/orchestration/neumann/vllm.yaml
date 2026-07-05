@@ -80,3 +80,14 @@ llm_models:
     load_format: mistral
     tool_call_parser: mistral
     reasoning_parser: mistral
+
+
+  google/gemma-4-E2B-it:
+    port: 40402
+
+  google/gemma-4-E4B-it:
+    port: 40404
+
+  google/gemma-4-31B-it:
+    port: 40431
+    max_total_tokens: 32768 # adjust if needed to fit in VRAM
