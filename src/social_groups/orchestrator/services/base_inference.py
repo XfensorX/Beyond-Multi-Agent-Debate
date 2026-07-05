@@ -29,6 +29,8 @@ class BaseInferenceService(SlurmService, ABC):
     llm_models: dict[ModelId, ModelConfiguration]
     _chosen_model_id: ModelId | None = None  # The model to actually run
 
+    _chosen_gpus_per_model_instance: int = 1
+
     @field_validator("slurm_config")
     @classmethod
     def require_partition_specification(
@@ -52,8 +54,15 @@ class BaseInferenceService(SlurmService, ABC):
                 + "\n - ".join(sorted(self.llm_models.keys()))
             )
 
-    def set_used_model(self, modelid: ModelId, used_gpus: int | None = None):
+    def set_used_model(
+        self,
+        modelid: ModelId,
+        used_gpus: int | None = None,
+        gpus_per_model_instance: int = 1,
+    ):
         self.check_model_config_exists([modelid])
         self._chosen_model_id = modelid
         if used_gpus is not None:
             self.slurm_config.gres = f"gpu:{used_gpus}"
+        if gpus_per_model_instance is not None:
+            self.slurm_config.gpus_per_model_instance = gpus_per_model_instance

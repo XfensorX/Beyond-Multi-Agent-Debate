@@ -58,8 +58,21 @@ class VLLMConfiguration(BaseInferenceService):
                 if used_model.max_total_tokens
                 else ""
             )
-            + (f"--data-parallel-size={number_gpus} " if number_gpus != 1 else "")
-            + (f"--api-server-count={number_gpus} " if number_gpus != 1 else "")
+            + (
+                f"--data-parallel-size={number_gpus // self._chosen_gpus_per_model_instance} "
+                if number_gpus != 1
+                else ""
+            )
+            + (
+                f"--tensor-parallel-size={self._chosen_gpus_per_model_instance} "
+                if self._chosen_gpus_per_model_instance != 1
+                else ""
+            )
+            + (
+                f"--api-server-count={number_gpus // self._chosen_gpus_per_model_instance} "
+                if number_gpus != 1
+                else ""
+            )
             + (
                 f"--tokenizer_mode={used_model.tokenizer_mode} "
                 if used_model.tokenizer_mode

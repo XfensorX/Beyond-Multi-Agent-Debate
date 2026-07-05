@@ -92,6 +92,11 @@ async def run_service_on_slurm(
         "-g",
         help="How many GPUs to use if is a LLM job.",
     ),
+    gpus_per_model_instance: Optional[int] = typer.Option(
+        None,
+        "--parallel-gpus",
+        help="How many GPUs to use if is a LLM job per model instance",
+    ),
 ):
     # TODO: refactor this method
     if llm:
@@ -119,7 +124,11 @@ async def run_service_on_slurm(
 
         for llm_name in llm:
             print(f"Starting {service} on {where} for model {llm_name}")
-            service_config.set_used_model(llm_name, used_gpus=gpus)
+            service_config.set_used_model(
+                llm_name,
+                used_gpus=gpus,
+                gpus_per_model_instance=gpus_per_model_instance,
+            )
             job_id = exec_config.submit_sbatch(
                 service_config.create_job_file_content(exec_config=exec_config)
             )
