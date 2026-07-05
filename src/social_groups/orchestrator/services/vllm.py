@@ -27,7 +27,7 @@ class VLLMConfiguration(BaseInferenceService):
         return given_job_name.startswith("vllm___")
 
     def create_env_dict(self, exec_config: ExecutionLocationConfig) -> dict[str, str]:
-        return {}
+        return {"VLLM_USE_FLASHINFER_SAMPLER": "0"}
 
     def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
         if self._chosen_model_id is None:
