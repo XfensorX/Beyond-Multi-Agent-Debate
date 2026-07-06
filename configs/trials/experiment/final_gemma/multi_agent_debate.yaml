@@ -2,7 +2,6 @@
 defaults:
   - _self_
   - /experiment/hetero/groups/Gemma4@_models: LLL
-  - /experiment/hetero/thinking/Gemma4@_openly_thinking_models: only_H
 
 hydra:
   sweeper:
@@ -85,7 +84,7 @@ experiment:
 
 
   additional_info:
-    description: MAD with a new prompt and ${_openly_thinking_models} thinking loud. — ${_models.0},${_models.1},${_models.2}
+    description: MAD with a new prompt — ${_models.0},${_models.1},${_models.2}
 
 
 
