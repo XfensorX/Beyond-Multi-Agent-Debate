@@ -65,4 +65,4 @@ class BaseInferenceService(SlurmService, ABC):
         if used_gpus is not None:
             self.slurm_config.gres = f"gpu:{used_gpus}"
         if gpus_per_model_instance is not None:
-            self.slurm_config.gpus_per_model_instance = gpus_per_model_instance
+            self._chosen_gpus_per_model_instance = gpus_per_model_instance

@@ -27,7 +27,15 @@ class VLLMConfiguration(BaseInferenceService):
         return given_job_name.startswith("vllm___")
 
     def create_env_dict(self, exec_config: ExecutionLocationConfig) -> dict[str, str]:
-        return {"VLLM_USE_FLASHINFER_SAMPLER": "0"}
+        env = {"VLLM_USE_FLASHINFER_SAMPLER": "0"}
+        if self._chosen_gpus_per_model_instance > 1:
+            env["NCCL_DEBUG"] = "INFO"
+            env["NCCL_IB_DISABLE"] = "1"
+            env["NCCL_NET"] = "Socket"
+            env["CUDA_VISIBLE_DEVICES"] = ", ".join(
+                str(i) for i in range(0, self._chosen_gpus_per_model_instance)
+            )
+        return env
 
     def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
         if self._chosen_model_id is None:

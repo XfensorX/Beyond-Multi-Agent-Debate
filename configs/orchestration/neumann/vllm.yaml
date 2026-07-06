@@ -90,4 +90,4 @@ llm_models:
 
   google/gemma-4-31B-it:
     port: 40431
-    max_total_tokens: 32768 # adjust if needed to fit in VRAM
+    max_total_tokens: 16384
