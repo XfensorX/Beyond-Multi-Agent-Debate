@@ -17,7 +17,7 @@ class SingleAgentConfiguration(BaseModelWithExtraFields):
     backend: BackendInfo
 
     use_few_shot_prompting: bool
-    use_thinking: bool
+    use_thinking: bool | None
 
 
 @register_decision_scheme("single-agent")
