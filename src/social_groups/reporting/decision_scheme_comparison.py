@@ -55,9 +55,9 @@ def wasserstein_transition_distance_to_optimal(
 ) -> float:
     assert (
         decision_scheme_matrix.select(pl.exclude("_"))
-        .select(pl.all_horizontal(pl.all() < 1).all())
+        .select(pl.all_horizontal(pl.all() <= 1).all())
         .item()
-    )
+    ), decision_scheme_matrix
 
     assert (
         decision_scheme_matrix.select("_")
@@ -94,6 +94,8 @@ def wasserstein_transition_distance_to_optimal(
     distance = float(
         weights @ np.abs(1 - np.cumsum(decision_scheme_matrix, axis=0)).sum(axis=0)
     )
+
+    distance /= cols
 
     if isnan(distance):
         raise RuntimeError(
