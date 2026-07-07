@@ -352,12 +352,18 @@ def sync_results(
     experiment_filter: Optional[str] = typer.Option(
         None, "--filter", "-f", help="A filter used on the experiment name."
     ),
+    results_subdir: Optional[Path] = typer.Option(
+        "final",
+        "--target",
+        "-f",
+        help=f"The sync target directory inside {str(RESULTS_DIR / 'multirun')}",
+    ),
 ):
     exec_config = load_execution_config(where)
 
     HOST_LOGIN = exec_config.ssh_login
     HOST_BASE = str(Path(exec_config.project_dir) / "results" / "multirun")
-    LOCAL_BASE = RESULTS_DIR / "multirun" / "final"
+    LOCAL_BASE = RESULTS_DIR / "multirun" / results_subdir
 
     console.rule("Remote experiment sync")
 
