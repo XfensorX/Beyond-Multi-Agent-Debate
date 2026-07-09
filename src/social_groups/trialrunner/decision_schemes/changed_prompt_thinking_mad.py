@@ -153,7 +153,7 @@ class ChangedPromptThinkingMad(DecisionScheme[ChangedPromptThinkingMadConfigurat
         agent_can_think_openly: list[bool],
     ) -> str:
         return "\n\n".join(
-            answer if can_think_openly else strip_out_thinking_process(answer)
+            answer if can_think_openly else "\n".join(answer.splitlines()[-2:])
             for can_think_openly, answer in zip(
                 agent_can_think_openly, last_agent_answers
             )
