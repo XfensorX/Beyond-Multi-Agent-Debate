@@ -2,16 +2,18 @@
 defaults:
   - _self_
   - /experiment/hetero/groups/Gemma4@_models: LLL
+  - /experiment/hetero/thinking/Gemma4@_openly_thinking_models: only_H
 
 hydra:
   sweeper:
     params:
       seed: 1,2,3,4,5
       experiment/hetero/groups/Gemma4@_models: LLL, LLH, LHL, LHH, HLL, HHL, HHH
+      experiment/hetero/thinking/Gemma4@_openly_thinking_models: only_L, only_H, all
 
 seed: 1
 experiment:
-  name: gemma4_multi_agent_debate_2nd_try
+  name: gemma4_multi_agent_debate_3part
   data: gpqa-diamond
 
   strategy:
