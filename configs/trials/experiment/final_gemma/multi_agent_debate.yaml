@@ -11,11 +11,11 @@ hydra:
 
 seed: 1
 experiment:
-  name: gemma4_multi_agent_debate
+  name: gemma4_multi_agent_debate_2nd_try
   data: gpqa-diamond
 
   strategy:
-    name: changed_prompt_thinking_mad_2nd_try
+    name: changed_prompt_thinking_mad
     configuration:
       system_message: >-
         The following questions are examples for your task. At the end you get a question to answer as accurately as possible.
