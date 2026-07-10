@@ -47,6 +47,7 @@ experiment:
 
       number_of_rounds: 3
       use_few_shot_prompting: false
+      openly_thinking_models: ${oc.dict.values:_openly_thinking_models}
 
       debate_agents:
         - number_of_agents: 1

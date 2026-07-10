@@ -21,7 +21,7 @@ from social_groups.trialrunner.utils.phoenix import phoenix_log_span
 class ChangedPromptThinkingMadConfiguration(BaseModelWithExtraFields):
     debate_agents: list[DebateAgent]
     number_of_rounds: int
-    openly_thinking_models: set[BackendInfo] | None = None
+    openly_thinking_models: set[BackendInfo]
     system_message: str
     human_messsage_before_other_answers: str
     human_messsage_after_other_answers: str
@@ -96,8 +96,6 @@ class ChangedPromptThinkingMad(DecisionScheme[ChangedPromptThinkingMadConfigurat
                 llms.append(get_llm(agent.params, agent.backend))
                 agent_can_think_openly.append(
                     agent.backend in self.config.openly_thinking_models
-                    if self.config.openly_thinking_models
-                    else True
                 )
 
         return llms, agent_can_think_openly
