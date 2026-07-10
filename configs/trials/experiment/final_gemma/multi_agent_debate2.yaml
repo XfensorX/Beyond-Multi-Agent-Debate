@@ -9,7 +9,7 @@ hydra:
     params:
       seed: 1,2,3,4,5
       experiment/hetero/groups/Gemma4@_models: LL, LH, HL, HH
-      experiment/hetero/thinking/Gemma4@_openly_thinking_models: only_L, only_H, all
+      experiment/hetero/thinking/Gemma4@_openly_thinking_models: nobody, only_L, only_H, all
 
 seed: 1
 experiment:
