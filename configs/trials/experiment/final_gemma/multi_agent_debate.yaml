@@ -7,7 +7,7 @@ hydra:
   sweeper:
     params:
       seed: 1,2,3,4,5
-      experiment/hetero/groups/Gemma4@_models: LLL, LLH, LHH, HHH
+      experiment/hetero/groups/Gemma4@_models: LLL, LLH, LHL, LHH, HLL, HHL, HHH
 
 seed: 1
 experiment:
@@ -15,7 +15,7 @@ experiment:
   data: gpqa-diamond
 
   strategy:
-    name: changed_prompt_thinking_mad
+    name: changed_prompt_thinking_mad_2nd_try
     configuration:
       system_message: >-
         The following questions are examples for your task. At the end you get a question to answer as accurately as possible.
