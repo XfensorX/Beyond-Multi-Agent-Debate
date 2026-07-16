@@ -87,6 +87,7 @@ global_notebook_registry: dict[str, NotebookEntry] = {
             "knowledge_blackhole_heatmap": "png",
             "no_discussion_voting_main_result_table": "parquet",
             "all_group_combinations_majority_voting": "parquet",
+            "all_group_combinations_majority_voting_mixed_families": "parquet",
         },
     },
     "final_baseline_analysis": {
@@ -171,6 +172,74 @@ global_notebook_registry: dict[str, NotebookEntry] = {
             "accuracy_change_by_group_constellation": "png",
             "permutation_effect_within_each_model_family": "png",
             "changed_prompt_vs_standard_prompt": "png",
+        },
+    },
+    "final_different_families": {
+        "ins": {
+            "different_families_mad": dg.AssetIn("final_different_families"),
+            "baseline": dg.AssetIn("final_baseline"),
+            "homogeneous_mad": dg.AssetIn(
+                ["report", "final_mad_baseline", "homogeneous_mad_big_subset_result"]
+            ),
+            "size_heterogeneous_mad": dg.AssetIn(
+                [
+                    "report",
+                    "final_mad_baseline",
+                    "size_heterogeneous_mad_big_subset_result",
+                ]
+            ),
+            "no_discussion_voting_same_size_mixed_families": dg.AssetIn(
+                [
+                    "report",
+                    "final_no_discussion_voting",
+                    "all_group_combinations_majority_voting_mixed_families",
+                ]
+            ),
+            "no_discussion_voting_mixed_size_same_family": dg.AssetIn(
+                [
+                    "report",
+                    "final_no_discussion_voting",
+                    "all_group_combinations_majority_voting",
+                ]
+            ),
+            "changed_order_mad": dg.AssetIn("final_changed_order_mad"),
+        },
+        "extra_assets": {
+            "pareto_frontier_all_methods": "png",
+            "plot_size_matched_performance": "png",
+            "plot_correlation_heatmaps": "png",
+            "plot_size_matched_wd": "png",
+        },
+    },
+    "final_diversity_params": {
+        "ins": {"diversity_mad_frame": dg.AssetIn("final_diversity_params")},
+        "extra_assets": {
+            "accuracy_vs_accuracy_increase_by_temperature_and_top_p": "png",
+            "all_Results_diversity_parameter_mad": "tex",
+            "delta_heatmap_by_group_constellation_and_model_family": "png",
+            "delta_accuracy_vs_delta_accuracy_increase_by_temperature_and_top_p": "png",
+        },
+    },
+    "final_thinking_mad": {
+        "ins": {
+            "thinking_mad_frame": dg.AssetIn("final_thinking_mad"),
+            "diversity_mad": dg.AssetIn("final_diversity_params"),
+        },
+        "extra_assets": {
+            "sensitivity_to_open_thinking_configuration": "png",
+            "influence_of_open_thinking_configuration_unordered_configuration": "png",
+            "influence_of_open_thinking_config_for_LH_groups": "png",
+        },
+    },
+    "final_gemma4": {
+        "ins": {
+            "gemma4_single_model_baseline": dg.AssetIn(
+                "final_gemma4_single_model_baseline"
+            ),
+            "gemma4_no_discussion_voting": dg.AssetIn(
+                "final_gemma4_no_discussion_voting_base"
+            ),
+            "gemma4_multi_agent_debate": dg.AssetIn("final_gemma4_multi_agent_debate"),
         },
     },
 }

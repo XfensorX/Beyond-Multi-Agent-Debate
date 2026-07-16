@@ -20,11 +20,14 @@ ITEMS=(
 
 
 # ------ Running:
+#'final_gemma/no_discussion_voting_base'
+#'final_gemma/single_model_baseline'
+#'final_gemma/multi_agent_debate_only_H_thinking'
 
-'final_gemma/single_model_baseline'
-'final_gemma/no_discussion_voting_base'
-'final_gemma/multi_agent_debate'
+'final_gemma/multi_agent_debate2'
+'final_gemma/multi_agent_debate3'
 # -------- To Do:
+
 
 
 

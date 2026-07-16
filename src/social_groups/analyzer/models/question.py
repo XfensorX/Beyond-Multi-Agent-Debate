@@ -7,6 +7,7 @@ from typing import Any
 
 from social_groups.analyzer.models.base import PolarsBaseModel
 from social_groups.general.tracking import TrackEntry
+from social_groups.trialrunner.data_connectors.gpqa_diamond import GPQADiamondExample
 from social_groups.trialrunner.data_connectors.mmlu_pro import (
     MMLUProExample,
 )
@@ -96,6 +97,21 @@ class Question(PolarsBaseModel):
                     question=entry.input.question,
                     answer_options=question.options,
                     answer_index=question.answer_index,
+                    answer_string=question.answer,
+                )
+            case "gpqa-diamond":
+                question = GPQADiamondExample.model_validate(
+                    json.loads(span_attributes["question"])
+                )
+                return cls(
+                    question_id=assigned_id,
+                    original_question_id=question.question_id,
+                    data_connector=hydra_config.experiment.data,
+                    original_source="",
+                    category="",
+                    question=entry.input.question,
+                    answer_options=["A", "B", "C", "D"],
+                    answer_index=-1,
                     answer_string=question.answer,
                 )
             case _:

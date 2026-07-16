@@ -21,7 +21,7 @@ from social_groups.trialrunner.utils.phoenix import phoenix_log_span
 class ChangedPromptThinkingMadConfiguration(BaseModelWithExtraFields):
     debate_agents: list[DebateAgent]
     number_of_rounds: int
-    openly_thinking_models: set[BackendInfo]
+    openly_thinking_models: set[BackendInfo] | None = None
     system_message: str
     human_messsage_before_other_answers: str
     human_messsage_after_other_answers: str

@@ -19,6 +19,16 @@ from social_groups.directories import DAGSTER_BASE_DIR
 SUPPORTED_EXTENSION = Literal["csv", "tex", "svg", "pdf", "png", "parquet"]
 
 
+def format_latex_header(col) -> str:
+    if isinstance(col, tuple):
+        col = r" \\ ".join("" if c is None else str(c) for c in col)
+    else:
+        col = str(col)
+    col = break_middliest_space(col)
+    col = small_parentheses(col)
+    return r"\makecell{" + col + "}"
+
+
 class ExtraNotebookAsset(BaseModel):
     name: str
     extension: SUPPORTED_EXTENSION
@@ -94,15 +104,25 @@ class ExtraNotebookAsset(BaseModel):
                 raise NotImplementedError
         elif self.extension == "tex":
             if isinstance(obj, pd.DataFrame):
-                obj = pl.from_pandas(obj)
+                obj = obj.copy()
+                obj.columns = [format_latex_header(col) for col in obj.columns]
+                string_cols = obj.select_dtypes(include=["object", "string"]).columns
+                for col in string_cols:
+                    obj[col] = (
+                        obj[col]
+                        .astype("string")
+                        .str.replace("%", r"\%", regex=False)
+                        .map(small_parentheses)
+                    )
 
-            if isinstance(obj, pl.DataFrame):
+                obj.to_latex(
+                    path,
+                    index=False,
+                    float_format="{:,.2f}".format,
+                    escape=False,
+                )
 
-                def format_latex_header(col: str) -> str:
-                    col = break_middliest_space(col)
-                    col = small_parentheses(col)
-                    return r"\makecell{" + col + "}"
-
+            elif isinstance(obj, pl.DataFrame):
                 obj = obj.rename(
                     {col: format_latex_header(col) for col in obj.columns}
                 ).with_columns(

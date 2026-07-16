@@ -118,7 +118,11 @@ def baseline_few_shot_comparison_plot(pretty_main: pl.DataFrame):
 
         ax.set_title(f"{parsing_type} Parsing", fontsize=13, pad=15)
         ax.set_xlabel("")
-        ax.set_ylabel("Δ Accuracy (percentage points)" if ax == axes[0] else "")
+        ax.set_ylabel(
+            "Δ Accuracy (percentage points) from without to with few-shot prompting"
+            if ax == axes[0]
+            else ""
+        )
         ax.axhline(y=0, color="black", linestyle="-", linewidth=1.0)
         ax.tick_params(axis="x", rotation=45, length=0, pad=8)
         sns.despine(ax=ax, left=False, bottom=False, top=True, right=True)

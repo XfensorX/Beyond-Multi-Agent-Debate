@@ -17,11 +17,13 @@ class ParsingResultError(enum.Enum):
 
 class AnswerOptions(enum.Enum):
     letters_A_to_J = "letters_A_to_J"
+    letters_A_to_D = "letters_A_to_D"
     letters_A_to_J_naive = "letters_A_to_J_naive"
 
 
 _ANSWER_OPTIONS: dict[AnswerOptions, set[str]] = {
     AnswerOptions.letters_A_to_J: {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"},
+    AnswerOptions.letters_A_to_D: {"A", "B", "C", "D"},
     AnswerOptions.letters_A_to_J_naive: {
         "A",
         "B",
@@ -50,6 +52,19 @@ _ANSWER_PATTERNS: dict[AnswerOptions, list[str]] = {
         r"^([A-J])\:",
         r"^\(([A-J])\)$",
         r"\(([A-J])\)\s*(?:is the correct answer|is the answer|should be the correct answer|matches|must be the correct answer|is correct)",
+    ],
+    AnswerOptions.letters_A_to_D: [
+        r"answer\s+is\s*:?\s*\(?([A-D])\)?",  # ...answer is (C)... | ...answer is C ...
+        r"answer\s*:\s*\(?\s*([A-D])\s*\)?\s*[\.\!\?]*\s*$",
+        # ... Answer: (C) | ... Answer: C  |# at the end of the string with optional punctuation
+        r"\s*\(\s*([A-D])\s*\)\s*$",  # ... (C) at the end of the string
+        r"^\s*\(?\s*([A-D])\s*\)?\s*$",  # single letter in braces: (C) at the end
+        r"^\s*([A-D])\s*$",  # single letter: C at the end
+        r"answer\s*:\s*\(?\s*([A-D])\s*\)?\s*[\.\!\?]*\s*",  # ... Answer: (C) | ... Answer: C  | # Somewhere in the string
+        r"^\s*\(\s*([A-D])\s*\)\s?\:?\s*",
+        r"^([A-D])\:",
+        r"^\(([A-D])\)$",
+        r"\(([A-D])\)\s*(?:is the correct answer|is the answer|should be the correct answer|matches|must be the correct answer|is correct)",
     ],
     AnswerOptions.letters_A_to_J_naive: [
         r"The answer is \(([A-J])\).?\s*$",
@@ -95,7 +110,11 @@ class AnswerParser:
 
     def __post_init__(self):
         match self.option:
-            case AnswerOptions.letters_A_to_J | AnswerOptions.letters_A_to_J_naive:
+            case (
+                AnswerOptions.letters_A_to_J
+                | AnswerOptions.letters_A_to_J_naive
+                | AnswerOptions.letters_A_to_D
+            ):
                 self._parser = get_string_parser(
                     _ANSWER_PATTERNS[self.option], _ANSWER_OPTIONS[self.option]
                 )
@@ -116,7 +135,7 @@ class AnswerComparer:
 
     def __call__(self, given: pl.Expr, target: pl.Expr) -> pl.Expr:
         match self.option:
-            case AnswerOptions.letters_A_to_J:
+            case AnswerOptions.letters_A_to_J | AnswerOptions.letters_A_to_D:
                 match self.triple_underscore_handling:
                     case "null":
                         t = (

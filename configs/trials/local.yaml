@@ -1,0 +1,69 @@
+defaults:
+  - _self_
+
+hydra:
+  run:
+    dir: results/runs/${hostname:}/${experiment.name}/${now:%Y-%m-%d-%H-%M-%S}
+
+  sweep:
+    dir: results/multirun/${hostname:}/${experiment.name}/${now:%Y-%m-%d-%H-%M-%S}
+    subdir: ${experiment.name}_${hydra.job.num}
+
+  job:
+    chdir: false
+
+execution:
+  seconds_between_start_of_new_experiment: 0.1
+  phoenix_server_url: http://localhost:6006
+  phoenix_graphql_url: http://localhost:4317
+  model_backends:
+    - backend: LMStudio
+      model_name: Qwen/Qwen3-0.6B
+      endpoint: http://127.0.0.1:1234
+
+    - backend: vLLMExternal
+      model_name: Qwen/Qwen3-0.6B
+      endpoint: http://127.0.0.1:40006
+    - backend: vLLMExternal
+      model_name: Qwen/Qwen3-4B
+      endpoint: http://127.0.0.1:40004
+    - backend: vLLMExternal
+      model_name: Qwen/Qwen3-14B
+      endpoint: http://127.0.0.1:40014
+
+    - backend: vLLMExternal
+      model_name: Qwen/Qwen3.5-0.8B
+      endpoint: http://127.0.0.1:40508
+    - backend: vLLMExternal
+      model_name: Qwen/Qwen3.5-4B
+      endpoint: http://127.0.0.1:40504
+    - backend: vLLMExternal
+      model_name: Qwen/Qwen3.5-9B
+      endpoint: http://127.0.0.1:40509
+
+    - backend: vLLMExternal
+      model_name: mistralai/Ministral-3-3B-Instruct-2512-BF16
+      endpoint: http://127.0.0.1:40253
+    - backend: vLLMExternal
+      model_name: mistralai/Ministral-3-8B-Instruct-2512-BF16
+      endpoint: http://127.0.0.1:40258
+    - backend: vLLMExternal
+      model_name: mistralai/Ministral-3-14B-Instruct-2512-BF16
+      endpoint: http://127.0.0.1:40251
+
+    - backend: vLLMExternal
+      model_name: mistralai/Ministral-3-3B-Reasoning-2512
+      endpoint: http://127.0.0.1:41253
+    - backend: vLLMExternal
+      model_name: mistralai/Ministral-3-8B-Reasoning-2512
+      endpoint: http://127.0.0.1:41258
+    - backend: vLLMExternal
+      model_name: mistralai/Ministral-3-14B-Reasoning-2512
+      endpoint: http://127.0.0.1:41251
+
+
+  
+  backend_api_key_env_vars: { }
+  num_workers: 100
+  llm_request_timeout: 180
+  llm_request_max_retries: 3

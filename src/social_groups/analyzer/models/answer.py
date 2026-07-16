@@ -55,6 +55,6 @@ class Answer(PolarsBaseModel):
             phoenix_span_url=span_attributes[ATTRIBUTE_KEY_SPAN_URL]
             if span_attributes
             else "unavailable",
-            used_input_tokens=entry.output.used_input_tokens,
-            used_output_tokens=entry.output.used_output_tokens,
+            used_input_tokens=entry.output.used_input_tokens if entry.output else -1,
+            used_output_tokens=entry.output.used_output_tokens if entry.output else -1,
         )

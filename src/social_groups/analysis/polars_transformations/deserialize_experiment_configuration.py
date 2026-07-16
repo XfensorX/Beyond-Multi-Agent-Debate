@@ -18,6 +18,13 @@ def deserialize_experiment_configuration(expr: pl.Expr) -> pl.Expr:
                             "name": pl.String,
                             "configuration": pl.Struct(
                                 {
+                                    "openly_thinking_models": pl.List(
+                                        pl.Struct(
+                                            {
+                                                "model_name": pl.String,
+                                            }
+                                        ),
+                                    ),
                                     "number_of_rounds": pl.Int64,
                                     "debate_agents": pl.List(
                                         pl.Struct(
@@ -26,10 +33,23 @@ def deserialize_experiment_configuration(expr: pl.Expr) -> pl.Expr:
                                                     {"model_name": pl.String}
                                                 ),
                                                 "params": pl.Struct(
-                                                    {"temperature": pl.Float32}
+                                                    {
+                                                        "max_new_tokens": pl.Int64,
+                                                        "temperature": pl.Float32,
+                                                        "top_p": pl.Float32,
+                                                        "seed": pl.Int64,
+                                                    }
                                                 ),
                                             }
                                         )
+                                    ),
+                                    "llm": pl.Struct(
+                                        {
+                                            "max_new_tokens": pl.Int64,
+                                            "temperature": pl.Float32,
+                                            "top_p": pl.Float32,
+                                            "seed": pl.Int64,
+                                        }
                                     ),
                                     "use_few_shot_prompting": pl.Boolean,
                                     "use_thinking": pl.Boolean,
