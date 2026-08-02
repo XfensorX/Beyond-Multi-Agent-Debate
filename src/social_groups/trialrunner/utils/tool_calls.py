@@ -21,7 +21,11 @@ def parse_tool_call_arguments(ai_msg: AIMessage) -> dict[str, str]:
     """Parse tool call arguments from AIMessage, supporting both LangChain tool_calls and raw Mistral/vLLM output."""
     if ai_msg.tool_calls:
         try:
-            return ai_msg.tool_calls[0]["args"]
+            args = ai_msg.tool_calls[0]["args"]
+            if isinstance(args, str):
+                return json.loads(args)
+            return args
+
         except (KeyError, IndexError, TypeError) as e:
             raise InvalidToolCallException() from e
 

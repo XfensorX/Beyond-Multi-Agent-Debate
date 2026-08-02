@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - final/encouraging_divergent_thinking_base
+  - _self_
+  - /experiment/hetero/backend@experiment.strategy.configuration.backend: qwen-0_6b
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/backend@experiment.strategy.configuration.backend: qwen-0_6b, qwen-4b, qwen-14b

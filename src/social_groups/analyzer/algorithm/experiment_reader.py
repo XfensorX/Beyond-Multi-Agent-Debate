@@ -1,10 +1,8 @@
 import asyncio
-import concurrent.futures
 import logging
 import queue
 import threading
 from collections import defaultdict
-from concurrent.futures.thread import ThreadPoolExecutor
 from itertools import count
 from pathlib import Path
 from typing import List
@@ -76,12 +74,14 @@ def read_experiment_paths() -> dict[ExperimentName, list[Path]]:
             project_paths_per_experiment[experiment_dir.name].append(run_dir)
 
     for experiment_dir in MULTIRUN_FINAL_RESULTS_DIR.iterdir():
-        if experiment_dir == ".DS_Store":
+        if experiment_dir.name == ".DS_Store":
             continue
         for run_dir in experiment_dir.iterdir():
-            if run_dir == ".DS_Store":
+            if run_dir.name == ".DS_Store":
                 continue
             for sub_run_dir in run_dir.iterdir():
+                if sub_run_dir.name == ".DS_Store":
+                    continue
                 if not sub_run_dir.is_dir():
                     continue  # hydra multirun config files
 
@@ -243,6 +243,7 @@ async def build_parquet_files(output_directory: Path):
             "[b]Total Submitted[/b]", f"[green]{total_put_in_queue:>6}[/green]"
         )
         table.add_row("[b]Total Written[/b]", f"[green]{total_flushed:>6}[/green]")
+        table.add_row("[b]In Buffer[/b]", f"[green]{len(buffer):>6}[/green]")
         return table
 
     runs = []
@@ -270,7 +271,23 @@ async def build_parquet_files(output_directory: Path):
 
     handle_jsonl_file_semaphore = asyncio.Semaphore(PARALLEL_FILE_WRITES)
 
-    with Live(get_renderable=make_process_status_table) as live:
+    async def _wrapped_handle_jsonl_file(
+        _project_path: Path,
+        _run_id: int,
+        _in_q: queue.Queue,
+        _graphql_endpoint: str,
+        _global_answer_infos_cache: AnswerInfoCache,
+    ):
+        async with handle_jsonl_file_semaphore:
+            return await handle_jsonl_file(
+                _project_path,
+                _run_id,
+                _in_q,
+                _graphql_endpoint,
+                _global_answer_infos_cache,
+            )
+
+    with Live(get_renderable=make_process_status_table, refresh_per_second=1) as live:
         try:
             for (
                 experiment_name,
@@ -300,22 +317,6 @@ async def build_parquet_files(output_directory: Path):
                             meta_info=run_meta_infos[run_id],
                         )
                     )
-
-                    async def _wrapped_handle_jsonl_file(
-                        _project_path: Path,
-                        _run_id: int,
-                        _in_q: queue.Queue,
-                        _graphql_endpoint: str,
-                        _global_answer_infos_cache: AnswerInfoCache,
-                    ):
-                        async with handle_jsonl_file_semaphore:
-                            return await handle_jsonl_file(
-                                _project_path,
-                                _run_id,
-                                _in_q,
-                                _graphql_endpoint,
-                                _global_answer_infos_cache,
-                            )
 
                     executing_files.add(
                         asyncio.create_task(

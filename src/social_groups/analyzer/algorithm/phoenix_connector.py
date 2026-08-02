@@ -25,7 +25,7 @@ from social_groups.analyzer.config import (
 )
 from social_groups.orchestrator.utils.general import run_async
 
-SpanAttributesAsync = asyncio.Task[dict[str, dict[str, Any]]]
+SpanAttributesAsync = asyncio.Task[dict[str, dict[str, Any] | None]]
 
 
 @run_async

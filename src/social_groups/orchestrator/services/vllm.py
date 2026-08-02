@@ -27,7 +27,15 @@ class VLLMConfiguration(BaseInferenceService):
         return given_job_name.startswith("vllm___")
 
     def create_env_dict(self, exec_config: ExecutionLocationConfig) -> dict[str, str]:
-        return {}
+        env = {"VLLM_USE_FLASHINFER_SAMPLER": "0"}
+        if self._chosen_gpus_per_model_instance > 1:
+            env["NCCL_DEBUG"] = "INFO"
+            env["NCCL_IB_DISABLE"] = "1"
+            env["NCCL_NET"] = "Socket"
+            env["CUDA_VISIBLE_DEVICES"] = ", ".join(
+                str(i) for i in range(0, self._chosen_gpus_per_model_instance)
+            )
+        return env
 
     def create_run_command(self, exec_config: ExecutionLocationConfig) -> str:
         if self._chosen_model_id is None:
@@ -58,8 +66,21 @@ class VLLMConfiguration(BaseInferenceService):
                 if used_model.max_total_tokens
                 else ""
             )
-            + (f"--data-parallel-size={number_gpus} " if number_gpus != 1 else "")
-            + (f"--api-server-count={number_gpus} " if number_gpus != 1 else "")
+            + (
+                f"--data-parallel-size={number_gpus // self._chosen_gpus_per_model_instance} "
+                if number_gpus != 1
+                else ""
+            )
+            + (
+                f"--tensor-parallel-size={self._chosen_gpus_per_model_instance} "
+                if self._chosen_gpus_per_model_instance != 1
+                else ""
+            )
+            + (
+                f"--api-server-count={number_gpus // self._chosen_gpus_per_model_instance} "
+                if number_gpus != 1
+                else ""
+            )
             + (
                 f"--tokenizer_mode={used_model.tokenizer_mode} "
                 if used_model.tokenizer_mode

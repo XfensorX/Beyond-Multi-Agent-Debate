@@ -54,3 +54,13 @@ def check_single_model_only(frame: pl.DataFrame):
         passed=valid,
         metadata={"Given Model Names": frame[plc.model_names].unique().to_list()},
     )
+
+
+def check_correct_data_length(frame: pl.DataFrame, assumed_length: int):
+    length = len(frame)
+
+    return dg.AssetCheckResult(
+        check_name="check_correct_data_length",
+        passed=length == assumed_length,
+        metadata={"actual_length": str(length)},
+    )

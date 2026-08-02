@@ -71,6 +71,10 @@ dependencies = [
     "psycopg>=3.3.3",
     "langchain-qwq>=0.3.4",
     "poldantic>=0.3.1",
+    "scipy-stubs~=1.17.1",
+    "statsmodels>=0.14.6",
+    "adjusttext>=1.4.0",
+    "transformers>=4.57.6",
 ]
 
 
@@ -105,7 +109,7 @@ pull_tgi_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/tgi
 pull_pg_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/postgres.sif docker://postgres:16", help = "Pull the docker Image of Postgres from docker and save it as apptainer sif." }
 pull_nginx_apptainer = { cwd = ".", cmd = "apptainer pull assets/orchestration/nginx.sif docker://nginxinc/nginx-unprivileged:latest", help = "Pull the docker Image of Nginx from docker and save it as apptainer sif." }
 tools = { cwd = ".", cmd = "uv run streamlit run src/social_groups/tools/app.py", help = "Run the tools App." }
-dagster = { cwd = ".", cmd = "uv run dg dev" }
+dagster = { cwd = ".", cmd = 'mkdir -p .tmp_dagster && DAGSTER_HOME="$(pwd)/.tmp_dagster" uv run dg dev' }
 
 [tool.dg]
 directory_type = "project"
@@ -114,9 +118,4 @@ directory_type = "project"
 root_module = "social_groups.analysis"
 registry_modules = [
     "social_groups.analysis.components.*",
-]
-
-[dependency-groups]
-dev = [
-    "marimo>=0.21.1",
 ]

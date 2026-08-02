@@ -1,0 +1,80 @@
+flowchart TB
+  %% Appendix-scale system architecture of the repository.
+  %% Keep labels compact so the diagram remains readable on an A4 page.
+
+  subgraph O["Cluster orchestration"]
+    O1["orch CLI"]
+    O2["Execution configs<br/>pascal / neumann"]
+    O3["Typed service configs<br/>SLURM, Phoenix, TGI, vLLM"]
+    O4["SLURM batch files"]
+    O5["GPU model servers<br/>TGI / vLLM"]
+    O6["Phoenix tracing stack<br/>Phoenix + Postgres + Nginx"]
+    O7["Experiment job<br/>uv run trial -m"]
+  end
+
+  subgraph C["Experiment specification"]
+    C1["Hydra configs<br/>configs/trials"]
+    C2["Pydantic validation<br/>MainConfig"]
+    C3["Runtime registries<br/>data + strategy"]
+    C4["Datasets<br/>MMLU-Pro / GPQA"]
+    C5["Decision schemes<br/>single agent, voting, MAD variants"]
+  end
+
+  subgraph R["Trial runtime"]
+    R1["Concurrent example runner<br/>ThreadPool + retries"]
+    R2["LangChain chat adapters<br/>OpenAI / HF / Qwen / Mistral"]
+    R3["Per-example Phoenix spans<br/>trace ids + attributes"]
+    R4["Compressed track files<br/>experiment_result.jsonl.zst"]
+  end
+
+  subgraph A["Analysis and reporting"]
+    A1["ana parse"]
+    A2["Phoenix GraphQL enrichment<br/>batched span lookup"]
+    A3["Parquet model tables<br/>Answer, Question, Run, Experiment"]
+    A4["Dagster assets<br/>raw, combined, final experiments"]
+    A5["Polars transformations<br/>parsing, voting, metrics"]
+    A6["Asset checks<br/>length, connector, constellation"]
+    A7["Notebooks and plot modules<br/>tables, figures, report assets"]
+    A8["ana sync-tex<br/>copy report assets"]
+  end
+
+  subgraph H["Manual inspection"]
+    H1["Streamlit tools<br/>track file viewer"]
+  end
+
+  O1 --> O2 --> O3 --> O4
+  O4 --> O5
+  O4 --> O6
+  O4 --> O7
+  O5 -- "OpenAI-compatible endpoints" --> R2
+  O6 -- "OTLP + GraphQL endpoints" --> R3
+  O7 -- "injects endpoints and multirun flags" --> C1
+
+  C1 --> C2 --> C3
+  C3 --> C4
+  C3 --> C5
+  C4 --> R1
+  C5 --> R1
+  R1 --> R2
+  R1 --> R3
+  R1 --> R4
+
+  R4 --> A1
+  R3 -. "span ids" .-> A2
+  O6 -. "GraphQL" .-> A2
+  A1 --> A2 --> A3
+  A3 --> A4 --> A5 --> A6 --> A7 --> A8
+  A8 --> T["TexProject appendix/report data"]
+  R4 -. "debug uploaded runs" .-> H1
+
+  classDef infra fill:#edf2ff,stroke:#4263eb,color:#111827;
+  classDef config fill:#fff4e6,stroke:#f08c00,color:#111827;
+  classDef runtime fill:#e6fcf5,stroke:#0ca678,color:#111827;
+  classDef analysis fill:#f3f0ff,stroke:#7950f2,color:#111827;
+  classDef output fill:#f8f9fa,stroke:#495057,color:#111827;
+
+  class O1,O2,O3,O4,O5,O6,O7 infra;
+  class C1,C2,C3,C4,C5 config;
+  class R1,R2,R3,R4 runtime;
+  class A1,A2,A3,A4,A5,A6,A7,A8 analysis;
+  class H1,T output;

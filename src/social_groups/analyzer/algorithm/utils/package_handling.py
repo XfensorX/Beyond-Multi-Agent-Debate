@@ -19,7 +19,7 @@ class SendPackage(Package):
 
 @dataclass(slots=True)
 class ReceivePackage(Package):
-    span_info: dict[str, Any]
+    span_info: dict[str, Any] | None
 
 
 class PendingCollection:

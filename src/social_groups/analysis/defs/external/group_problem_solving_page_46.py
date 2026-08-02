@@ -9,6 +9,7 @@ from social_groups.analysis.notebook_assets import ExtraNotebookAsset
     group_name="external",
     metadata={"file_extension": "tex"},
     description="The group performance of different group constellation on a group problem solving task, from the book Group Problem Solving.",
+    io_manager_key="polars_parquet_io_manager",
 )
 def group_problem_solving_page_46():
     original_table_page46 = pl.DataFrame(
@@ -41,7 +42,7 @@ def group_problem_solving_page_46():
     asset.register_materialization(original_table_page46, "Dropped Description")
 
     return dg.Output(
-        None,  # side effect asset
+        original_table_page46,
         metadata={
             "path": asset._get_path(),
             "file_name": asset.name,

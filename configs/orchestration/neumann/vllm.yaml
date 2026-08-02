@@ -1,7 +1,7 @@
 slurm_config:
   time: 48:00:00
   cpus_per_task: 16
-  memory_GB: 128
+  memory_GB: 256
   gres: gpu:1
   partition: ampere
 
@@ -31,24 +31,24 @@ llm_models:
     port: 40509
     tool_call_parser: qwen3_coder
 
-  mistralai/Ministral-3-3B-Instruct-2512:
+  mistralai/Ministral-3-3B-Instruct-2512-BF16:
     port: 40253
     tokenizer_mode: mistral
     config_format: mistral
     load_format: mistral
     tool_call_parser: null
 
-  mistralai/Ministral-3-8B-Instruct-2512:
+  mistralai/Ministral-3-8B-Instruct-2512-BF16:
     port: 40258
-    max_total_tokens: 100000 # to fit in VRAM
+    max_total_tokens: 32768 # to fit in VRAM
     tokenizer_mode: mistral
     config_format: mistral
     load_format: mistral
     tool_call_parser: null
 
-  mistralai/Ministral-3-14B-Instruct-2512:
+  mistralai/Ministral-3-14B-Instruct-2512-BF16:
     port: 40251
-    max_total_tokens: 100000 # to fit in VRAM
+    max_total_tokens: 32768 # to fit in VRAM
     tokenizer_mode: mistral
     config_format: mistral
     load_format: mistral
@@ -65,7 +65,7 @@ llm_models:
 
   mistralai/Ministral-3-8B-Reasoning-2512:
     port: 41258
-    max_total_tokens: 100000 # to fit in VRAM
+    max_total_tokens: 32768 # to fit in VRAM
     tokenizer_mode: mistral
     config_format: mistral
     load_format: mistral
@@ -74,9 +74,20 @@ llm_models:
 
   mistralai/Ministral-3-14B-Reasoning-2512:
     port: 41251
-    max_total_tokens: 100000 # to fit in VRAM
+    max_total_tokens: 32768 # to fit in VRAM
     tokenizer_mode: mistral
     config_format: mistral
     load_format: mistral
     tool_call_parser: mistral
     reasoning_parser: mistral
+
+
+  google/gemma-4-E2B-it:
+    port: 40402
+
+  google/gemma-4-E4B-it:
+    port: 40404
+
+  google/gemma-4-31B-it:
+    port: 40431
+    max_total_tokens: 16384

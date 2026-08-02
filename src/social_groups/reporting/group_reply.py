@@ -63,7 +63,7 @@ class MajorityVote(GroupReplyStrategy):
             return most_common[0]
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class GroupReplyAggregator:
     strategy: GroupReplyStrategy
 

@@ -1,0 +1,37 @@
+# @package _global_
+defaults:
+  - _self_
+  - /experiment/hetero/backend@experiment.strategy.configuration.backend: gemma4_e2b
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/backend@experiment.strategy.configuration.backend: gemma4_e2b, gemma4_e4b, gemma4_31b
+      seed: 1,2,3,4,5
+
+seed: 1
+experiment:
+  name: gemma4_single_model_baseline
+  data: gpqa-diamond
+
+  strategy:
+    name: single-agent
+    configuration:
+      llm:
+        max_new_tokens: 12000
+        temperature: 1.0
+        top_p: 0.95
+        top_k: null
+        typical_p: null
+        repetition_penalty: null
+        seed: ${seed}
+
+      use_few_shot_prompting: false
+      use_thinking: null
+
+  additional_info:
+    description: >-
+      Baseline evaluation — ${experiment.strategy.configuration.backend.model_name}
+      few_shot_prompting=${experiment.strategy.configuration.use_few_shot_prompting}
+      use_thinking=${experiment.strategy.configuration.use_thinking}
+

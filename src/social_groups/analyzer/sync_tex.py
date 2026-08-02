@@ -70,6 +70,10 @@ def sync_exact_with_confirmation(from_dir: Path, to_dir: Path):
     wanted_files = set()
     for src_path in from_dir.rglob("*"):
         if src_path.is_file():
+            if src_path.name == ".DS_Store":
+                continue
+            if src_path.suffix == ".parquet":
+                continue
             rel = src_path.relative_to(from_dir)
             wanted_files.add(rel)
 
@@ -113,6 +117,7 @@ def sync_exact_with_confirmation(from_dir: Path, to_dir: Path):
         for p in sorted(to_delete):
             rel = p.relative_to(to_dir)
             typer.secho(f"  DELETE  {rel}", fg=typer.colors.RED)
+        typer.secho(f"\n  All .aux files will be deleted without prompting.", bold=True)
 
     if not questionary.confirm("Apply these changes?", default=False).ask():
         typer.secho("Aborted.", fg=typer.colors.RED)
@@ -122,6 +127,9 @@ def sync_exact_with_confirmation(from_dir: Path, to_dir: Path):
     confirmed_deletes = []
     for dst_path in to_delete:
         rel = dst_path.relative_to(to_dir)
+        if dst_path.suffix == ".aux":
+            confirmed_deletes.append(dst_path)
+            continue
         if questionary.confirm(f"Really DELETE {rel} ?", default=False).ask():
             confirmed_deletes.append(dst_path)
         else:

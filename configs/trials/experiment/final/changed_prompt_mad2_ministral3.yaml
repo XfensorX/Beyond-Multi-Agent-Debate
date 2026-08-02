@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - final/changed_prompt_mad2_base
+  - _self_
+  - /experiment/hetero/groups/Ministral3@_models: LL
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/groups/Ministral3@_models: LL, LM, LH, ML, MM, MH, HL, HM, HH

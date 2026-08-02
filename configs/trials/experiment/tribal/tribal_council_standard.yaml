@@ -16,38 +16,42 @@ council_size: 2
 
 
 experiment:
-  name: tribal_council
-  data: mmlu-pro-subset
+  name: tribal_council-sweep
+  data: mmlu-pro-medium-subset
   strategy:
     name: tribal-council
     configuration:
       num_different_proposals: ${num_different_proposals}
-      accept_after_n_invalid_proposals: 7
+      accept_after_n_invalid_proposals: 3
+      accept_after_n_same_proposals: 3
       total_invalid_question_formulations_accepted: 5
-      total_invalid_final_decisions_accepted: 5
+      total_invalid_final_decisions_ignored: 3
 
-      proposal_agent:
-        llm:
-          max_new_tokens: 4096
-          temperature: 0.2
-          top_p: 1.0
-          top_k: null
-          typical_p: null
-          repetition_penalty: null
-          seed: 42
-        backend: ${_models.0}
+      proposal_agents:
+        - number_of_agents: 1
+          llm:
+            max_new_tokens: 4096
+            temperature: 0.2
+            top_p: 1.0
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+            seed: 42
+          backend: ${_models.0}
+          with_thinking: True
 
-      council_size: ${council_size}
-      council_agent:
-        llm:
-          max_new_tokens: 4096
-          temperature: 0.2
-          top_p: 1.0
-          top_k: null
-          typical_p: null
-          repetition_penalty: null
-          seed: 42
-        backend: ${_models.1}
+      council_agents:
+        - llm:
+            max_new_tokens: 4096
+            temperature: 0.2
+            top_p: 1.0
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+            seed: 42
+          backend: ${_models.1}
+          number_of_agents: ${council_size}
+          with_thinking: True
 
   additional_info:
     description: >-

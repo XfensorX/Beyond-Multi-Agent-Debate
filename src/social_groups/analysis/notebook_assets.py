@@ -1,3 +1,6 @@
+import pprint
+import re
+import subprocess
 from pathlib import Path
 from typing import Any, Literal
 
@@ -6,13 +9,24 @@ import dagster as dg
 import dagstermill
 import pandas as pd
 import polars as pl
+import seaborn
 from dagstermill import define_dagstermill_asset
 from matplotlib.figure import Figure
 from pydantic import BaseModel
 
 from social_groups.directories import DAGSTER_BASE_DIR
 
-SUPPORTED_EXTENSION = Literal["csv", "tex", "svg"]
+SUPPORTED_EXTENSION = Literal["csv", "tex", "svg", "pdf", "png", "parquet"]
+
+
+def format_latex_header(col) -> str:
+    if isinstance(col, tuple):
+        col = r" \\ ".join("" if c is None else str(c) for c in col)
+    else:
+        col = str(col)
+    col = break_middliest_space(col)
+    col = small_parentheses(col)
+    return r"\makecell{" + col + "}"
 
 
 class ExtraNotebookAsset(BaseModel):
@@ -26,12 +40,16 @@ class ExtraNotebookAsset(BaseModel):
         )
 
     def get_spec(self, *, deps) -> dg.AssetSpec:
+        metadata = {"file_extension": self.extension}
+        if self.extension == "parquet":
+            metadata["dagster/io_manager_key"] = "polars_parquet_io_manager"
+
         return dg.AssetSpec(
             key=self.get_key(),
             deps=deps,
             group_name=self.notebook_name.replace(".ipynb", ""),
-            metadata={"file_extension": self.extension},
             description="See Metadata for description.",
+            metadata=metadata,
         )
 
     def _get_file_name(self) -> str:
@@ -59,15 +77,21 @@ class ExtraNotebookAsset(BaseModel):
                 return dg.MetadataValue.md(obj.to_markdown(index=False))
             else:
                 raise NotImplementedError
-        elif self.extension == "svg":
-            return None
+        elif self.extension in {"svg", "pdf", "png", "parquet"}:
+            return None  # TODO: does pdf work here maybe?
+
         else:
             raise ValueError(f"Cannot handle type {type(obj)}")
 
-    def register_materialization(self, obj: Any, description: str):
+    def register_materialization(
+        self, obj: Any, description: str, print_output_path: bool = False
+    ):
         """Used from within a notebook to register the materialization of output assets."""
         path = self._get_path()
         path.parent.mkdir(parents=True, exist_ok=True)
+
+        if print_output_path:
+            print("Wrote to: ", path)
 
         if isinstance(obj, str):
             path.write_text(obj)
@@ -79,19 +103,57 @@ class ExtraNotebookAsset(BaseModel):
             else:
                 raise NotImplementedError
         elif self.extension == "tex":
-            if isinstance(obj, pl.DataFrame):
-                obj = obj.rename({col: col.replace("_", " ") for col in obj.columns})
+            if isinstance(obj, pd.DataFrame):
+                obj = obj.copy()
+                obj.columns = [format_latex_header(col) for col in obj.columns]
+                string_cols = obj.select_dtypes(include=["object", "string"]).columns
+                for col in string_cols:
+                    obj[col] = (
+                        obj[col]
+                        .astype("string")
+                        .str.replace("%", r"\%", regex=False)
+                        .map(small_parentheses)
+                    )
 
-                obj.to_pandas().to_latex(path, index=False)
-            elif isinstance(obj, pd.DataFrame):
-                obj.to_latex(path, index=False)
+                obj.to_latex(
+                    path,
+                    index=False,
+                    float_format="{:,.2f}".format,
+                    escape=False,
+                )
+
+            elif isinstance(obj, pl.DataFrame):
+                obj = obj.rename(
+                    {col: format_latex_header(col) for col in obj.columns}
+                ).with_columns(
+                    pl.selectors.string()
+                    .str.replace_all("%", r"\%")
+                    .map_elements(small_parentheses)
+                )
+
+                obj.to_pandas().to_latex(
+                    path, index=False, float_format="{:,.2f}".format, escape=False
+                )
+
+            elif isinstance(obj, str):
+                with open(path, "w") as f:
+                    f.write(obj)
             else:
                 raise NotImplementedError
-        elif self.extension == "svg":
+        elif self.extension in {"svg", "pdf", "png"}:
             if isinstance(obj, Figure):
-                obj.savefig(path)
+                obj.savefig(path, bbox_inches="tight")
             elif isinstance(obj, altair.vegalite.v6.api.Chart):
                 obj.save(path)
+            elif isinstance(obj, seaborn.FacetGrid):
+                obj.savefig(path)
+            else:
+                raise NotImplementedError(f"Cannot handle type {type(obj)}")
+        elif self.extension == "parquet":
+            if isinstance(obj, pl.DataFrame):
+                obj.to_pandas().to_parquet(path, index=False)
+            elif isinstance(obj, pd.DataFrame):
+                obj.to_parquet(path, index=False)
             else:
                 raise NotImplementedError
         else:
@@ -156,3 +218,65 @@ def create_notebook_asset(
     return [notebook_def] + [
         spec.get_spec(deps=[notebook_def]) for spec in extra_assets
     ]
+
+
+def code_to_latex_snippet(
+    code: str, *, caption: str, label: str, style="python"
+) -> str:
+    def format_string_with_ruff(source_code: str) -> str:
+        process = subprocess.Popen(
+            ["ruff", "format", "-"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        stdout, stderr = process.communicate(input=source_code)
+        if process.returncode != 0:
+            raise Exception(f"Ruff formatting failed: {stderr}")
+        return stdout
+
+    return "\n".join(
+        [
+            f"\\begin{{lstlisting}}[style={style}, caption={{{caption}}}, label={{code:{label}}}]",
+            format_string_with_ruff(code),
+            "\end{lstlisting}",
+        ]
+    )
+
+
+def definition_to_code_string(obj, var_name: str):
+    if isinstance(obj, list):
+        lines = [f"{var_name} = ["]
+
+        for item in obj:
+            if not isinstance(item, str) or "\\" not in item:
+                lines.append(f"{pprint.pformat(item, width=100, sort_dicts=False)},")
+                continue
+
+            escaped = item.replace('"', r"\"").replace("'", r"\'")
+            lines.append(f'r"{escaped}", ')
+
+        lines.append("]")
+        return "\n".join(lines)
+
+    value_str = pprint.pformat(obj, width=100, sort_dicts=False)
+    return f"{var_name} = {value_str}"
+
+
+def break_middliest_space(s: str) -> str:
+    s = s.replace("_", " ")
+    space_positions = [m.start() for m in re.finditer(" ", s)]
+    if not space_positions:
+        return s
+    middle = len(s) / 2
+    best_pos = min(space_positions, key=lambda pos: abs(pos - middle))
+    return s[:best_pos] + r"\\" + s[best_pos + 1 :]
+
+
+def small_parentheses(s: str) -> str:
+    return re.sub(
+        r"\((.*?)\)",
+        lambda m: r"{\scriptsize(" + m.group(1) + ")}",
+        s,
+    )

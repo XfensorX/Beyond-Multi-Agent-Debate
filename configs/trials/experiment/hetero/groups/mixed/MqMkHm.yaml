@@ -1,0 +1,5 @@
+# @package _global_
+defaults:
+  - /experiment/hetero/backend@0: qwen-4b
+  - /experiment/hetero/backend@1: qwen35-4b
+  - /experiment/hetero/backend@2: ministral3-14b

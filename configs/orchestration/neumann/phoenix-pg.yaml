@@ -2,6 +2,7 @@ slurm_config:
   time: 72:00:00
   cpus_per_task: 16
   memory_GB: 32
+  partition: ampere
 
 postgres:
   shared_buffers: 4GB
@@ -19,17 +20,17 @@ ngingx_sif_location_inside_project: assets/orchestration/nginx.sif
 
 
 #changes need changes in assets/orchestration/phoenix_nginx.conf
-port: 46000
-graphql_port: 46317
+port: 46001
+graphql_port: 46318
 phoenix_internal_graphql_ports:
-  - 46318
   - 46319
   - 46320
   - 46321
+  - 46322
 
 phoenix_internal_ports:
-  - 46001
   - 46002
   - 46003
   - 46004
+  - 46005
 

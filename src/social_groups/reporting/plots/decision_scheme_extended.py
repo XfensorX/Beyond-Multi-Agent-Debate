@@ -55,8 +55,7 @@ def make_decision_scheme_extended_plot(
         sorted(
             set(extended_decision_scheme["Correct Members Beginning"].unique()).union(
                 set(extended_decision_scheme["Correct Members End"].unique())
-            ),
-            reverse=False,
+            )
         )
     )
 
@@ -82,6 +81,32 @@ def make_decision_scheme_extended_plot(
         .to_numpy()
         .reshape(len(right_groups), 1)
     )
+
+    # links = (
+    #     pl.DataFrame(
+    #         {
+    #             "Correct Members Beginning": list(
+    #                 y for x in repeat(all_cases, len(all_cases)) for y in x
+    #             ),
+    #             "Correct Members End": [
+    #                 y for x in all_cases for y in repeat(x, len(all_cases))
+    #             ],
+    #         },
+    #         schema={
+    #             "Correct Members Beginning": pl.datatypes.UInt32,
+    #             "Correct Members End": pl.datatypes.UInt32,
+    #         },
+    #     )
+    #     .join(
+    #         extended_decision_scheme,
+    #         on=["Correct Members Beginning", "Correct Members End"],
+    #         how="left",
+    #     )
+    #     .with_columns(pl.col("occurrences").fill_null(0))
+    #     .select("Correct Members Beginning", "Correct Members End", "occurrences")
+    #     .map_rows(lambda r: np.array(r))["map"]
+    #     .to_list()
+    # )
 
     links = (
         extended_decision_scheme.select(
@@ -135,24 +160,39 @@ def make_decision_scheme_extended_plot(
         row=1,
         col=1,
     )
+    used_indices = set()
+    for s, t, v in links:
+        used_indices.add(s)
+        used_indices.add(nL + t)
+
+    labels_clean = [labels[i] for i in sorted(used_indices)]
+    old_to_new = {old: new for new, old in enumerate(sorted(used_indices))}
+
+    source_clean = [old_to_new[s] for s, _, _ in links]
+    target_clean = [old_to_new[nL + t] for _, t, _ in links]
+    value_clean = [v for _, _, v in links]
 
     fig.add_trace(
         go.Sankey(
             arrangement="snap",
             node=dict(
-                label=labels,
+                label=labels_clean,
                 pad=20,
                 thickness=16,
                 color=node_colors,
                 line=dict(color="rgba(0,0,0,0.3)", width=0.6),
                 # Change the order ot the nodes ...
-                x=[0.01 for _ in left_groups] + [0.99 for _ in right_groups],
-                y=np.cumsum([0.17 for _ in left_groups]).tolist()[::-1] * 2,
+                y=(
+                    list(np.linspace(0.08, 0.92, len(left_groups)))
+                    + list(np.linspace(0.08, 0.92, len(right_groups)))
+                ),
+                x=[0.02] * len(left_groups) + [0.98] * len(right_groups),
+                align="center",
             ),
             link=dict(
-                source=source,
-                target=target,
-                value=value,
+                source=source_clean,
+                target=target_clean,
+                value=value_clean,
                 color=link_colors,
             ),
             textfont=TEXT_FONT,

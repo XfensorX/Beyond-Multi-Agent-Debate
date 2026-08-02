@@ -9,6 +9,7 @@ from rich import print
 from typer import Typer
 
 from social_groups.analyzer.algorithm.experiment_reader import build_parquet_files
+from social_groups.analyzer.config import KNOWN_FAULTY_SPAN_IDS
 from social_groups.analyzer.sync_tex import (
     git_commit_and_push,
     sync_exact_with_confirmation,
@@ -54,6 +55,9 @@ app = Typer(no_args_is_help=True)
 @timer("Producing Parquet files ...")
 async def produce_parquet():
     os.makedirs(PARQUET_ANALYSIS_DIR, exist_ok=True)
+
+    typer.echo("Using Known Faulty SpanIds:")
+    typer.echo(KNOWN_FAULTY_SPAN_IDS)
     await build_parquet_files(PARQUET_ANALYSIS_DIR)
 
 

@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - final/different_families_mad3_base
+  - _self_
+  - /experiment/hetero/groups/mixed@_models: LkLkLm
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/groups/mixed@_models: LkLkLm, LkLkMm, LkLkHm, LkLmMk, LkMkMm, LkMkHm, LkLmHk, LkMmHk, LkHkHm, LkLmLm, LkLmMm, LkLmHm, LkMmMm, LkMmHm, LkHmHm, LmMkMk, MkMkMm, MkMkHm, LmMkHk, MkMmHk, MkHkHm, LmLmMk, LmMkMm, LmMkHm, MkMmMm, MkMmHm, MkHmHm, LmHkHk, MmHkHk, HkHkHm, LmLmHk, LmMmHk, LmHkHm, MmMmHk, MmHkHm, HkHmHm
+
+
+
+

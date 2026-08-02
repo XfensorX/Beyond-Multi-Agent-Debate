@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - final/thinking_mad3_base
+  - _self_
+  - /experiment/hetero/groups/Ministral3@_models: LLL
+  - /experiment/hetero/thinking/Ministral3@_openly_thinking_models: only_L
+
+hydra:
+  sweeper:
+    params:
+      experiment/hetero/groups/Ministral3@_models: LLL, LLM, LLH, LML, LMM, LMH, LHL, LHM, LHH, MLL, MLM, MLH, MML, MMM, MMH, MHL, MHM, MHH, HLL, HLM, HLH, HML, HMM, HMH, HHL, HHM, HHH
+      experiment/hetero/thinking/Ministral3@_openly_thinking_models: only_L, only_H, nobody
+
+

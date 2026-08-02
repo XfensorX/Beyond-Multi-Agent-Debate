@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
+from pathlib import Path
 from typing import Any
 
 import yaml
@@ -21,6 +22,18 @@ from social_groups.orchestrator.models.execution_environment import (
 )
 from social_groups.orchestrator.models.slurm_config import SlurmConfiguration
 from social_groups.orchestrator.utils.general import make_exported_variables_block
+
+
+def make_default_variables(home_dir: Path) -> dict[str, str]:
+    DEFAULTS = {
+        "HOME": home_dir,
+        "XDG_CACHE_HOME": home_dir / ".cache",
+        "UV_CACHE_DIR": home_dir / ".cache" / "uv",
+        "HF_HOME": home_dir / ".cache" / "huggingface",
+        "HUGGINGFACE_HUB_CACHE": home_dir / ".cache" / "huggingface" / "hub",
+    }
+
+    return {x: str(y) for x, y in DEFAULTS.items()}
 
 
 class SlurmService(BaseModel, ABC):
@@ -50,7 +63,10 @@ class SlurmService(BaseModel, ABC):
         return (
             self.slurm_config.create_batch_file_header(self.used_job_name)
             + "\n\n\n"
-            + make_exported_variables_block(self.create_env_dict(exec_config))
+            + make_exported_variables_block(
+                make_default_variables(exec_config.home_directory)
+                | self.create_env_dict(exec_config)
+            )
             + "\n\n\n"
             + self.create_run_command(exec_config)
         )

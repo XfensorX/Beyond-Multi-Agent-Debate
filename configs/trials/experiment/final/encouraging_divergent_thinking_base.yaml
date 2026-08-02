@@ -1,0 +1,63 @@
+# @package _global_
+defaults:
+  - _self_
+
+
+experiment:
+  name: encouraging_divergent_thinking_baseline
+  data: mmlu-pro-big-subset
+
+  strategy:
+    name: encouraging-divergent-thinking
+    configuration:
+      llm:
+        max_new_tokens: 4096
+        temperature: 0.0
+        top_p: 1.0
+        top_k: null
+        typical_p: null
+        repetition_penalty: null
+        seed: 42
+      max_round: 3
+      use_thinking: true
+
+      prompts:
+        debate_topic: ""
+        base_answer: ""
+        debate_answer: ""
+        player_meta_prompt: |
+          You are a debater. Hello and welcome to the debate. It's not necessary to fully agree with each other's perspectives, as our objective is to find the correct answer.
+          The debate topic is stated as follows:
+          ##debate_topic##
+        moderator_meta_prompt: |
+          You are a moderator. There will be two debaters involved in a debate. They will present their answers and discuss their perspectives on the following topic: "##debate_topic##"
+          At the end of each round, you will evaluate answers and decide which is correct.
+        affirmative_prompt: "##debate_topic##"
+        negative_prompt: |
+          ##aff_ans##
+
+          You disagree with my answer. Provide your answer and reasons.
+        moderator_prompt: |
+          Now the ##round## round of debate for both sides has ended.
+
+          Affirmative side arguing:
+          ##aff_ans##
+
+          Negative side arguing: ##neg_ans##
+
+          You, as the moderator, will evaluate both sides' answers and determine if there is a clear preference for an answer candidate. If so, please summarize your reasons for supporting affirmative/negative side and give the final answer that you think is correct, and the debate will conclude. If not, the debate will continue to the next round. Now please output your answer in json format, with the format as follows: {"Whether there is a preference": "Yes or No", "Supported Side": "Affirmative or Negative", "Reason": "", "debate_answer": ""}. Please strictly output in JSON format, do not output irrelevant content.
+        judge_prompt_last1: |
+          Affirmative side arguing: ##aff_ans##
+
+          Negative side arguing: ##neg_ans##
+
+          Now, what answer candidates do we have? Present them without reasons.
+        judge_prompt_last2: |
+          Therefore, ##debate_topic##
+          Please summarize your reasons and give the final answer that you think is correct. Now please output your answer in json format, with the format as follows: {"Reason": "", "debate_answer": ""}. Please strictly output in JSON format, do not output irrelevant content.
+        debate_prompt: |
+          ##oppo_ans##
+
+          Do you agree with my perspective? Please provide your reasons and answer.
+  additional_info:
+    description: Encouraging Divergent Thinking Baseline Experiment — ${experiment.strategy.configuration.backend.model_name}

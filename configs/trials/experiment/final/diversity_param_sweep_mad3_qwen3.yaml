@@ -1,0 +1,12 @@
+# @package _global_
+defaults:
+  - final/diversity_param_sweep_mad3_base
+  - _self_
+  - /experiment/hetero/groups/Qwen3@_models: LLL
+
+hydra:
+  sweeper:
+    params:
+      params_temperature: 0.0, 0.3, 0.7, 0.99
+      params_top_p: 0.3, 0.7, 1.0
+      experiment/hetero/groups/Qwen3@_models: LLL, LLM, HLL, LMM, HLM, HHL, MMM, HMM, HHM, HHH

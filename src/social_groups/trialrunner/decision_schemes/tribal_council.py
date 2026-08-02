@@ -1,4 +1,6 @@
+import json
 import re
+from functools import cached_property
 from typing import Annotated, Literal
 
 from langchain_core.language_models import BaseChatModel
@@ -11,6 +13,7 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, BeforeValidator, ValidationError
 
 from social_groups.general.utils.standard_library import BaseModelWithExtraFields
+from social_groups.reporting.parsing import AnswerOptions, AnswerParser
 from social_groups.trialrunner.config import BackendInfo, LLMConfig, get_llm
 from social_groups.trialrunner.decision_schemes.base import (
     DecisionScheme,
@@ -33,16 +36,39 @@ from social_groups.trialrunner.utils.tool_calls import (
 class Agent(BaseModel):
     llm: LLMConfig
     backend: BackendInfo
+    number_of_agents: int
+    with_thinking: bool | None = None
 
 
 class TribalCouncilConfiguration(BaseModelWithExtraFields):
-    proposal_agent: Agent
-    council_agent: Agent
-    council_size: int
+    proposal_agents: list[Agent]
+    council_agents: list[Agent]
     num_different_proposals: int
+
     accept_after_n_invalid_proposals: int
+    accept_after_n_same_proposals: int
     total_invalid_question_formulations_accepted: int
-    total_invalid_final_decisions_accepted: int
+    total_invalid_final_decisions_ignored: int
+
+    @cached_property
+    def council_agent_llms(self):
+        agents = []
+
+        for a in self.council_agents:
+            for _ in range(a.number_of_agents):
+                agents.append(get_llm(a.llm, a.backend, with_thinking=a.with_thinking))
+
+        return agents
+
+    @cached_property
+    def proposal_agent_llms(self):
+        agents = []
+
+        for a in self.proposal_agents:
+            for _ in range(a.number_of_agents):
+                agents.append(get_llm(a.llm, a.backend, with_thinking=a.with_thinking))
+
+        return agents
 
 
 def extract_letter(v: str):
@@ -62,6 +88,7 @@ class Proposal(BaseModel):
         BeforeValidator(extract_letter),
     ]
     reasoning: str
+    agent_id: int
 
 
 class Reaction(BaseModel):
@@ -86,8 +113,8 @@ QUESTIONER_SYSTEM_PROMPT = (
 
 
 def make_proposal(
-    llm: BaseChatModel, question: str, cannot_choose: set[str]
-) -> None | Proposal:
+    llm: BaseChatModel, question: str, cannot_choose: set[str], agent_id: int
+) -> Proposal:
     @tool(return_direct=True)
     def propose_solution(correct_answer: str, reasoning: str):
         """
@@ -115,11 +142,26 @@ def make_proposal(
     )
 
     args = parse_tool_call_arguments(ai_msg)
+    parser = AnswerParser(AnswerOptions.letters_A_to_J)
+
     try:
-        return Proposal(answer=args["correct_answer"], reasoning=args["reasoning"])  # noqa: some wired behaviour with validator
+        return Proposal(
+            answer=parser._parser(args["correct_answer"]),
+            reasoning=args["reasoning"],
+            agent_id=agent_id,
+        )  # noqa: some wired behaviour with validator
 
     except (ValidationError, KeyError) as e:
-        raise InvalidToolCallException() from e
+        with phoenix_log_span(
+            "Received Error",
+            title="ERROR",
+            error=str(e),
+            args_of_tool_call=json.dumps(args),
+            ai_message=ai_msg.content,
+            cannot_choose=cannot_choose,
+            question=question,
+        ):
+            raise InvalidToolCallException() from e
 
 
 def trim_answers(q: str):
@@ -143,7 +185,7 @@ def remove_answer(original_question: str, answer: str) -> str:
 
     parts = original_question.split("Options are:")
     parts[-1] = re.sub(
-        rf"^\(\s*{answer}\s*\):\s*.+\n?", "", parts[-1], flags=re.MULTILINE
+        rf"^\(\s*{answer.capitalize()}\s*\):\s*.+\n?", "", parts[-1], flags=re.MULTILINE
     )
 
     return "Options are:".join(parts)
@@ -200,7 +242,7 @@ def form_question_about_proposal(
 
 
 def answer_question_about_proposal(
-    proposal_llm: BaseChatModel,
+    proposal_agent_llms: list[BaseChatModel],
     original_question: str,
     proposals: list[Proposal],
     old_reactions: list[Reaction],
@@ -262,7 +304,9 @@ def answer_question_about_proposal(
         )
 
         # ai_msg = proposal_llm.bind_tools([answer_the_question]).invoke(messages)
-        ai_msg = proposal_llm.invoke(messages)
+        ai_msg = proposal_agent_llms[proposals[current_proposal].agent_id].invoke(
+            messages
+        )
 
         answer_info = retrieve_single_answer_info(ai_msg)
         new_reactions.append(strip_out_thinking_process(answer_info.response))
@@ -310,8 +354,9 @@ def get_final_decision(
         ]
         + [
             HumanMessage(
-                "After the discussion, what do you think is the correct solution?"
-                "Please evaluate carefully and submit your decision using the given tool."
+                "After the discussion, what do you think is the correct solution?\n"
+                "Please evaluate carefully and submit your decision using the given tool. "
+                "You do not have to choose a certain proposal. Choose what is right based on what was said!"
             )
         ]
     )
@@ -375,64 +420,59 @@ class TribalCouncilDebate(DecisionScheme[TribalCouncilConfiguration]):
 
     def proposal_round(self, question: str, num_different_proposals: int):
         proposals: list[Proposal] = []
-        proposal_llm = get_llm(
-            self.config.proposal_agent.llm, self.config.proposal_agent.backend
-        )
-
         n_same_proposals = 0
-
+        n_invalid_proposals = 0
         answers_given: set[str] = set()
+        agents_turn = 0
 
         while len(proposals) < num_different_proposals:
+            agent = self.config.proposal_agent_llms[agents_turn]
             try:
+                new_prop = make_proposal(
+                    agent, question, answers_given, agent_id=agents_turn
+                )
                 if (
-                    new_prop := make_proposal(proposal_llm, question, answers_given)
-                ) is None:
-                    continue
-            except (NoToolCallsException, InvalidToolCallException):
-                n_same_proposals += 1
-                if n_same_proposals > self.config.accept_after_n_invalid_proposals:
-                    return proposals
-                continue
+                    not any([p.answer == new_prop.answer for p in proposals])
+                    or n_same_proposals >= self.config.accept_after_n_same_proposals
+                ):
+                    n_same_proposals = 0
+                    proposals.append(new_prop)
+                    answers_given.add(new_prop.answer)
+                else:
+                    n_same_proposals += 1
 
-            if (
-                not any(p.answer == new_prop.answer for p in proposals)
-                or n_same_proposals >= self.config.accept_after_n_invalid_proposals
-            ):
-                n_same_proposals = 0
-                proposals.append(new_prop)
-                answers_given.add(new_prop.answer)
-            else:
-                n_same_proposals += 1
+            except (NoToolCallsException, InvalidToolCallException):
+                n_invalid_proposals += 1
+                if n_invalid_proposals > self.config.accept_after_n_invalid_proposals:
+                    return proposals
+
+            agents_turn = (agents_turn + 1) % len(self.config.proposal_agent_llms)
 
         return proposals
 
     def question_round(
         self, question: str, proposals: list[Proposal]
     ) -> list[Reaction]:
-        council_members = [
-            get_llm(self.config.proposal_agent.llm, self.config.proposal_agent.backend)
-            for _ in range(self.config.council_size)
+
+        need_questions_from = [
+            agent_id for agent_id in range(len(self.config.council_agent_llms))
         ]
-
-        proposal_llm = get_llm(
-            self.config.proposal_agent.llm, self.config.proposal_agent.backend
-        )
-
         reactions = []
         invalid_questions_received = 0
-        i = 0
 
-        while i < len(council_members):
-            with phoenix_log_span(f"Question {i}", title=f"Question {i}"):
+        while need_questions_from:
+            agent_id = need_questions_from.pop(0)
+            with phoenix_log_span(f"Question {agent_id}", title=f"Question {agent_id}"):
                 try:
                     question_about_proposal = form_question_about_proposal(
-                        council_members[i], question, proposals, reactions
+                        self.config.council_agent_llms[agent_id],
+                        question,
+                        proposals,
+                        reactions,
                     )
-                    i += 1
-
                 except (NoToolCallsException, InvalidToolCallException):
                     invalid_questions_received += 1
+                    need_questions_from.append(agent_id)
                     if (
                         invalid_questions_received
                         > self.config.total_invalid_question_formulations_accepted
@@ -444,45 +484,58 @@ class TribalCouncilDebate(DecisionScheme[TribalCouncilConfiguration]):
                             return reactions
                     continue
 
-            with phoenix_log_span(f"Answers {i}", title=f"Answer {i}"):
+            with phoenix_log_span(f"Answers {agent_id}", title=f"Answer {agent_id}"):
                 reaction = answer_question_about_proposal(
-                    proposal_llm,
+                    self.config.proposal_agent_llms,
                     question,
                     proposals,
                     reactions,
                     question_about_proposal,
                 )
+
             reactions.append(reaction)
+
+        if (
+            invalid_questions_received
+            > self.config.total_invalid_question_formulations_accepted
+        ):
+            with phoenix_log_span(
+                f"Too many invalid formulations received in one round (> {self.config.total_invalid_question_formulations_accepted})",
+                title="Abort Question Round",
+            ):
+                pass
 
         return reactions
 
     def opinion_round(
         self, question: str, proposals: list[Proposal], reactions: list[Reaction]
     ) -> list[str]:
-        council_members = [
-            get_llm(self.config.proposal_agent.llm, self.config.proposal_agent.backend)
-            for _ in range(self.config.council_size)
-        ]
         decisions = []
-
-        i = 0
         total_invalid_decisions = 0
+        need_decision_from = [
+            agent_id for agent_id in range(len(self.config.council_agent_llms))
+        ]
 
-        while i < len(council_members):
+        while need_decision_from:
+            agent_id = need_decision_from.pop(0)
             try:
                 decision = get_final_decision(
-                    council_members[i], question, proposals, reactions
+                    self.config.council_agent_llms[agent_id],
+                    question,
+                    proposals,
+                    reactions,
                 )
+
                 decisions.append(decision)
-                i += 1
             except (NoToolCallsException, InvalidToolCallException):
                 total_invalid_decisions += 1
+                need_decision_from.append(agent_id)
                 if (
                     total_invalid_decisions
-                    > self.config.total_invalid_final_decisions_accepted
+                    > self.config.total_invalid_final_decisions_ignored
                 ):
                     with phoenix_log_span(
-                        f"Too many invalid formulations received in one round (> {self.config.total_invalid_final_decisions_accepted})",
+                        f"Too many invalid formulations received in one round (> {self.config.total_invalid_final_decisions_ignored})",
                         title="Abort Question Round",
                     ):
                         return decisions

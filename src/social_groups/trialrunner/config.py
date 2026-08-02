@@ -13,6 +13,9 @@ from pydantic import BaseModel, ConfigDict, SecretStr
 
 from social_groups.trialrunner.utils import global_config_holder
 
+MAX_RETRIES = 3
+MAX_TIMEOUT = 24 * 60 * 60
+
 CLI_TITLE = "Social Studies"
 CLI_SUBTITLE = "Agent Swarm Experiments"
 
@@ -107,6 +110,7 @@ def get_llm(
             if (with_thinking is False) and "Reasoning" in backend.model_name:
                 old_model = model
                 model = old_model.replace("Reasoning", "Instruct")
+                model = model + "-BF16"
 
                 logger.warning(
                     f"Called ChatMistralAI with Reasoning but want no thinking mode,"
@@ -115,12 +119,13 @@ def get_llm(
 
             if (with_thinking is True) and "Instruct" in backend.model_name:
                 old_model = model
-                model = old_model.replace("Instruct", "Reasoning")
+                model = old_model.replace("Instruct", "Reasoning").replace("-BF16", "")
 
                 logger.warning(
                     f"Called ChatMistralAI with Instruct but want thinking mode,"
                     f" switch from {old_model} to {model} for these kind of requests."
                 )
+
             llm = ChatMistralAI(
                 model=model,
                 base_url=global_config_holder.global_hydra_config.execution.get_endpoint(
@@ -132,6 +137,8 @@ def get_llm(
                 max_tokens=config.max_new_tokens,
                 top_p=config.top_p,
                 random_seed=config.seed,
+                timeout=MAX_TIMEOUT,  # one day, to stop it from throwing errors
+                max_retries=MAX_RETRIES,
             )
 
             if config.repetition_penalty is not None:
@@ -150,6 +157,8 @@ def get_llm(
                 max_tokens=config.max_new_tokens,
                 top_p=config.top_p,
                 seed=config.seed,
+                timeout=MAX_TIMEOUT,  # one day, to stop it from throwing errors
+                max_retries=MAX_RETRIES,
             )
 
             if with_thinking is not None:
@@ -158,6 +167,28 @@ def get_llm(
                         "chat_template_kwargs": {"enable_thinking": with_thinking}
                     }
                 )
+
+            if config.repetition_penalty is not None:
+                llm = llm.bind(
+                    extra_body={"repetition_penalty": config.repetition_penalty}
+                )
+
+            return llm
+        elif "gemma-4" in backend.model_name:
+            if with_thinking is not None:
+                raise NotImplementedError("Gemma does not support thinking mode here.")
+
+            llm = ChatOpenAI(
+                model=backend.model_name,
+                base_url=base_url + "/v1",
+                api_key=SecretStr(api_key or "-"),
+                temperature=config.temperature,
+                max_tokens=config.max_new_tokens,
+                top_p=config.top_p,
+                seed=config.seed,
+                timeout=MAX_TIMEOUT,
+                max_retries=MAX_RETRIES,
+            )
 
             if config.repetition_penalty is not None:
                 llm = llm.bind(

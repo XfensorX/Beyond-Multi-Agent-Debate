@@ -1,0 +1,93 @@
+# @package _global_
+defaults:
+  - _self_
+  - /experiment/hetero/groups/Gemma4@_models: LLL
+  - /experiment/hetero/thinking/Gemma4@_openly_thinking_models: only_H
+
+hydra:
+  sweeper:
+    params:
+      seed: 1,2,3,4,5
+      experiment/hetero/groups/Gemma4@_models: LLL, LLH, LHL, LHH, HLL, HHL, HHH
+      experiment/hetero/thinking/Gemma4@_openly_thinking_models: nobody, only_L, only_H, all
+
+seed: 1
+experiment:
+  name: gemma4_multi_agent_debate_3part
+  data: gpqa-diamond
+
+  strategy:
+    name: changed_prompt_thinking_mad
+    configuration:
+      system_message: >-
+        The following questions are examples for your task. At the end you get a question to answer as accurately as possible.
+        Think about your answer carefully and validate your assumptions and knowledge.
+        After thinking about the correct answer thoroughly put it in the form "The answer is (X)" at the end of your response. 
+
+      human_messsage_before_other_answers: >-
+        You are part of a multi-agent debate about the last question above. You will now see the answers and reasoning of the other 
+        agents. Please read and evaluate them carefully and validate their reasoning, assumptions and used facts.
+        Please use their information to carefully VALIDATE your own Answer from before and revise or change it, if you find
+        that facts or reasoning from the others does make sense and is valid.
+        If you still think you are correct, please provide arguments in your new answer that can be used as feedback 
+        from the other debate participants to revise their own solutions.
+        
+        -------------------------------------------------------------------------
+      
+      
+
+      human_messsage_after_other_answers: >-
+        ------------------------------------------------------------------
+        
+        
+        Now think about the other answers carefully, validate your own reasoning and rework your solution from before
+        If you think that you were wrong, you are free to change your response or opinion, otherwise convince the other
+        of your answer.
+        Put your answer in the form "The answer is (X)" at the end of your response.
+
+      number_of_rounds: 3
+      use_few_shot_prompting: false
+      openly_thinking_models: ${oc.dict.values:_openly_thinking_models}
+
+      debate_agents:
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 16384
+            temperature: 1.0
+            top_p: 0.95
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+            seed: ${seed}
+          backend: ${_models.0}
+
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 16384
+            temperature: 1.0
+            top_p: 0.95
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+            seed: ${seed}
+          backend: ${_models.1}
+
+
+        - number_of_agents: 1
+          params:
+            max_new_tokens: 16384
+            temperature: 1.0
+            top_p: 0.95
+            top_k: null
+            typical_p: null
+            repetition_penalty: null
+            seed: ${seed}
+          backend: ${_models.2}
+
+
+
+  additional_info:
+    description: MAD with a new prompt — ${_models.0},${_models.1},${_models.2}
+
+
+

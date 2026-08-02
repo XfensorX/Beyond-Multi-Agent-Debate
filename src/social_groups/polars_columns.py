@@ -13,6 +13,8 @@ final_answer = "final_answer"
 # the model names of the models involved as a list
 model_names = "model_names"
 
+model_family = "model_family"
+
 
 # The models that are allowed to openly think
 thinking_models = "thinking_models"
@@ -30,7 +32,19 @@ is_correct = "is_correct"
 
 accuracy = "accuracy"
 
+used_input_tokens = "used_input_tokens"
+used_output_tokens = "used_output_tokens"
+
 # TODO: refactor
 parsed_individual_answers_after: str = (
     AnalysisColumn.parsed_individual_answers_after.value
 )
+
+parsed_individual_answers_before: str = (
+    AnalysisColumn.parsed_individual_answers_before.value
+)
+
+parsed_combined_answers_before: str = (
+    AnalysisColumn.parsed_combined_answers_before.value
+)
+parsed_combined_answers_after: str = AnalysisColumn.parsed_combined_answers_after.value
