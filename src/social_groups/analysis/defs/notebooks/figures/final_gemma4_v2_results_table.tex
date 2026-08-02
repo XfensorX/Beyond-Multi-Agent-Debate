@@ -1,0 +1,77 @@
+\begin{table}[htbp]
+\centering
+\small
+\caption{Final Gemma 4 results aggregated over random seeds. Metrics are reported as mean with standard deviation; accuracy and accuracy increase are shown in percentage points.}
+\label{tab:final-gemma4-results}
+\begin{tabular}{llclrrrr}
+\toprule
+Method & Configuration & Participants & Argumentation Shared & Accuracy [\%] & Input Tokens & Output Tokens & Accuracy Increase [\%] \\
+\midrule
+Single model & E2B & 1 & -- & 39.6{\scriptsize\,$\pm$\,2.1} & 245{\scriptsize\,$\pm$\,0} & 1529{\scriptsize\,$\pm$\,16} &  \\
+Single model & E4B & 1 & -- & 54.0{\scriptsize\,$\pm$\,2.2} & 245{\scriptsize\,$\pm$\,0} & 1703{\scriptsize\,$\pm$\,38} &  \\
+Single model & 31B & 1 & -- & 76.7{\scriptsize\,$\pm$\,1.0} & 249{\scriptsize\,$\pm$\,0} & 757{\scriptsize\,$\pm$\,11} &  \\
+No-discussion voting & E2B & 1 & -- & 36.8{\scriptsize\,$\pm$\,0.7} & 245{\scriptsize\,$\pm$\,0} & 1522{\scriptsize\,$\pm$\,3} &  \\
+No-discussion voting & E2B & 2 & -- & 29.0{\scriptsize\,$\pm$\,1.9} & 490{\scriptsize\,$\pm$\,0} & 3042{\scriptsize\,$\pm$\,32} &  \\
+No-discussion voting & E2B & 3 & -- & 37.9{\scriptsize\,$\pm$\,1.5} & 735{\scriptsize\,$\pm$\,0} & 4550{\scriptsize\,$\pm$\,40} &  \\
+No-discussion voting & E2B & 4 & -- & 37.3{\scriptsize\,$\pm$\,2.4} & 980{\scriptsize\,$\pm$\,0} & 6058{\scriptsize\,$\pm$\,57} &  \\
+No-discussion voting & E2B & 5 & -- & 39.0{\scriptsize\,$\pm$\,1.4} & 1225{\scriptsize\,$\pm$\,0} & 7581{\scriptsize\,$\pm$\,42} &  \\
+No-discussion voting & E2B & 6 & -- & 38.1{\scriptsize\,$\pm$\,0.8} & 1470{\scriptsize\,$\pm$\,0} & 9097{\scriptsize\,$\pm$\,56} &  \\
+No-discussion voting & E2B & 7 & -- & 39.4{\scriptsize\,$\pm$\,0.7} & 1715{\scriptsize\,$\pm$\,0} & 10651{\scriptsize\,$\pm$\,84} &  \\
+No-discussion voting & E2B & 8 & -- & 39.1{\scriptsize\,$\pm$\,1.8} & 1960{\scriptsize\,$\pm$\,0} & 12164{\scriptsize\,$\pm$\,106} &  \\
+No-discussion voting & E2B & 9 & -- & 39.6{\scriptsize\,$\pm$\,1.5} & 2205{\scriptsize\,$\pm$\,0} & 13682{\scriptsize\,$\pm$\,115} &  \\
+No-discussion voting & E4B & 1 & -- & 55.9{\scriptsize\,$\pm$\,2.2} & 245{\scriptsize\,$\pm$\,0} & 1714{\scriptsize\,$\pm$\,41} &  \\
+No-discussion voting & E4B & 2 & -- & 45.1{\scriptsize\,$\pm$\,1.4} & 490{\scriptsize\,$\pm$\,0} & 3448{\scriptsize\,$\pm$\,67} &  \\
+No-discussion voting & E4B & 3 & -- & 55.4{\scriptsize\,$\pm$\,1.9} & 735{\scriptsize\,$\pm$\,0} & 5164{\scriptsize\,$\pm$\,109} &  \\
+No-discussion voting & E4B & 4 & -- & 52.2{\scriptsize\,$\pm$\,1.7} & 980{\scriptsize\,$\pm$\,0} & 6884{\scriptsize\,$\pm$\,138} &  \\
+No-discussion voting & E4B & 5 & -- & 54.1{\scriptsize\,$\pm$\,1.4} & 1225{\scriptsize\,$\pm$\,0} & 8618{\scriptsize\,$\pm$\,188} &  \\
+No-discussion voting & E4B & 6 & -- & 52.9{\scriptsize\,$\pm$\,1.7} & 1470{\scriptsize\,$\pm$\,0} & 10353{\scriptsize\,$\pm$\,215} &  \\
+No-discussion voting & E4B & 7 & -- & 55.7{\scriptsize\,$\pm$\,1.7} & 1715{\scriptsize\,$\pm$\,0} & 12090{\scriptsize\,$\pm$\,242} &  \\
+No-discussion voting & E4B & 8 & -- & 55.8{\scriptsize\,$\pm$\,1.7} & 1960{\scriptsize\,$\pm$\,0} & 13800{\scriptsize\,$\pm$\,262} &  \\
+No-discussion voting & E4B & 9 & -- & 56.2{\scriptsize\,$\pm$\,2.0} & 2205{\scriptsize\,$\pm$\,0} & 15540{\scriptsize\,$\pm$\,306} &  \\
+Multi-agent debate & HH & 2 & No agents & 51.8{\scriptsize\,$\pm$\,1.5} & 8065{\scriptsize\,$\pm$\,78} & 7220{\scriptsize\,$\pm$\,91} & 7.9{\scriptsize\,$\pm$\,1.8} \\
+Multi-agent debate & HH & 2 & Low-capacity agents & 48.7{\scriptsize\,$\pm$\,1.9} & 8029{\scriptsize\,$\pm$\,80} & 7210{\scriptsize\,$\pm$\,80} & 5.9{\scriptsize\,$\pm$\,1.5} \\
+Multi-agent debate & HH & 2 & High-capacity agents & 54.1{\scriptsize\,$\pm$\,0.7} & 18653{\scriptsize\,$\pm$\,289} & 6821{\scriptsize\,$\pm$\,114} & 9.3{\scriptsize\,$\pm$\,1.3} \\
+Multi-agent debate & HH & 2 & All agents & 53.5{\scriptsize\,$\pm$\,1.9} & 18489{\scriptsize\,$\pm$\,323} & 6765{\scriptsize\,$\pm$\,137} & 9.1{\scriptsize\,$\pm$\,1.5} \\
+Multi-agent debate & HHH & 3 & No agents & 57.2{\scriptsize\,$\pm$\,1.2} & 12099{\scriptsize\,$\pm$\,147} & 10833{\scriptsize\,$\pm$\,178} & 2.5{\scriptsize\,$\pm$\,2.4} \\
+Multi-agent debate & HHH & 3 & Low-capacity agents & 56.6{\scriptsize\,$\pm$\,1.9} & 12040{\scriptsize\,$\pm$\,158} & 10772{\scriptsize\,$\pm$\,166} & 1.6{\scriptsize\,$\pm$\,2.3} \\
+Multi-agent debate & HHH & 3 & High-capacity agents & 57.3{\scriptsize\,$\pm$\,1.2} & 36021{\scriptsize\,$\pm$\,490} & 10206{\scriptsize\,$\pm$\,199} & 2.5{\scriptsize\,$\pm$\,2.6} \\
+Multi-agent debate & HHH & 3 & All agents & 57.9{\scriptsize\,$\pm$\,1.5} & 36115{\scriptsize\,$\pm$\,306} & 10231{\scriptsize\,$\pm$\,99} & 2.5{\scriptsize\,$\pm$\,1.5} \\
+Multi-agent debate & HHL & 3 & No agents & 54.7{\scriptsize\,$\pm$\,1.5} & 11871{\scriptsize\,$\pm$\,188} & 10567{\scriptsize\,$\pm$\,225} & 3.8{\scriptsize\,$\pm$\,1.8} \\
+Multi-agent debate & HHL & 3 & Low-capacity agents & 48.4{\scriptsize\,$\pm$\,3.6} & 19123{\scriptsize\,$\pm$\,99} & 10311{\scriptsize\,$\pm$\,118} & -2.7{\scriptsize\,$\pm$\,2.8} \\
+Multi-agent debate & HHL & 3 & High-capacity agents & 56.3{\scriptsize\,$\pm$\,2.3} & 28706{\scriptsize\,$\pm$\,347} & 10140{\scriptsize\,$\pm$\,148} & 4.0{\scriptsize\,$\pm$\,1.5} \\
+Multi-agent debate & HHL & 3 & All agents & 56.1{\scriptsize\,$\pm$\,1.9} & 35375{\scriptsize\,$\pm$\,391} & 10057{\scriptsize\,$\pm$\,194} & 4.4{\scriptsize\,$\pm$\,2.3} \\
+Multi-agent debate & HL & 2 & No agents & 41.9{\scriptsize\,$\pm$\,1.6} & 7779{\scriptsize\,$\pm$\,58} & 6927{\scriptsize\,$\pm$\,68} & 11.9{\scriptsize\,$\pm$\,1.5} \\
+Multi-agent debate & HL & 2 & Low-capacity agents & 46.3{\scriptsize\,$\pm$\,1.6} & 12510{\scriptsize\,$\pm$\,163} & 6720{\scriptsize\,$\pm$\,145} & 14.7{\scriptsize\,$\pm$\,1.5} \\
+Multi-agent debate & HL & 2 & High-capacity agents & 51.3{\scriptsize\,$\pm$\,2.5} & 13509{\scriptsize\,$\pm$\,204} & 6784{\scriptsize\,$\pm$\,101} & 20.8{\scriptsize\,$\pm$\,4.2} \\
+Multi-agent debate & HL & 2 & All agents & 47.7{\scriptsize\,$\pm$\,3.7} & 17852{\scriptsize\,$\pm$\,216} & 6570{\scriptsize\,$\pm$\,148} & 16.5{\scriptsize\,$\pm$\,2.2} \\
+Multi-agent debate & HLL & 3 & No agents & 46.6{\scriptsize\,$\pm$\,3.5} & 11480{\scriptsize\,$\pm$\,107} & 10142{\scriptsize\,$\pm$\,116} & 4.6{\scriptsize\,$\pm$\,1.4} \\
+Multi-agent debate & HLL & 3 & Low-capacity agents & 47.9{\scriptsize\,$\pm$\,3.3} & 25185{\scriptsize\,$\pm$\,198} & 9486{\scriptsize\,$\pm$\,207} & 4.7{\scriptsize\,$\pm$\,2.9} \\
+Multi-agent debate & HLL & 3 & High-capacity agents & 54.0{\scriptsize\,$\pm$\,1.9} & 20011{\scriptsize\,$\pm$\,225} & 9724{\scriptsize\,$\pm$\,111} & 10.5{\scriptsize\,$\pm$\,3.1} \\
+Multi-agent debate & HLL & 3 & All agents & 51.6{\scriptsize\,$\pm$\,1.6} & 32976{\scriptsize\,$\pm$\,405} & 9306{\scriptsize\,$\pm$\,207} & 7.8{\scriptsize\,$\pm$\,2.6} \\
+Multi-agent debate & LH & 2 & No agents & 42.3{\scriptsize\,$\pm$\,3.8} & 7737{\scriptsize\,$\pm$\,121} & 6894{\scriptsize\,$\pm$\,140} & 10.2{\scriptsize\,$\pm$\,1.9} \\
+Multi-agent debate & LH & 2 & Low-capacity agents & 44.1{\scriptsize\,$\pm$\,2.3} & 12728{\scriptsize\,$\pm$\,120} & 6907{\scriptsize\,$\pm$\,149} & 14.3{\scriptsize\,$\pm$\,3.3} \\
+Multi-agent debate & LH & 2 & High-capacity agents & 50.0{\scriptsize\,$\pm$\,1.6} & 13127{\scriptsize\,$\pm$\,292} & 6577{\scriptsize\,$\pm$\,117} & 18.8{\scriptsize\,$\pm$\,4.4} \\
+Multi-agent debate & LH & 2 & All agents & 50.2{\scriptsize\,$\pm$\,4.7} & 17426{\scriptsize\,$\pm$\,240} & 6318{\scriptsize\,$\pm$\,142} & 20.3{\scriptsize\,$\pm$\,5.4} \\
+Multi-agent debate & LHH & 3 & No agents & 53.7{\scriptsize\,$\pm$\,1.5} & 11845{\scriptsize\,$\pm$\,120} & 10540{\scriptsize\,$\pm$\,154} & 3.5{\scriptsize\,$\pm$\,1.0} \\
+Multi-agent debate & LHH & 3 & Low-capacity agents & 53.6{\scriptsize\,$\pm$\,1.5} & 19312{\scriptsize\,$\pm$\,182} & 10563{\scriptsize\,$\pm$\,213} & 2.7{\scriptsize\,$\pm$\,2.9} \\
+Multi-agent debate & LHH & 3 & High-capacity agents & 58.7{\scriptsize\,$\pm$\,2.1} & 27946{\scriptsize\,$\pm$\,337} & 9752{\scriptsize\,$\pm$\,148} & 6.4{\scriptsize\,$\pm$\,1.5} \\
+Multi-agent debate & LHH & 3 & All agents & 55.4{\scriptsize\,$\pm$\,1.5} & 34482{\scriptsize\,$\pm$\,193} & 9717{\scriptsize\,$\pm$\,97} & 5.9{\scriptsize\,$\pm$\,2.6} \\
+Multi-agent debate & LHL & 3 & No agents & 46.4{\scriptsize\,$\pm$\,2.2} & 11541{\scriptsize\,$\pm$\,145} & 10207{\scriptsize\,$\pm$\,169} & 2.5{\scriptsize\,$\pm$\,0.7} \\
+Multi-agent debate & LHL & 3 & Low-capacity agents & 44.8{\scriptsize\,$\pm$\,2.5} & 24986{\scriptsize\,$\pm$\,391} & 9442{\scriptsize\,$\pm$\,210} & 3.6{\scriptsize\,$\pm$\,3.3} \\
+Multi-agent debate & LHL & 3 & High-capacity agents & 52.9{\scriptsize\,$\pm$\,2.3} & 19983{\scriptsize\,$\pm$\,278} & 9745{\scriptsize\,$\pm$\,122} & 12.4{\scriptsize\,$\pm$\,3.0} \\
+Multi-agent debate & LHL & 3 & All agents & 53.8{\scriptsize\,$\pm$\,2.7} & 32858{\scriptsize\,$\pm$\,338} & 9261{\scriptsize\,$\pm$\,175} & 10.3{\scriptsize\,$\pm$\,3.2} \\
+Multi-agent debate & LL & 2 & No agents & 37.6{\scriptsize\,$\pm$\,1.8} & 7328{\scriptsize\,$\pm$\,124} & 6407{\scriptsize\,$\pm$\,172} & 7.8{\scriptsize\,$\pm$\,1.5} \\
+Multi-agent debate & LL & 2 & Low-capacity agents & 38.9{\scriptsize\,$\pm$\,2.7} & 16183{\scriptsize\,$\pm$\,160} & 5834{\scriptsize\,$\pm$\,106} & 10.1{\scriptsize\,$\pm$\,1.1} \\
+Multi-agent debate & LL & 2 & High-capacity agents & 36.3{\scriptsize\,$\pm$\,2.7} & 7321{\scriptsize\,$\pm$\,83} & 6378{\scriptsize\,$\pm$\,111} & 7.0{\scriptsize\,$\pm$\,1.8} \\
+Multi-agent debate & LL & 2 & All agents & 42.0{\scriptsize\,$\pm$\,1.1} & 16083{\scriptsize\,$\pm$\,211} & 5772{\scriptsize\,$\pm$\,103} & 11.8{\scriptsize\,$\pm$\,2.0} \\
+Multi-agent debate & LLH & 3 & No agents & 46.3{\scriptsize\,$\pm$\,0.9} & 11513{\scriptsize\,$\pm$\,149} & 10166{\scriptsize\,$\pm$\,169} & 4.7{\scriptsize\,$\pm$\,0.8} \\
+Multi-agent debate & LLH & 3 & Low-capacity agents & 50.5{\scriptsize\,$\pm$\,1.6} & 25441{\scriptsize\,$\pm$\,208} & 9644{\scriptsize\,$\pm$\,116} & 10.1{\scriptsize\,$\pm$\,3.3} \\
+Multi-agent debate & LLH & 3 & High-capacity agents & 56.4{\scriptsize\,$\pm$\,1.7} & 19420{\scriptsize\,$\pm$\,326} & 9404{\scriptsize\,$\pm$\,136} & 14.6{\scriptsize\,$\pm$\,1.5} \\
+Multi-agent debate & LLH & 3 & All agents & 53.1{\scriptsize\,$\pm$\,2.2} & 32663{\scriptsize\,$\pm$\,176} & 9096{\scriptsize\,$\pm$\,66} & 11.6{\scriptsize\,$\pm$\,3.4} \\
+Multi-agent debate & LLL & 3 & No agents & 40.4{\scriptsize\,$\pm$\,2.0} & 11142{\scriptsize\,$\pm$\,192} & 9561{\scriptsize\,$\pm$\,153} & 2.9{\scriptsize\,$\pm$\,1.3} \\
+Multi-agent debate & LLL & 3 & Low-capacity agents & 43.4{\scriptsize\,$\pm$\,5.6} & 30544{\scriptsize\,$\pm$\,311} & 8429{\scriptsize\,$\pm$\,69} & 4.6{\scriptsize\,$\pm$\,4.0} \\
+Multi-agent debate & LLL & 3 & High-capacity agents & 41.5{\scriptsize\,$\pm$\,1.7} & 11061{\scriptsize\,$\pm$\,97} & 9554{\scriptsize\,$\pm$\,144} & 2.7{\scriptsize\,$\pm$\,0.8} \\
+Multi-agent debate & LLL & 3 & All agents & 42.5{\scriptsize\,$\pm$\,1.2} & 30785{\scriptsize\,$\pm$\,426} & 8495{\scriptsize\,$\pm$\,140} & 3.3{\scriptsize\,$\pm$\,3.1} \\
+\bottomrule
+\end{tabular}
+\end{table}
