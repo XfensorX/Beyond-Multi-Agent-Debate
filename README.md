@@ -45,9 +45,7 @@ reporting layer that feeds figures and tables directly into the thesis document.
 | Benchmarks          | MMLU-Pro (5 slice variants) and GPQA-Diamond, via **6** dataset connectors                                               |
 | Experiment configs  | **80** Hydra configurations under `configs/trials/experiment/final*`, spanning **25** distinct experiment families       |
 | Executed runs       | **1,780** parsed experiment runs, **2,603** compressed trace files on disk                                               |
-| Recorded answers    | **682,200** individual model answers, normalized into queryable Parquet tables                                           |
 | LLM calls           | **~5 million** LLM calls across the final experiments                                                                    |
-| Generated data      | **~40 GB** of results: raw traces, Phoenix spans, Parquet tables, Dagster assets, report figures                         |
 | Cluster targets     | 2 SLURM locations, 5 orchestrated service types (experiment, vLLM, TGI, Phoenix, Phoenix+Postgres)                       |
 | Project span        | ~8 months of active development, 296+ commits                                                                            |
 
