@@ -47,7 +47,7 @@ reporting layer that feeds figures and tables directly into the thesis document.
 | Executed runs       | **1,780** parsed experiment runs, **2,603** compressed trace files on disk                                               |
 | LLM calls           | **~5 million** LLM calls across the final experiments                                                                    |
 | Cluster targets     | 2 SLURM locations, 5 orchestrated service types (experiment, vLLM, TGI, Phoenix, Phoenix+Postgres)                       |
-| Project span        | ~8 months of active development, 296+ commits                                                                            |
+| Project span        | ~6 months of active development, 296+ commits                                                                            |
 
 All numbers above are measured directly from the current repository and its generated `results/` data, not estimated.
 
